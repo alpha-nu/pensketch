@@ -19,7 +19,7 @@ does not depend on them.
 - [x] 1.4 `packages/core/package.json` and `packages/react/package.json`
       exactly per design.md D6 (names, exports map, `publishConfig.access:
       public`, react deps/peers; no `workspace:*`)
-- [ ] 1.5 tsup configs; `tools/check-size.mjs` (budgets 5120/2048 B min+gz)
+- [x] 1.5 tsup configs; `tools/check-size.mjs` (budgets 5120/2048 B min+gz)
 - [ ] 1.6 `.github/workflows/ci.yml` (D6 step order incl. goldens-freshness
       diff) and `.github/workflows/release.yml` (workflow_dispatch, changesets
       publish with provenance)
