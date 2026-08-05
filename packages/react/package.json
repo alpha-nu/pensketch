@@ -1,0 +1,52 @@
+{
+  "name": "@pensketch/react",
+  "version": "0.0.1",
+  "description": "React bindings for pensketch. Hand-sketched SVG diagrams from plain data.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alpha-nu/pensketch.git",
+    "directory": "packages/react"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "sketch",
+    "hand-drawn",
+    "svg",
+    "diagram",
+    "seeded",
+    "deterministic",
+    "napkin",
+    "react"
+  ],
+  "dependencies": {
+    "@pensketch/core": "^0.0.1"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@pensketch/core",
+  "version": "0.0.1",
+  "description": "Hand-sketched SVG diagrams from plain data. Tiny, seeded, zero dependencies.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alpha-nu/pensketch.git",
+    "directory": "packages/core"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "sketch",
+    "hand-drawn",
+    "svg",
+    "diagram",
+    "seeded",
+    "deterministic",
+    "napkin"
+  ]
+}

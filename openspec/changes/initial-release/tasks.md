@@ -16,7 +16,7 @@ does not depend on them.
 - [x] 1.3 `tsconfig.base.json` + per-package tsconfigs, `biome.json`, vitest
       config with jsdom + 90% line/branch thresholds and the D6 coverage
       excludes
-- [ ] 1.4 `packages/core/package.json` and `packages/react/package.json`
+- [x] 1.4 `packages/core/package.json` and `packages/react/package.json`
       exactly per design.md D6 (names, exports map, `publishConfig.access:
       public`, react deps/peers; no `workspace:*`)
 - [ ] 1.5 tsup configs; `tools/check-size.mjs` (budgets 5120/2048 B min+gz)
@@ -89,7 +89,10 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
 
 - [ ] 6.1 Changesets present for everything shipped; versions resolve to
       `0.1.0`
-- [ ] 6.2 `npm pack --dry-run` per package: dist + README + license only
+- [ ] 6.2 Copy `LICENSE` into each package directory (a real file, never a
+      symlink — npm anchors its automatic licence inclusion to the package
+      root and never follows symlinks), then `npm pack --dry-run` per
+      package: dist + README + license only
 - [ ] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`
 - [ ] 6.4 Confirm no `TODO(owner)` markers or unresolved URLs remain in either
       package README
