@@ -1,4 +1,13 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+
+// The react package reaches core by its public specifier, which resolves
+// through built output. Pointing it at core's source instead means tests and
+// typecheck need no prior build, cannot silently run against a stale one, and
+// report failures in real source rather than in a minified bundle.
+const CORE_SRC = fileURLToPath(
+  new URL('./packages/core/src/index.ts', import.meta.url),
+);
 
 export default defineConfig({
   test: {
@@ -11,6 +20,9 @@ export default defineConfig({
         },
       },
       {
+        resolve: {
+          alias: { '@pensketch/core': CORE_SRC },
+        },
         test: {
           name: 'react',
           root: 'packages/react',
