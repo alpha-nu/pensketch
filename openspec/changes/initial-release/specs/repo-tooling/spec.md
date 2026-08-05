@@ -31,8 +31,10 @@ sourcemapped, target es2020) with a conditional `exports` map resolving
 ### Requirement: Test and coverage gates
 Tests SHALL run under vitest with a jsdom environment; coverage (v8) SHALL
 enforce ≥90% lines and branches, with `examples/**`, `tools/**`, and
-`**/dist/**` excluded. Each milestone review SHALL confirm both packages
-individually clear 90% in the per-file report, not just the aggregate.
+`**/dist/**` excluded. The thresholds SHALL be keyed per package so that each
+one is held to the bar individually rather than in aggregate, and the source
+files SHALL be included explicitly so that a file no test imports counts as
+uncovered instead of vanishing from the report.
 
 #### Scenario: Coverage regression fails
 - **WHEN** a change drops line or branch coverage below 90%

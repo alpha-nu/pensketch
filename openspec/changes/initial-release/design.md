@@ -220,10 +220,15 @@ The port must reproduce the reference byte-for-byte for both fixtures in
   namespaced default theme is covered by separate unit tests.
 - **Serializer** (one shared function used by generator and tests): walk
   element children depth-first in document order; per element emit lowercase
-  tag, attributes **sorted alphabetically** as `name="value"` (values
-  verbatim), and `textContent` for `<text>`; one element per line, joined with
-  `\n`. Sorting makes serialization independent of attribute insertion order
-  across DOM implementations.
+  tag, attributes sorted alphabetically **by attribute name** — not by the
+  formatted `name="value"` string, which orders `stroke-linecap` before
+  `stroke` because `-` sorts below `=` — then emit each as `name="value"`
+  (values verbatim), and `textContent` for `<text>`; one element per line,
+  joined with `\n`. Sorting makes serialization independent of attribute
+  insertion order across DOM implementations. It lives at
+  `packages/core/test/serialize.mjs`: plain ESM, because
+  `tools/generate-goldens.mjs` must import the very same function and Node 20
+  cannot import a `.ts` file.
 - **Generator** (`tools/generate-goldens.mjs`): jsdom over the reference file
   with `runScripts: 'dangerously'` (our own local file), serialize `#sampler`
   and `#budgets`, write `packages/core/test/goldens/sampler.seed7.svg.txt`
