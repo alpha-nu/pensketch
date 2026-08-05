@@ -23,7 +23,7 @@ does not depend on them.
 - [x] 1.6 `.github/workflows/ci.yml` (D6 step order incl. goldens-freshness
       diff) and `.github/workflows/release.yml` (workflow_dispatch, changesets
       publish with provenance)
-- [ ] 1.7 changesets init (`access: public`, `baseBranch: main`)
+- [x] 1.7 changesets init (`access: public`, `baseBranch: main`)
 - [ ] 1.8 **OWNER**: push to the existing `alpha-nu/pensketch` repo; npm
       account with 2FA; create npm org `@pensketch` (reserves the namespace;
       if taken by an existing user, stop and re-decide naming); optional
