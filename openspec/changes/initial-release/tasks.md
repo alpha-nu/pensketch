@@ -8,7 +8,7 @@ does not depend on them.
 
 ## 1. Scaffold
 
-- [ ] 1.1 Root `package.json` (private, workspaces, engines, the six scripts —
+- [x] 1.1 Root `package.json` (private, workspaces, engines, the six scripts —
       design.md D6 verbatim), `.gitignore` (node_modules, dist, coverage),
       `git init` if needed
 - [ ] 1.2 `LICENSE` (MIT, Anas K), root `README.md` stub, `CONTRIBUTING.md`
