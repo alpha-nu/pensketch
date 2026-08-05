@@ -49,8 +49,10 @@ jobs:
       - name: Regenerate goldens
         run: npm run goldens
 
-      - name: Goldens are unchanged by regeneration
-        run: git diff --exit-code -- packages/core/test/goldens
+      - name: Regeneration leaves the tree unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
 
       - name: Size budgets
         run: npm run size

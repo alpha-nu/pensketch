@@ -50,8 +50,9 @@ exceeds 5120 bytes or `@pensketch/react` exceeds 2048 bytes min+gzip.
 ### Requirement: CI validates the full chain including golden freshness
 CI SHALL run on push/PR to `main` over Node 20 and 22 with, in order: `npm
 ci`, lint (Biome), typecheck (`tsc --noEmit`), tests with coverage, build,
-golden regeneration followed by `git diff --exit-code` over the goldens
-directory, and the size check. A drift between `reference/renderer.html`, the
+golden regeneration followed by an assertion that the working tree is
+completely unchanged, and the size check. A drift between
+`reference/renderer.html`, the
 generator, and the checked-in goldens SHALL therefore be impossible to merge
 silently.
 

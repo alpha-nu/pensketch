@@ -310,8 +310,11 @@ organize-imports. changesets config: `"access": "public"`,
 
 CI (`ci.yml`): push/PR to `main`; matrix node 20 + 22; steps in order —
 checkout → setup-node (npm cache) → `npm ci` → `npm run lint` →
-`npm run typecheck` → `npm test` → `npm run build` → `npm run goldens` then
-`git diff --exit-code -- packages/core/test/goldens` → `npm run size`.
+`npm run typecheck` → `npm test` → `npm run build` → `npm run goldens` then an
+assertion that the whole working tree is unchanged (`git status --porcelain`
+empty — a diff scoped to tracked files under the goldens directory would miss
+a newly emitted golden and would pass silently if the path were mistyped) →
+`npm run size`.
 
 Repository layout:
 
