@@ -13,7 +13,7 @@ does not depend on them.
       `git init` if needed
 - [x] 1.2 `LICENSE` (MIT, Anas K), root `README.md` stub, `CONTRIBUTING.md`
       per documentation spec
-- [ ] 1.3 `tsconfig.base.json` + per-package tsconfigs, `biome.json`, vitest
+- [x] 1.3 `tsconfig.base.json` + per-package tsconfigs, `biome.json`, vitest
       config with jsdom + 90% line/branch thresholds and the D6 coverage
       excludes
 - [ ] 1.4 `packages/core/package.json` and `packages/react/package.json`
