@@ -24,10 +24,11 @@ does not depend on them.
       diff) and `.github/workflows/release.yml` (workflow_dispatch, changesets
       publish with provenance)
 - [ ] 1.7 changesets init (`access: public`, `baseBranch: main`)
-- [ ] 1.8 **OWNER**: create GitHub repo + push; npm account with 2FA; create
-      npm org `@pensketch` (reserves the namespace; if taken by an existing
-      user, stop and re-decide naming); optional `0.0.1` placeholder publishes
-      and/or unscoped `pensketch` pointer package; add `NPM_TOKEN` secret
+- [ ] 1.8 **OWNER**: push to the existing `alpha-nu/pensketch` repo; npm
+      account with 2FA; create npm org `@pensketch` (reserves the namespace;
+      if taken by an existing user, stop and re-decide naming); optional
+      `0.0.1` placeholder publishes and/or unscoped `pensketch` pointer
+      package; add `NPM_TOKEN` secret
 
 Gate: lint + typecheck + build green on the skeleton.
 
@@ -90,7 +91,8 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
       `0.1.0`
 - [ ] 6.2 `npm pack --dry-run` per package: dist + README + license only
 - [ ] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`
-- [ ] 6.4 Resolve the package-README image URL placeholders (needs OWNER repo)
+- [ ] 6.4 Confirm no `TODO(owner)` markers or unresolved URLs remain in either
+      package README
 - [ ] 6.5 **OWNER**: trigger `release.yml` to publish `0.1.0`
 
 Gate: dry runs green; publish left to owner.

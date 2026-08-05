@@ -275,7 +275,7 @@ Package `package.json` (core shown; fields may be appended, never dropped):
   "version": "0.0.1",
   "description": "Hand-sketched SVG diagrams from plain data. Tiny, seeded, zero dependencies.",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+<repo url — placeholder until owner creates it>" },
+  "repository": { "type": "git", "url": "git+https://github.com/alpha-nu/pensketch.git" },
   "type": "module",
   "exports": {
     ".": {
@@ -346,29 +346,33 @@ field, type, default, meaning — + anchor glossary `t/b/l/r` + one sentence on
 (CSS-variable table with D4 defaults + A4 + font paragraph); 9 Determinism &
 testing your diagrams (seed story, two-sentence version policy, A5);
 10 Examples table (folder, description, run command); 11 pensketch vs
-rough.js (one honest paragraph, respectful link); 12 Origin (link the article
-*The Responsible Harness* only after owner confirms it is published);
-13 License.
+rough.js (one honest paragraph, respectful link); 12 License.
 
 **Package READMEs** (npm-facing): core = tagline, install, A1, `Pen` method
 table, CSS-variable table, repo link; react = tagline, install + peer note,
 A2, `PenSketchProps` table, `useSketch` signature with the A3 drawing in a
 callback, repo link. npm does not reliably honor `<picture>` — package READMEs
-embed `hero-light.png` via absolute raw.githubusercontent URL, with a marked
-`<!-- TODO(owner): repo URL -->` placeholder until the repo exists (resolve
-before release).
+embed `hero-light.png` via the absolute URL
+`https://raw.githubusercontent.com/alpha-nu/pensketch/main/docs/assets/hero-light.png`.
+The repository exists at `https://github.com/alpha-nu/pensketch`, so every URL
+is written resolved — no placeholder markers at any point.
 
 **CONTRIBUTING.md**: setup (`npm ci`); the six verification commands with one
 line each; the golden policy (D5, including never-regenerate-to-green); how to
 pick patch-vs-minor under the visual clause; the ASCII/`\uXXXX` fixture rule.
 
-**README assets** (`tools/render-assets.mjs`): puppeteer (root devDependency
-only) renders the SAMPLER fixture on a minimal page (A4 variables + font
-stack) at 2× → `docs/assets/hero-light.png`, then with
-`page.emulateMediaFeatures([{name:'prefers-color-scheme', value:'dark'}])` →
-`hero-dark.png`. Backgrounds `#FFFFFF` / `#161B21`, no margins, corner pixels
-verified against the background, PNGs committed. Deterministic by
-construction (seeded renderer, fixed viewport).
+**README assets** (`tools/render-assets.mjs`): `playwright-core` (root
+devDependency only — the no-browser flavor: it bundles nothing and downloads
+nothing on install) drives the locally installed Google Chrome via
+`channel: 'chrome'`. It renders the SAMPLER fixture on a minimal page (A4
+variables + font stack) in a context with `deviceScaleFactor: 2` →
+`docs/assets/hero-light.png`, then in a second context with
+`colorScheme: 'dark'` → `hero-dark.png`. Backgrounds `#FFFFFF` / `#161B21`,
+no margins, corner pixels verified against the background, PNGs committed.
+Deterministic by construction (seeded renderer, fixed viewport). The script is
+local-only — CI never renders assets — and exits with an
+`npx playwright-core install chromium` hint when no Chrome is found. The same
+harness screenshot-verifies the examples.
 
 **Examples** (`examples/` — runnable, never published, excluded from
 coverage/size/publish; all fixture strings ASCII with `\uXXXX` escapes):
@@ -382,9 +386,13 @@ coverage/size/publish; all fixture strings ASCII with `\uXXXX` escapes):
   adaptation), plus one short `draw()` whose diagram includes a `raw`
   callback, showing the escape hatch receives the same `Pen`.
 - `react/` — minimal Vite app: `package.json` (private; deps
-  `@pensketch/core`, `@pensketch/react`, react, react-dom; devDeps vite,
-  `@vitejs/plugin-react`, typescript), `vite.config.ts` (react plugin only,
-  no aliases — workspace symlinks resolve), `index.html`, `src/main.tsx`
+  `@pensketch/core` and `@pensketch/react` as `file:../../packages/core` and
+  `file:../../packages/react` specifiers — the example sits outside the
+  `packages/*` workspaces glob, so `file:` links are what make it installable
+  before the first publish and keep it exercising local code afterwards; plus
+  react, react-dom; devDeps vite, `@vitejs/plugin-react`, typescript),
+  `vite.config.ts` (react plugin only, no aliases — the `file:` links
+  resolve), `index.html`, `src/main.tsx`
   (createRoot, deliberately wraps in `<React.StrictMode>` as the
   double-effect smoke test), `src/App.tsx`
   (`<PenSketch diagram={BUDGETS} seed={11} viewBox="0 0 900 470"

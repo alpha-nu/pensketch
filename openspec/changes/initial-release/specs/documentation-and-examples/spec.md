@@ -25,8 +25,7 @@ one-line differentiators), install, vanilla quickstart (A1), React quickstart
 DiagramNode/Edge/Note/Diagram + anchor glossary), the pen (A3 + Pen method
 table), theming (variable table + A4 + font paragraph), determinism & testing
 (seed story, two-sentence version policy, A5), examples table, an honest
-pensketch-vs-rough.js paragraph, origin (only after the owner confirms the
-source article is published), and license.
+pensketch-vs-rough.js paragraph, and license.
 
 #### Scenario: A newcomer can go from install to themed diagram
 - **WHEN** a reader follows the README top to bottom
@@ -36,8 +35,8 @@ source article is published), and license.
 Each package SHALL ship an npm-facing README per design.md D7 (core: A1 + Pen
 table + variable table; react: A2 + props table + `useSketch`), embedding
 `hero-light.png` via absolute raw.githubusercontent URL (npm does not
-reliably honor `<picture>`), with the URL placeholder resolved before any
-release.
+reliably honor `<picture>`), written fully resolved against the repository
+that already exists — no placeholder markers at any point.
 
 #### Scenario: No dead placeholders at release
 - **WHEN** a release is prepared
