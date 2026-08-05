@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pensketch &mdash; reference implementation</title>
+<style>
+  /* =================================================================
+     NORMATIVE REFERENCE for the pensketch package.
+     This file is the ground truth: the TypeScript port MUST reproduce
+     this renderer's output byte-for-byte (see SPEC.md, Determinism).
+     Extracted from a production article page; self-contained, no libs.
+     ================================================================= */
+  :root{
+    --paper:#FFFFFF; --ink:#232B36; --pen:#2B5B8A; --red:#B3402E;
+    --wash:rgba(43,91,138,.05); --muted:#5A6572;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --paper:#161B21; --ink:#D9DFE7; --pen:#7FA9DB; --red:#DB8570;
+      --wash:rgba(127,169,219,.07); --muted:#93A0AD; }
+  }
+  html{ background:var(--paper); }
+  body{ margin:0; padding:2rem 1rem; color:var(--ink);
+    font-family:Georgia,serif; }
+  main{ max-width:60rem; margin:0 auto; }
+  h1,h2{ font-family:system-ui,sans-serif; }
+  figure{ margin:2rem 0; }
+  figure svg{ display:block; width:100%; height:auto; }
+  figcaption{ font-family:system-ui,sans-serif; font-size:.8rem;
+    color:var(--muted); margin-top:.4rem; }
+  /* The hand-drawn look depends on a handwriting-ish font for labels. */
+  figure svg text{
+    font-family:"Chalkboard SE","Bradley Hand","Segoe Print","Comic Sans MS",cursive; }
+</style>
+</head>
+<body>
+<main>
+  <h1>pensketch &mdash; reference implementation</h1>
+  <p>Two diagrams below. <strong>SAMPLER</strong> exercises every feature of the
+  renderer and is the primary golden-test fixture. <strong>BUDGETS</strong> is a
+  real-world diagram (from the article <em>The Responsible Harness</em>) used as
+  the secondary fixture.</p>
+
+  <h2>SAMPLER &mdash; every feature, seed 7</h2>
+  <figure><svg id="sampler" viewBox="0 0 900 430"></svg>
+  <figcaption>group+wash, box, accent box, pill, diamond, hatch fill, straight /
+  waypointed / dotted edges, edge labels with anchors, red note with arrow, raw
+  callbacks.</figcaption></figure>
+
+  <h2>BUDGETS &mdash; real-world sample, seed 11</h2>
+  <figure><svg id="budgets" viewBox="0 0 900 470"></svg>
+  <figcaption>Nested time budgets from "The Responsible Harness".</figcaption></figure>
+</main>
+
+<script>
+/* ===================================================================
+   RENDERER -- verbatim from the source article (ASCII-only on purpose:
+   labels use \uXXXX escapes; entities do not decode in textContent).
+   Nodes: {id, shape:'box'|'pill'|'diamond'|'group', x,y,w,h, lines:[..],
+           size?, accent?, hatch?}
+   Edges: {from:['id','t|b|l|r'], to:[..], via:[[x,y]..], dotted?, label?,
+           lx?, ly?, anchor?}
+   Notes: {x,y, lines:[..], anchor?, arrowFrom:[x,y], via?, arrowTo:[x,y]}
+   Raw:   [fn(S), ..] -- escape hatch, receives the primitive set S.
+   =================================================================== */
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function sketcher(svg, seed){
+  const R = mulberry32(seed);
+  const NS='http://www.w3.org/2000/svg';
+  const j=(v,a)=>v+(R()-.5)*a;
+  function el(name,attrs){const e=document.createElementNS(NS,name);for(const k in attrs)e.setAttribute(k,attrs[k]);svg.appendChild(e);return e}
+
+  function pass(pts,amp){
+    let d='M'+j(pts[0][0],amp)+' '+j(pts[0][1],amp);
+    for(let i=1;i<pts.length;i++){
+      const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
+      const len=Math.hypot(x1-x0,y1-y0), steps=Math.max(2,Math.round(len/26));
+      for(let s=1;s<=steps;s++){
+        const t=s/steps;
+        d+=' L'+j(x0+(x1-x0)*t, s===steps?amp*.4:amp)+' '+j(y0+(y1-y0)*t, s===steps?amp*.4:amp);
+      }
+    }
+    return d;
+  }
+  function stroke(pts,{color='var(--ink)',dotted=false,w=1.6,amp=2.6}={}){
+    for(let k=0;k<2;k++){
+      el('path',{d:pass(pts,amp),fill:'none',stroke:color,'stroke-width':k?w*.75:w,
+        'stroke-linecap':'round',opacity:k?.5:.92,
+        ...(dotted?{'stroke-dasharray':'2 7'}:{})});
+    }
+  }
+  function arrow(pts,opts={}){
+    stroke(pts,opts);
+    const [x1,y1]=pts[pts.length-2],[x2,y2]=pts[pts.length-1];
+    const a=Math.atan2(y2-y1,x2-x1);
+    for(const off of [.5,-.5])
+      stroke([[x2-10*Math.cos(a-off),y2-10*Math.sin(a-off)],[x2,y2]],{...opts,dotted:false,amp:1.2});
+  }
+  function rect(x,y,w,h,opts={}){
+    const o=4;
+    stroke([[x-o*R(),y],[x+w+o*R(),y]],opts);
+    stroke([[x+w,y-o*R()],[x+w,y+h+o*R()]],opts);
+    stroke([[x+w+o*R(),y+h],[x-o*R(),y+h]],opts);
+    stroke([[x,y+h+o*R()],[x,y-o*R()]],opts);
+  }
+  function pill(x,y,w,h,opts={}){
+    const cx=x+w/2, cy=y+h/2, rx=w/2, ry=h/2, pts=[];
+    for(let i=0;i<=26;i++){const a=i/26*2*Math.PI;
+      pts.push([cx+Math.cos(a)*j(rx,3),cy+Math.sin(a)*j(ry,2)]);}
+    stroke(pts,{...opts,amp:1.4});
+  }
+  function diamond(x,y,w,h,opts={}){
+    const cx=x+w/2,cy=y+h/2;
+    stroke([[cx,y],[x+w,cy],[cx,y+h],[x,cy],[cx,y]],opts);
+  }
+  function hatch(x,y,w,h,color){
+    for(let i=-h;i<w;i+=11)
+      stroke([[Math.max(x,x+i),i<0?y-i:y],[Math.min(x+w,x+i+h),i+h>w?y+(w-i):y+h]],
+        {color,w:1,amp:1.2});
+  }
+  function label(cx,cy,lines,{size=13.5,color='var(--ink)',anchor='middle',lh=1.28}={}){
+    lines.forEach((ln,i)=>{
+      const t=el('text',{x:cx,y:cy+(i-(lines.length-1)/2)*size*lh,
+        'text-anchor':anchor,'dominant-baseline':'middle',
+        style:`fill:${color};font-size:${size}px`});
+      t.textContent=ln;
+    });
+  }
+  function wash(x,y,w,h){ el('rect',{x,y,width:w,height:h,fill:'var(--wash)',rx:6}); }
+  return {stroke,arrow,rect,pill,diamond,hatch,label,wash,R};
+}
+
+const A=(n,side)=>({t:[n.x+n.w/2,n.y], b:[n.x+n.w/2,n.y+n.h],
+                    l:[n.x,n.y+n.h/2], r:[n.x+n.w,n.y+n.h/2]})[side];
+
+function drawSpec(svgId, seed, spec){
+  const svg=document.getElementById(svgId); if(!svg) return;
+  svg.innerHTML='';
+  const S=sketcher(svg,seed);
+  const byId={}; (spec.nodes||[]).forEach(n=>byId[n.id]=n);
+
+  (spec.nodes||[]).filter(n=>n.shape==='group').forEach(n=>{
+    S.wash(n.x,n.y,n.w,n.h);
+    S.rect(n.x,n.y,n.w,n.h,{color:'var(--pen)',w:1.4,amp:3.2});
+    S.label(n.x+14,n.y+18,n.lines,{anchor:'start',size:14,color:'var(--pen)'});
+  });
+  (spec.edges||[]).forEach(e=>{
+    const pts=[A(byId[e.from[0]],e.from[1]),...(e.via||[]),A(byId[e.to[0]],e.to[1])];
+    S.arrow(pts,{dotted:!!e.dotted,color:e.dotted?'var(--red)':'var(--ink)'});
+    if(e.label) S.label(e.lx,e.ly,[e.label],{size:12.5,color:e.dotted?'var(--red)':'var(--muted)',anchor:e.anchor||'middle'});
+  });
+  (spec.nodes||[]).filter(n=>n.shape!=='group').forEach(n=>{
+    ({box:S.rect,pill:S.pill,diamond:S.diamond})[n.shape](n.x,n.y,n.w,n.h,
+      {color:n.accent?'var(--pen)':'var(--ink)'});
+    if(n.hatch) S.hatch(n.x+4,n.y+4,n.w-8,n.h-8,'var(--pen)');
+    if(n.lines) S.label(n.x+n.w/2,n.y+n.h/2,n.lines,{size:n.size||13.5});
+  });
+  (spec.notes||[]).forEach(nt=>{
+    S.label(nt.x,nt.y,nt.lines,{size:13,color:'var(--red)',anchor:nt.anchor||'start'});
+    if(nt.arrowFrom&&nt.arrowTo) S.arrow([nt.arrowFrom,...(nt.via||[]),nt.arrowTo],
+      {dotted:true,color:'var(--red)',amp:2});
+  });
+  (spec.raw||[]).forEach(fn=>fn(S));
+}
+
+/* -- SAMPLER: exercises every renderer feature -------------------- */
+const SAMPLER={
+  nodes:[
+    {id:'grp',shape:'group',x:20,y:30,w:560,h:370,lines:['a group \u2014 wash + sketched border + title']},
+    {id:'a',shape:'box',x:60,y:90,w:180,h:60,lines:['plain box','(two lines)']},
+    {id:'b',shape:'box',x:320,y:90,w:180,h:60,lines:['accent box'],accent:true},
+    {id:'d',shape:'diamond',x:90,y:200,w:150,h:90,lines:['diamond?'],size:13},
+    {id:'p',shape:'pill',x:320,y:220,w:180,h:56,lines:['a pill']},
+    {id:'h',shape:'box',x:60,y:330,w:120,h:50,lines:[],hatch:true},
+  ],
+  edges:[
+    {from:['a','r'],to:['b','l']},
+    {from:['a','b'],to:['d','t']},
+    {from:['b','b'],to:['p','t']},
+    {from:['d','r'],to:['p','l'],via:[[280,248]],label:'yes',lx:285,ly:232},
+    {from:['d','b'],to:['h','t'],via:[[165,312]],dotted:true,label:'no',lx:188,ly:312,anchor:'start'},
+  ],
+  notes:[
+    {x:640,y:110,lines:['a red note \u2014 with','a dotted arrow'],anchor:'start',
+     arrowFrom:[660,132],via:[[590,150]],arrowTo:[506,120]},
+  ],
+  raw:[
+    S=>S.label(640,210,['raw callbacks: draw anything','with the primitive set'],{size:13,anchor:'start',color:'var(--muted)'}),
+    S=>S.stroke([[640,240],[860,242]],{color:'var(--pen)',w:1.2,amp:1.8}),
+    S=>S.arrow([[640,290],[860,290]],{dotted:true,color:'var(--red)'}),
+    S=>S.label(640,330,['hatch fill \u2193 in the group'],{size:12.5,anchor:'start',color:'var(--muted)'}),
+  ],
+};
+
+/* -- BUDGETS: real-world sample (The Responsible Harness, D2) ----- */
+const BUDGETS={
+  nodes:[
+    {id:'outer',shape:'group',x:30,y:40,w:600,h:390,lines:['T0 \u00B7 infrastructure ceiling \u2014 e.g. 85s (the edge kills the line here)']},
+    {id:'think',shape:'group',x:60,y:95,w:540,h:190,lines:['T1 \u00B7 reasoning budget \u2014 e.g. 70s']},
+    {id:'deliv',shape:'group',x:60,y:315,w:540,h:90,lines:['T2 \u00B7 delivery tail \u2014 e.g. 12s, independent']},
+    {id:'laps',shape:'box',x:90,y:155,w:300,h:95,lines:['reason \u21C4 act rounds','each action carries its','own smaller bound'],size:12.5},
+    {id:'sliver',shape:'box',x:425,y:155,w:150,h:95,lines:[],hatch:true},
+  ],
+  edges:[],
+  notes:[
+    {x:500,y:135,lines:['R \u00B7 absolute reserve \u2014 e.g. 9s'],anchor:'middle'},
+    {x:500,y:268,lines:['= min synthesis + min handoff','+ slack \u2014 never a fraction of T1'],anchor:'middle'},
+  ],
+  raw:[
+    S=>S.label(330,372,['deliver \u00B7 persist (per-statement bound) \u00B7 extras (own cap, skipped when degraded)'],{size:12.5}),
+    S=>{
+      S.label(660,120,['INVARIANTS'],{size:15,color:'var(--pen)',anchor:'start'});
+      S.stroke([[658,132],[790,134]],{color:'var(--pen)',w:1.2,amp:1.6});
+      S.label(660,168,['T1 + T2 < T0','(70 + 12 = 82 < 85)'],{size:13,anchor:'start'});
+      S.label(660,232,['R is absolute \u2014 never','a fraction of T1'],{size:13,anchor:'start'});
+      S.label(660,296,['every hop carries its','own smaller bound'],{size:13,anchor:'start'});
+      S.label(660,360,['budgets are spent once','\u2014 no in-loop retries'],{size:13,anchor:'start'});
+    },
+  ],
+};
+
+drawSpec('sampler',7,SAMPLER);
+drawSpec('budgets',11,BUDGETS);
+</script>
+</body>
+</html>
