@@ -1,0 +1,70 @@
+name: Release
+
+# Manual dispatch only: nothing that lands on a branch, a tag, or a merged
+# pull request can reach the registry. Publishing is an owner action.
+on:
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  # Commit the version bump, push the release branch, and push git tags.
+  contents: write
+  # Open and update the "Version Packages" pull request.
+  pull-requests: write
+  # Mint the OIDC token npm exchanges for a signed provenance attestation.
+  id-token: write
+
+jobs:
+  release:
+    name: Version or publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # Both manifests ship only "dist", so publishing without this step
+      # would upload a tarball with no code in it.
+      - name: Build
+        run: npm run build
+
+      - name: Regenerate goldens
+        run: npm run goldens
+
+      - name: Goldens are unchanged by regeneration
+        run: git diff --exit-code -- packages/core/test/goldens
+
+      - name: Size budgets
+        run: npm run size
+
+      # "--no" makes npx resolve the changesets CLI from the lockfile-pinned
+      # node_modules and fail rather than fetch a same-named package.
+      - name: Version packages or publish to npm
+        # Pinned by commit, not by tag: this is the one step that holds both
+        # the registry token and an OIDC signing identity, and a tag can be
+        # moved. The comment records which release the commit is.
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          publish: npx --no changeset publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Read by the npm publish that the changesets CLI shells out to.
+          NPM_CONFIG_PROVENANCE: 'true'

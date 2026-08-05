@@ -20,7 +20,7 @@ does not depend on them.
       exactly per design.md D6 (names, exports map, `publishConfig.access:
       public`, react deps/peers; no `workspace:*`)
 - [x] 1.5 tsup configs; `tools/check-size.mjs` (budgets 5120/2048 B min+gz)
-- [ ] 1.6 `.github/workflows/ci.yml` (D6 step order incl. goldens-freshness
+- [x] 1.6 `.github/workflows/ci.yml` (D6 step order incl. goldens-freshness
       diff) and `.github/workflows/release.yml` (workflow_dispatch, changesets
       publish with provenance)
 - [ ] 1.7 changesets init (`access: public`, `baseBranch: main`)
@@ -96,6 +96,8 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
 - [ ] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`
 - [ ] 6.4 Confirm no `TODO(owner)` markers or unresolved URLs remain in either
       package README
-- [ ] 6.5 **OWNER**: trigger `release.yml` to publish `0.1.0`
+- [ ] 6.5 **OWNER**: publishing `0.1.0` takes two dispatches of `release.yml`
+      — the first opens the "Version Packages" pull request (no publish), and
+      after merging it the second publishes the bumped versions
 
 Gate: dry runs green; publish left to owner.
