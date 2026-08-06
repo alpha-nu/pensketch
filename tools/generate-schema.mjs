@@ -1,14 +1,18 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { createGenerator } from 'ts-json-schema-generator';
 
 // Generates the JSON Schema for a diagram from the TypeScript types, so the
 // two cannot drift: the schema is derived from `Diagram` rather than written
 // alongside it. Regenerated in CI, where the tree is then asserted unchanged.
 //
+// It is written inside the package rather than at the repository root because
+// it ships: npm packs nothing from outside a package directory, and a schema
+// callers cannot install is a schema they will copy and let go stale.
+//
 // Run locally: `npm run schema`.
 
 const root = new URL('../', import.meta.url);
-const out = new URL('schema/diagram.schema.json', root);
+const out = new URL('packages/core/schema/diagram.schema.json', root);
 
 function fail(message) {
   console.error(`FAIL generate-schema: ${message}`);
@@ -48,6 +52,9 @@ schema.description =
   'does not grow to fit its label. The `raw` escape hatch is absent because ' +
   'it holds functions, which JSON cannot carry.';
 
+mkdirSync(new URL('.', out), { recursive: true });
 writeFileSync(out, `${JSON.stringify(schema, null, 2)}\n`);
 const count = Object.keys(schema.definitions ?? {}).length;
-console.log(`wrote schema/diagram.schema.json (${count} definitions)`);
+console.log(
+  `wrote packages/core/schema/diagram.schema.json (${count} definitions)`,
+);

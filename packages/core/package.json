@@ -20,6 +20,7 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./schema.json": "./schema/diagram.schema.json",
     "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",
@@ -27,6 +28,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
+    "schema",
     "CHANGELOG.md"
   ],
   "sideEffects": false,

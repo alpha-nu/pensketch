@@ -110,7 +110,16 @@ draw(svg: SVGSVGElement, diagram: Diagram, options?: {
 }): void;
 ```
 
-JSON Schema for the data half: [`schema/diagram.schema.json`](../schema/diagram.schema.json).
+A [JSON Schema](../packages/core/schema/diagram.schema.json) for the data half
+ships with the package, so you validate against the version installed rather
+than a copy that has drifted:
+
+```js
+import schema from '@pensketch/core/schema.json' with { type: 'json' };
+```
+
+For a validator that wants a path — or an editor `$schema` reference — it is
+`node_modules/@pensketch/core/schema/diagram.schema.json`.
 
 ## Numbers worth designing around
 

@@ -12,11 +12,18 @@ The repository SHALL be an npm-workspaces monorepo with `@pensketch/core` in
 to restricted). Zero runtime dependencies in core; the react package's
 dependency shape is fixed by the react-bindings capability. The `workspace:*`
 protocol SHALL NOT appear (npm resolves plain semver ranges locally;
-changesets keeps internal ranges current).
+changesets keeps internal ranges current). `@pensketch/core` SHALL also
+publish the JSON Schema generated from its types, at the `./schema.json`
+subpath, so that a caller validates against the version they installed rather
+than a copy taken once and left to drift.
 
 #### Scenario: Publishable as public
 - **WHEN** `npm publish --dry-run` runs in either package after a build
-- **THEN** the resolved access is public and the tarball contains `dist`, `README.md`, and license metadata only
+- **THEN** the resolved access is public, and the tarball contains `dist`, `README.md`, license metadata, and — for core alone — the generated schema, and nothing else
+
+#### Scenario: The schema is reachable by name
+- **WHEN** `@pensketch/core/schema.json` is imported by an installed consumer
+- **THEN** it resolves to the schema generated from the types that same version ships
 
 ### Requirement: Dual-format builds with types
 Each package SHALL build with tsup to ESM + CJS + `.d.ts` (minified,

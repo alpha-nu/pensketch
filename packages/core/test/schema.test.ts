@@ -9,19 +9,11 @@ import type { Diagram } from '../src/index';
 // It can still be wrong: generated output nobody validates against is a
 // plausible-looking file, not a contract. These run a real validator over real
 // diagrams, and over the mistakes the schema exists to catch.
-const SCHEMA = JSON.parse(
-  readFileSync(
-    join(
-      dirname(fileURLToPath(import.meta.url)),
-      '..',
-      '..',
-      '..',
-      'schema',
-      'diagram.schema.json',
-    ),
-    'utf8',
-  ),
-);
+const CORE = join(dirname(fileURLToPath(import.meta.url)), '..');
+const read = (...parts: string[]) =>
+  JSON.parse(readFileSync(join(CORE, ...parts), 'utf8'));
+
+const SCHEMA = read('schema', 'diagram.schema.json');
 
 const validate = new Ajv({ allErrors: true }).compile(SCHEMA);
 const accepts = (value: unknown) => validate(value) === true;
@@ -118,5 +110,23 @@ describe('the generated diagram schema', () => {
   it('rejects the raw escape hatch, which cannot survive JSON', () => {
     expect(accepts({ raw: [] })).toBe(false);
     expect(SCHEMA.properties.raw).toBeUndefined();
+  });
+});
+
+// A schema a caller cannot install is one they will copy and let go stale, so
+// the file ships in the package. Nothing else here reads the manifest: without
+// these, a generator writing somewhere `files` does not reach would be found
+// only by publishing.
+describe('shipping the schema', () => {
+  const manifest = read('package.json');
+  const subpath = manifest.exports['./schema.json'];
+
+  it('exports the validated file as @pensketch/core/schema.json', () => {
+    expect(subpath).toBe('./schema/diagram.schema.json');
+    expect(read(subpath)).toEqual(SCHEMA);
+  });
+
+  it('packs the directory the export points into', () => {
+    expect(manifest.files).toContain('schema');
   });
 });

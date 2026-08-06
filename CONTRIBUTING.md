@@ -21,10 +21,11 @@ together, so run every command from the root unless told otherwise.
 - `npm run goldens` - regenerates the golden files from the reference
   renderer. `git diff` must be clean afterwards, which proves the reference,
   the generator, and the checked-in goldens have not drifted apart.
-- `npm run schema` - regenerates `schema/diagram.schema.json` from the
-  TypeScript types. `git diff` must be clean afterwards, which proves the
-  schema a caller validates against still describes the types the package
-  ships.
+- `npm run schema` - regenerates `packages/core/schema/diagram.schema.json`
+  from the TypeScript types. `git diff` must be clean afterwards, which proves
+  the schema a caller validates against still describes the types the package
+  ships. It lives inside the package because it is published with it, as
+  `@pensketch/core/schema.json`.
 - `npm run size` - gzipped size budgets. Proves the minified, gzipped ESM
   entry point stays within budget: 5120 bytes for core, 2048 bytes for react.
 

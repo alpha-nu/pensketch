@@ -290,10 +290,15 @@ It exists because the mistakes that matter here — a label drawn through by its
 own connector, a box narrower than its text — are invisible to the type system,
 and whoever is writing the data may not be looking at the result.
 
-[`schema/diagram.schema.json`](schema/diagram.schema.json) is generated from
-the types, so data can be validated before anything is drawn. It covers the
+[A JSON Schema](packages/core/schema/diagram.schema.json) is generated from the
+types, so data can be validated before anything is drawn. It covers the
 JSON-serialisable half of a diagram: `raw` holds functions, and no file carries
-one.
+one. It ships in the package, so a validator can load the schema for the
+version actually installed:
+
+```js
+import schema from '@pensketch/core/schema.json' with { type: 'json' };
+```
 
 ## In case you wonder about pensketch vs. rough.js
 

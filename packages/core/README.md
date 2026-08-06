@@ -74,6 +74,19 @@ Labels inherit the page's font, and the hand-drawn look leans on a handwriting
 stack for `svg text`: `"Chalkboard SE"`, `"Bradley Hand"`, `"Segoe Print"`,
 `"Comic Sans MS"`, `cursive`.
 
+## Validating a diagram
+
+A diagram is data, so it can be checked before anything is drawn. The package
+ships a JSON Schema generated from its own types - always describing the
+version you installed, never a copy that has drifted:
+
+```js
+import schema from '@pensketch/core/schema.json' with { type: 'json' };
+```
+
+It covers the JSON-serialisable half: `raw` holds functions, which no file
+carries, so the schema rejects it.
+
 ## Repository
 
 Full documentation, runnable examples and the React bindings live at
