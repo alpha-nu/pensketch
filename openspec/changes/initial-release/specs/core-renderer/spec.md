@@ -8,8 +8,11 @@
 
 ### Requirement: Rendering is deterministic by contract
 Given the same package version, diagram, seed, and theme, `draw()` SHALL
-produce byte-identical serialized SVG on every call, every machine, and every
-standards-conforming JS engine. Package source SHALL NOT call `Math.random`,
+produce byte-identical serialized SVG on every call and on every machine
+running a given JavaScript engine. Cross-engine identity is not claimed:
+trigonometric results reach the emitted coordinates directly and ECMAScript
+leaves them implementation-approximated. Package source SHALL NOT call
+`Math.random`,
 `Date`, timers, or locale-dependent APIs; all randomness SHALL flow from the
 seeded `mulberry32` PRNG, and the order of PRNG consumption is part of the
 public contract — reordering draw operations is a visual change even when

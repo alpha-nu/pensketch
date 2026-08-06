@@ -37,5 +37,12 @@
       "semicolons": "always",
       "trailingCommas": "all"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["examples/vanilla/**", "examples/custom-pen/**"],
+      "formatter": { "enabled": false },
+      "linter": { "enabled": false }
+    }
+  ]
 }

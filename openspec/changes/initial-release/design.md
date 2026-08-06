@@ -211,8 +211,15 @@ The port must reproduce the reference byte-for-byte for both fixtures in
 `reference/renderer.html`: `SAMPLER` (seed 7) and `BUDGETS` (seed 11).
 
 - **Why it works**: path data is built by JS number-to-string conversion,
-  which ECMAScript specifies exactly — preserving PRNG call order is
-  sufficient for byte parity on any engine.
+  which ECMAScript specifies exactly, so preserving PRNG call order is
+  sufficient for byte parity **on a given engine**. It is not sufficient
+  across engines: the renderer feeds `Math.cos`, `Math.sin` and `Math.atan2`
+  straight into emitted coordinates, and ECMAScript leaves those
+  implementation-approximated. A one-ULP difference in `cos`/`sin` shifts two
+  of SAMPLER's 122 element lines. In practice V8, JavaScriptCore and
+  SpiderMonkey agree, and goldens generated under Node 20, 22 and 23 on both
+  arm64 and x64 are byte-identical — but the guarantee the project makes, and
+  the one the goldens verify, is same-engine.
 - **Theme bridge**: the reference emits `var(--ink)` / `var(--pen)` /
   `var(--red)` / `var(--muted)` / `var(--wash)`. Parity tests render with
   `{ ink:'var(--ink)', pen:'var(--pen)', accent:'var(--red)',
@@ -343,6 +350,14 @@ the examples mirror the same snippets (sole permitted divergence: import
 lines, §examples). If an API change invalidates a snippet, Appendix A is
 updated in the same commit and propagated everywhere.
 
+Biome would rewrite these snippets — it collapses the column alignment that
+makes the node tables readable and explodes the nested waypoint arrays, at
+every line width — so `biome.json` exempts the two example files that carry
+verbatim snippets (`examples/vanilla/`, `examples/custom-pen/`) from both
+formatter and linter. `examples/react/` is ordinary authored code, not a
+snippet copy, and stays fully checked. Markdown is not processed by Biome at
+all, so every README snippet is unaffected.
+
 **Root README sections, in order**: 1 Hero (name, tagline, SAMPLER hero image
 via theme-aware `<picture>` over `docs/assets/hero-{light,dark}.png`);
 2 Why pensketch (four one-line differentiator bullets from D1); 3 Install;
@@ -424,7 +439,7 @@ API reference; no docs site. No other documents.
 ### A1 — vanilla quickstart
 
 ```html
-<svg id="flow" viewBox="0 0 700 150"></svg>
+<svg id="flow" viewBox="0 0 700 150" role="img" aria-label="Request flow"></svg>
 <script type="module">
   import { draw } from '@pensketch/core';
 
