@@ -71,7 +71,7 @@ Gate: parity green; goldens-freshness green.
 
 ## 3. Core hardening
 
-- [ ] 3.1 Unit tests: primitives structure, draw order, idempotent redraw,
+- [x] 3.1 Unit tests: primitives structure, draw order, idempotent redraw,
       aria labeling, validation errors with exact messages, theme fallbacks
       and partial override, jsdom-independence; ≥90% both dimensions
 - [ ] 3.2 JSDoc on all exports incl. `@example` on `draw`/`pen`. Field
