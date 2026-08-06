@@ -68,10 +68,13 @@ diagram, and returns before any element exists.
 
 Two of these deserve their reasoning recorded.
 
-**`duplicate-id` is an error because `draw` is silent about it today.** The
-lookup is `for (const n of nodes) byId.set(n.id, n)`, so the second node wins
-and every edge naming that id points at it. The picture is wrong in a way no
-error message explains.
+**`duplicate-id` is an error, and `draw` now throws on it too.** It used to be
+silent: the lookup was `for (const n of nodes) byId.set(n.id, n)`, so the
+second node won and every edge naming that id pointed at it, producing a wrong
+picture no message explained. The renderer was fixed rather than left for the
+checker to paper over. The rule stays because `check` reports it *with* every
+other finding and without rendering, whereas `draw` throws on the first defect
+it meets — which is the difference between one round trip and five.
 
 **`group-escape` tests partial intersection, not containment.** A node fully
 outside a group is simply in another lane; a node fully inside is contained.

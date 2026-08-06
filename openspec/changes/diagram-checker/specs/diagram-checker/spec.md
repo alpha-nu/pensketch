@@ -38,9 +38,9 @@ as warnings. Each rule's severity SHALL be raisable, lowerable, or switchable
 off through options. `out-of-bounds` SHALL run only when a `viewBox` is
 supplied.
 
-#### Scenario: A duplicate id is caught where draw is silent
+#### Scenario: A duplicate id is reported alongside everything else
 - **WHEN** two nodes share an `id`
-- **THEN** `check` reports `duplicate-id` as an error, naming both, even though `draw` renders without complaint
+- **THEN** `check` reports `duplicate-id` as an error, naming both, together with every other finding in the diagram — where `draw` throws on the first defect it meets and renders nothing
 
 #### Scenario: A label lying on a connector is caught
 - **WHEN** an edge label's box falls within the configured clearance of any edge's path

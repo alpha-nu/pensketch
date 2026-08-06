@@ -83,7 +83,26 @@ export function draw(
   // Object.prototype, so an edge naming a node "toString" would find a
   // function there and skip the unknown-node error entirely.
   const byId = new Map<string, DiagramNode>();
-  for (const n of nodes) byId.set(n.id, n);
+  for (const n of nodes) {
+    // Keeping the last silently would leave every edge naming that id pointing
+    // at a node the author never meant, and nothing in the picture to say so.
+    if (byId.has(n.id))
+      throw new Error(
+        `two nodes share the id "${n.id}"; edges name nodes by id, so ids must be unique`,
+      );
+    byId.set(n.id, n);
+  }
+
+  // Naming the ids that do exist turns a typo into a one-line fix. The list is
+  // capped: a large diagram's would bury the message it is attached to.
+  const known = () => {
+    const all = [...byId.keys()];
+    if (!all.length) return 'the diagram has no nodes';
+    const head = all.slice(0, 8).map((k) => `"${k}"`);
+    return all.length > 8
+      ? `known ids include ${head.join(', ')} and ${all.length - 8} more`
+      : `known ids are ${head.join(', ')}`;
+  };
 
   // Draw order is the z-order and, because it is also the order the seeded
   // sequence is consumed in, part of the rendered bytes.
@@ -106,9 +125,14 @@ export function draw(
   (diagram.edges || []).forEach((e, i) => {
     const from = byId.get(e.from[0]);
     if (!from)
-      throw new Error(`edge ${i} references unknown node "${e.from[0]}"`);
+      throw new Error(
+        `edge ${i} names unknown node "${e.from[0]}" in from; ${known()}`,
+      );
     const to = byId.get(e.to[0]);
-    if (!to) throw new Error(`edge ${i} references unknown node "${e.to[0]}"`);
+    if (!to)
+      throw new Error(
+        `edge ${i} names unknown node "${e.to[0]}" in to; ${known()}`,
+      );
     const pts: Point[] = [
       anchor(from, e.from[1]),
       ...(e.via || []),
@@ -120,7 +144,9 @@ export function draw(
     });
     if (e.label) {
       if (typeof e.lx !== 'number' || typeof e.ly !== 'number')
-        throw new Error(`edge ${i} has a label but no numeric lx and ly`);
+        throw new Error(
+          `edge ${i} has label "${e.label}" but lx and ly are not both numbers; labels are placed by hand because text is never measured`,
+        );
       p.label(e.lx, e.ly, [e.label], {
         size: EDGE_SIZE,
         color: e.dotted ? theme.accent : theme.muted,
@@ -146,7 +172,9 @@ export function draw(
     .forEach((n) => {
       const shape = shapes.get(n.shape);
       if (!shape)
-        throw new Error(`node "${n.id}" has unknown shape "${n.shape}"`);
+        throw new Error(
+          `node "${n.id}" has unknown shape "${n.shape}"; expected group, box, pill or diamond`,
+        );
       shape(n.x, n.y, n.w, n.h, {
         color: n.accent ? theme.pen : theme.ink,
       });

@@ -147,7 +147,7 @@ describe('draw() validation', () => {
   it('names the edge and the id when an edge starts nowhere', () => {
     rejects(
       { nodes, edges: [{ from: ['ghost', 'r'], to: ['b', 'l'] }] },
-      'edge 0 references unknown node "ghost"',
+      'edge 0 names unknown node "ghost" in from; known ids are "a", "b"',
     );
   });
 
@@ -160,7 +160,7 @@ describe('draw() validation', () => {
           { from: ['a', 'r'], to: ['phantom', 'l'] },
         ],
       },
-      'edge 1 references unknown node "phantom"',
+      'edge 1 names unknown node "phantom" in to; known ids are "a", "b"',
     );
   });
 
@@ -170,7 +170,7 @@ describe('draw() validation', () => {
   it('rejects an id that only Object.prototype provides', () => {
     rejects(
       { nodes, edges: [{ from: ['toString', 'r'], to: ['b', 'l'] }] },
-      'edge 0 references unknown node "toString"',
+      'edge 0 names unknown node "toString" in from; known ids are "a", "b"',
     );
   });
 
@@ -181,7 +181,7 @@ describe('draw() validation', () => {
           { id: 'odd', shape: 'hexagon', x: 0, y: 0, w: 10, h: 10 },
         ] as unknown as DiagramNode[],
       },
-      'node "odd" has unknown shape "hexagon"',
+      'node "odd" has unknown shape "hexagon"; expected group, box, pill or diamond',
     );
   });
 
@@ -193,7 +193,7 @@ describe('draw() validation', () => {
           { id: 'odd', shape: 'constructor', x: 0, y: 0, w: 10, h: 10 },
         ] as unknown as DiagramNode[],
       },
-      'node "odd" has unknown shape "constructor"',
+      'node "odd" has unknown shape "constructor"; expected group, box, pill or diamond',
     );
   });
 
@@ -206,7 +206,7 @@ describe('draw() validation', () => {
     };
     rejects(
       { nodes, edges: [edge] },
-      'edge 0 has a label but no numeric lx and ly',
+      'edge 0 has label "where?" but lx and ly are not both numbers; labels are placed by hand because text is never measured',
     );
   });
 
@@ -219,7 +219,7 @@ describe('draw() validation', () => {
     };
     rejects(
       { nodes, edges: [edge] },
-      'edge 0 has a label but no numeric lx and ly',
+      'edge 0 has label "where?" but lx and ly are not both numbers; labels are placed by hand because text is never measured',
     );
   });
 
@@ -233,7 +233,46 @@ describe('draw() validation', () => {
     } as unknown as DiagramEdge;
     rejects(
       { nodes, edges: [edge] },
-      'edge 0 has a label but no numeric lx and ly',
+      'edge 0 has label "where?" but lx and ly are not both numbers; labels are placed by hand because text is never measured',
+    );
+  });
+
+  // Until this threw, `byId.set` in a loop kept the last node with a given id.
+  // Every edge naming it pointed at a box the author never meant, and nothing
+  // in the rendered picture said why.
+  it('rejects two nodes sharing an id', () => {
+    rejects(
+      {
+        nodes: [
+          ...nodes,
+          { id: 'a', shape: 'pill', x: 0, y: 100, w: 60, h: 30 },
+        ],
+      },
+      'two nodes share the id "a"; edges name nodes by id, so ids must be unique',
+    );
+  });
+
+  // The ids that do exist are what turns a typo into a one-line fix, so the
+  // message carries them - capped, or a large diagram's list buries the point.
+  it('lists the ids that do exist, capped past eight', () => {
+    const many: DiagramNode[] = Array.from({ length: 11 }, (_, i) => ({
+      id: `n${i}`,
+      shape: 'box',
+      x: i * 20,
+      y: 0,
+      w: 10,
+      h: 10,
+    }));
+    rejects(
+      { nodes: many, edges: [{ from: ['nope', 'r'], to: ['n0', 'l'] }] },
+      'edge 0 names unknown node "nope" in from; known ids include "n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7" and 3 more',
+    );
+  });
+
+  it('says so plainly when there are no nodes at all', () => {
+    rejects(
+      { edges: [{ from: ['a', 'r'], to: ['b', 'l'] }] },
+      'edge 0 names unknown node "a" in from; the diagram has no nodes',
     );
   });
 });
