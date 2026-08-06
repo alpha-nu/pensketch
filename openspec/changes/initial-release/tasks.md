@@ -74,14 +74,14 @@ Gate: parity green; goldens-freshness green.
 - [x] 3.1 Unit tests: primitives structure, draw order, idempotent redraw,
       aria labeling, validation errors with exact messages, theme fallbacks
       and partial override, jsdom-independence; ≥90% both dimensions
-- [ ] 3.2 JSDoc on all exports incl. `@example` on `draw`/`pen`. Field
+- [x] 3.2 JSDoc on all exports incl. `@example` on `draw`/`pen`. Field
       comments must be block comments: `//` comments do not reach the emitted
       declarations, and the declarations are the API reference. The `draw`
       example must exercise `DrawOptions.label`, which is otherwise spec'd,
       tested and undemonstrated. Freeze `defaultTheme`, which today is
       exported mutable while its sibling `constants` is frozen
-- [ ] 3.3 Size budget met; `npm run size` wired
-- [ ] 3.4 `packages/core/README.md` per documentation spec
+- [x] 3.3 Size budget met; `npm run size` wired
+- [x] 3.4 `packages/core/README.md` per documentation spec
 
 Gate: all six verification commands green.
 

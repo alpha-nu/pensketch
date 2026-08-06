@@ -21,6 +21,11 @@ import type {
   StrokeOptions,
 } from './types';
 
+/**
+ * Where an edge meets a node: the midpoint of the named side of its box.
+ * Edges are anchored by side rather than by coordinate, so moving or resizing
+ * a node carries everything attached to it.
+ */
 export function anchor(node: DiagramNode, side: Side): Point {
   const sides: Record<Side, Point> = {
     t: [node.x + node.w / 2, node.y],
@@ -31,6 +36,33 @@ export function anchor(node: DiagramNode, side: Side): Point {
   return sides[side];
 }
 
+/**
+ * Renders `diagram` into `svg`, replacing whatever it held, so calling it
+ * again is a redraw rather than an overlay. The same diagram, seed and
+ * package version render the same bytes on a given JavaScript engine, which
+ * is what makes a rendered `<svg>` worth snapshot-testing.
+ *
+ * Throws an `Error` naming the offender when an edge references a node the
+ * diagram does not define, a node carries an unknown shape, or an edge has a
+ * `label` without numeric `lx` and `ly`. Nothing else is validated.
+ *
+ * @example
+ * ```js
+ * import { draw } from '@pensketch/core';
+ *
+ * draw(document.getElementById('flow'), {
+ *   nodes: [
+ *     { id: 'in',   shape: 'pill',    x: 40,  y: 50, w: 160, h: 50, lines: ['request'] },
+ *     { id: 'gate', shape: 'diamond', x: 260, y: 35, w: 150, h: 80, lines: ['allowed?'] },
+ *     { id: 'work', shape: 'box',     x: 480, y: 50, w: 180, h: 50, lines: ['do the work'], accent: true },
+ *   ],
+ *   edges: [
+ *     { from: ['in', 'r'],   to: ['gate', 'l'] },
+ *     { from: ['gate', 'r'], to: ['work', 'l'], label: 'yes', lx: 445, ly: 60 },
+ *   ],
+ * }, { seed: 7, label: 'Request flow' });
+ * ```
+ */
 export function draw(
   svg: SVGSVGElement,
   diagram: Diagram,

@@ -1,6 +1,7 @@
-// Every aesthetic number the renderer bakes into its output. They are frozen,
-// not configurable: the look is the product, and changing any of them moves
-// the rendered bytes of every existing diagram.
+// Every aesthetic number the renderer bakes into its output, named once here
+// so none of them can hide inside a draw call. A number added to this file
+// belongs in the frozen object at the bottom too, or it is invisible to the
+// tests and the documentation alike.
 
 /** Nominal length in px of one jittered polyline segment. */
 export const SEG_LEN = 26;
@@ -69,7 +70,12 @@ export const NOTE_AMP = 2;
 /** Seed used when none is given. */
 export const SEED = 1;
 
-/** Every aesthetic constant, frozen, for tests and documentation. */
+/**
+ * Every aesthetic constant, frozen, so a test or a document can name a number
+ * instead of repeating it. None of them is configurable: the look is the
+ * product, and moving any one of them moves the rendered bytes of every
+ * diagram already drawn.
+ */
 export const constants = Object.freeze({
   SEG_LEN,
   MIN_STEPS,

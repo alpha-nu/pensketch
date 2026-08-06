@@ -36,6 +36,24 @@ import type {
 
 const NS = 'http://www.w3.org/2000/svg';
 
+/**
+ * Binds a set of hand-drawn primitives to `svg`, all driven by one seeded
+ * sequence. Existing children are left alone (only `draw` clears the
+ * element), so a pen can add to a finished diagram, and several pens can
+ * share one `<svg>`, each with its own seed.
+ *
+ * @example
+ * ```js
+ * import { pen } from '@pensketch/core';
+ *
+ * const p = pen(document.querySelector('svg'), { seed: 3 });
+ * p.rect(20, 20, 200, 90);
+ * p.label(120, 65, 'hand-drawn box');
+ * p.arrow([[220, 65], [320, 65]]);
+ * p.pill(320, 40, 150, 50);
+ * p.label(395, 65, ['a pill', '(two lines)']);
+ * ```
+ */
 export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   const rng = mulberry32(options.seed ?? SEED);
   const theme = resolveTheme(options.theme);

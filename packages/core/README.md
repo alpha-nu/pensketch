@@ -1,0 +1,80 @@
+# @pensketch/core
+
+> Hand-sketched SVG diagrams from plain data. Tiny, seeded, zero dependencies.
+
+![A diagram drawn by pensketch](https://raw.githubusercontent.com/alpha-nu/pensketch/main/docs/assets/hero-light.png)
+
+## Install
+
+```sh
+npm install @pensketch/core
+```
+
+## Quickstart
+
+```html
+<svg id="flow" viewBox="0 0 700 150" role="img" aria-label="Request flow"></svg>
+<script type="module">
+  import { draw } from '@pensketch/core';
+
+  draw(document.getElementById('flow'), {
+    nodes: [
+      { id: 'in',   shape: 'pill',    x: 40,  y: 50, w: 160, h: 50, lines: ['request'] },
+      { id: 'gate', shape: 'diamond', x: 260, y: 35, w: 150, h: 80, lines: ['allowed?'] },
+      { id: 'work', shape: 'box',     x: 480, y: 50, w: 180, h: 50, lines: ['do the work'], accent: true },
+    ],
+    edges: [
+      { from: ['in', 'r'],   to: ['gate', 'l'] },
+      { from: ['gate', 'r'], to: ['work', 'l'], label: 'yes', lx: 445, ly: 60 },
+      { from: ['gate', 'b'], to: ['in', 'b'], via: [[335, 135], [120, 135]],
+        dotted: true, label: 'no', lx: 225, ly: 122 },
+    ],
+  }, { seed: 7 });
+</script>
+```
+
+`draw` empties the `<svg>` first, so calling it again is a redraw. Give it the
+same diagram and the same `seed` and you get the same picture, down to the
+bytes: nothing here reads `Math.random`, the clock, or the locale.
+
+## The pen
+
+`pen(svg, options)` returns the drawing surface `draw` uses internally. Reach
+for it when a picture is not a diagram, or when a diagram needs one thing the
+data model does not describe - the same pen is handed to every callback in a
+diagram's `raw` array.
+
+| Method | Draws |
+|---|---|
+| `stroke(pts, opts?)` | A polyline through the points, jittered and traced twice. |
+| `arrow(pts, opts?)` | The same, plus two barbs at the last point. |
+| `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. |
+| `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
+| `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
+| `hatch(x, y, w, h, color?)` | Diagonal shading across the box, clipped to it. |
+| `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |
+| `wash(x, y, w, h, fill?)` | A plain rounded background rect. |
+| `rng()` | The pen's seeded PRNG; calling it advances the sequence. |
+
+## Theming
+
+Colors are written into the SVG as `var(--ps-*, fallback)` references, so a
+page restyles a diagram that is already on screen - dark mode included - just
+by redefining the variables. The package ships no CSS of its own.
+
+| Variable | Default | Used for |
+|---|---|---|
+| `--ps-ink` | `#232B36` | Primary strokes and labels |
+| `--ps-pen` | `#2B5B8A` | Group borders and accent nodes |
+| `--ps-accent` | `#B3402E` | Dotted edges and notes |
+| `--ps-muted` | `#5A6572` | Secondary labels |
+| `--ps-wash` | `rgba(43,91,138,.05)` | Group backgrounds |
+
+Labels inherit the page's font, and the hand-drawn look leans on a handwriting
+stack for `svg text`: `"Chalkboard SE"`, `"Bradley Hand"`, `"Segoe Print"`,
+`"Comic Sans MS"`, `cursive`.
+
+## Repository
+
+Full documentation, runnable examples and the React bindings live at
+https://github.com/alpha-nu/pensketch.

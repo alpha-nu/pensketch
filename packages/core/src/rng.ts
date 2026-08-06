@@ -1,7 +1,14 @@
-// The only source of randomness in the package. It is seeded, pure, and
-// never reseeded from a clock, so the same seed always replays the same
-// sequence. The order in which callers consume that sequence is part of the
-// rendered output: reordering draw operations moves every wobble after it.
+/**
+ * The mulberry32 generator: the only source of randomness in the package. It
+ * is pure and never reseeded from a clock, so a seed replays the same
+ * sequence of floats in `[0, 1)` every time, out of integer arithmetic that
+ * ECMAScript specifies exactly. The order in which callers consume that
+ * sequence is part of the rendered output - reordering draw operations moves
+ * every wobble after the change - which is what makes a diagram rendered on a
+ * given engine safe to compare byte for byte.
+ *
+ * The seed is truncated to 32 bits, so it is an integer's worth of choice.
+ */
 export function mulberry32(seed: number): () => number {
   let a = seed;
   return () => {
