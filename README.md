@@ -283,16 +283,39 @@ root provides.
 
 ## pensketch and rough.js
 
-[rough.js](https://roughjs.com) is the reference for hand-drawn graphics on the
-web, and pensketch is not a replacement for it. rough.js hands you a sketchy
-primitive vocabulary - lines, curves, arcs, paths, fills, on canvas or SVG -
-and you compose any picture you like from it, including many pensketch cannot
-draw. pensketch starts one level up and a good deal narrower: you hand it a
-diagram as data and it decides the strokes, which is what buys the properties
-above - a file that diffs like code, output worth snapshot-testing, and a
-package small enough to stop thinking about. Drawing arbitrary sketchy
-graphics, reach for rough.js. Drawing boxes and arrows that live in version
-control, this is the smaller tool.
+Both draw hand-sketched graphics. They differ in what you hand them, and every
+other difference follows from that one.
+
+- **[rough.js](https://roughjs.com) hands you a pen.** `line`, `rectangle`,
+  `circle`, `path`, `arc` - you compose the picture stroke by stroke, and it
+  will draw a great deal pensketch cannot.
+- **pensketch takes the finished description.** Nodes, edges and notes as one
+  plain object; it decides every stroke.
+
+Which is why a pensketch diagram is a *file* rather than a function. It reviews
+in a pull request, diffs a line at a time, and can be generated from data you
+already have - none of which is true of code that draws.
+
+| | pensketch | rough.js |
+|---|---|---|
+| You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
+| It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
+| Renders to | SVG | SVG and Canvas |
+| Size, min+gzip | **2308 B** | 8919 B |
+| Dependencies | **none** | four |
+| Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
+| Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |
+| Layout | You give coordinates | You give coordinates |
+
+Sizes are each project's published ESM bundle, minified and gzipped; rough.js
+measured at 4.6.6.
+
+**Reach for rough.js** when the picture is arbitrary - a sketchy chart, a game,
+a texture, anything worth composing stroke by stroke, on canvas or SVG.
+
+**Reach for pensketch** when the picture is boxes and arrows that belong in
+version control: one plain object your reviewers can read, rendering to the
+same bytes on every run, for 2 KB and no new entries in your lockfile.
 
 ## License
 
