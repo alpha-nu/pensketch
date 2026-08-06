@@ -87,14 +87,14 @@ Gate: all six verification commands green.
 
 ## 4. React package
 
-- [ ] 4.1 `PenSketch.tsx`, `useSketch.ts`, `index.ts` per design.md D2.
+- [x] 4.1 `PenSketch.tsx`, `useSketch.ts`, `index.ts` per design.md D2.
       Enable `exactOptionalPropertyTypes` with a `color` default on `hatch`
       first: without it `theme={{ ink: props.ink }}` with an undefined prop
       renders `stroke="undefined"` from a type-legal call. If the props type
       cannot satisfy the flag without defensive code, revert it and document
       the caveat instead. `useSketch` needs the same memoization guidance
       `PenSketch` already carries -- its effect keys on callback identity
-- [ ] 4.2 Tests: mount draw, seed-change redraw, identity-stable no-redraw,
+- [x] 4.2 Tests: mount draw, seed-change redraw, identity-stable no-redraw,
       StrictMode double-effect, `renderToString` SSR, `useSketch` pen
       delivery; ≥90%. Needs a react-project setup file running
       `afterEach(cleanup)` — Testing Library only self-registers cleanup when

@@ -220,7 +220,13 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   }
 
   // Diagonals across the box, clipped to it at both ends.
-  function hatch(x: number, y: number, w: number, h: number, color?: string) {
+  function hatch(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    color: string = theme.ink,
+  ) {
     for (let i = -h; i < w; i += HATCH_GAP)
       stroke(
         [

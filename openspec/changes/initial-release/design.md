@@ -318,6 +318,9 @@ current; the `workspace:*` protocol is pnpm/yarn and must not appear) and
 `"peerDependencies": { "react": "^18 || ^19" }`. Nothing else; no react-dom.
 
 `tsconfig.base.json`: `strict`, `noUncheckedIndexedAccess`,
+`exactOptionalPropertyTypes` (without it `theme={{ ink: props.ink }}` with an
+undefined prop is type-legal and renders `stroke="undefined"`; the flag turns
+that into a compile error instead of a runtime guard),
 `target: "ES2020"`, `module: "ESNext"`, `moduleResolution: "bundler"`,
 `lib: ["ES2020", "DOM"]`, `skipLibCheck`; react package adds
 `"jsx": "react-jsx"`. Biome: formatter + linter, recommended rules,

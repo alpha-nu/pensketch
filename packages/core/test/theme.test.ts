@@ -53,7 +53,7 @@ const rectFills = (svg: SVGSVGElement) =>
 
 const render = (theme?: Partial<Theme>) => {
   const svg = makeSvg();
-  draw(svg, EVERY_ROLE, { theme });
+  draw(svg, EVERY_ROLE, theme === undefined ? {} : { theme });
   return svg;
 };
 

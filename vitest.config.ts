@@ -27,6 +27,9 @@ export default defineConfig({
           name: 'react',
           root: 'packages/react',
           environment: 'jsdom',
+          // Testing Library self-registers its cleanup only when `afterEach`
+          // is a global, which it is not here, so the setup file runs it.
+          setupFiles: ['./test/setup.ts'],
         },
       },
     ],
