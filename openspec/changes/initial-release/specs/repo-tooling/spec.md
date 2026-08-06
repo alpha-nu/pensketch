@@ -68,7 +68,10 @@ changesets with npm provenance and an `NPM_TOKEN` secret. Version semantics
 pre-1.0: **patch** guarantees byte-identical rendered output; **minor** may
 change rendered output or add API, and its changeset SHALL say so and
 describe what shifts; every user-visible change SHALL carry a changeset; the
-implementing agent SHALL never publish, tag, or push.
+implementing agent SHALL never publish, tag, or push. A dispatch SHALL end
+having either published or opened/updated the version pull request, and SHALL
+fail otherwise, so that a release job which quietly does nothing — the shape a
+drifted action input takes — cannot report success.
 
 #### Scenario: Visual change is classified
 - **WHEN** a commit alters any aesthetic constant or PRNG consumption order
@@ -77,3 +80,7 @@ implementing agent SHALL never publish, tag, or push.
 #### Scenario: No unsolicited publishes
 - **WHEN** all CI checks pass on `main`
 - **THEN** nothing is published until the owner triggers the release workflow
+
+#### Scenario: A release that releases nothing goes red
+- **WHEN** a dispatch completes without publishing and without opening or updating the version pull request
+- **THEN** the workflow exits non-zero and names a drifted action input contract as a cause to check

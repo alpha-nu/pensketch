@@ -62,6 +62,7 @@ jobs:
       # "--no" makes npx resolve the changesets CLI from the lockfile-pinned
       # node_modules and fail rather than fetch a same-named package.
       - name: Version packages or publish to npm
+        id: changesets
         # Pinned by commit, not by tag: this is the one step that holds both
         # the registry token and an OIDC signing identity, and a tag can be
         # moved. The comment records which release the commit is.
@@ -72,3 +73,34 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           # Read by the npm publish that the changesets CLI shells out to.
           NPM_CONFIG_PROVENANCE: 'true'
+
+      # A dispatch has exactly two honest outcomes: it opened or updated the
+      # version pull request, or it published. A run that did neither is a
+      # release that released nothing, and the step above will not say so —
+      # it exits zero either way.
+      #
+      # That matters most when the pin above is bumped. This action renames
+      # every input and output in its next major (publish -> publish-script,
+      # hasChangesets -> has-changesets), and a workflow that passes an input
+      # the action does not declare only earns a warning annotation. So an
+      # upgrade that forgets to rename would leave a release job that reopens
+      # the version pull request forever and never reaches the registry, with
+      # a green tick on every run. Asserting the outcome closes that off
+      # without having to predict which names change next.
+      - name: The dispatch released something
+        env:
+          PUBLISHED: ${{ steps.changesets.outputs.published }}
+          PULL_REQUEST: ${{ steps.changesets.outputs.pullRequestNumber }}
+        run: |
+          if [ "$PUBLISHED" = 'true' ]; then
+            echo "Published."
+          elif [[ "$PULL_REQUEST" =~ ^[0-9]+$ ]]; then
+            echo "Opened or updated version pull request #${PULL_REQUEST}."
+          else
+            echo "::error::This dispatch neither published nor opened a version pull request."
+            echo "Either there was genuinely nothing to release, or the release step is no"
+            echo "longer reading the inputs it is handed. If the pinned action version"
+            echo "changed, check every input and output name here against its action.yml at"
+            echo "that ref before assuming the former."
+            exit 1
+          fi

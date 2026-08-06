@@ -149,6 +149,8 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
       — the first opens the "Version Packages" pull request (no publish), and
       after merging it the second publishes the bumped versions. Note a
       dispatch made when no changeset files exist skips straight to
-      publishing whatever versions the manifests currently carry
+      publishing whatever versions the manifests currently carry — and that a
+      dispatch which neither publishes nor opens the pull request fails on
+      purpose, so a third, idle dispatch is expected to go red
 
 Gate: dry runs green; publish left to owner.

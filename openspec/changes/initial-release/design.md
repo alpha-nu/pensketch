@@ -267,6 +267,21 @@ The port must reproduce the reference byte-for-byte for both fixtures in
 | Versioning | changesets, independent versions, internal dep ranges auto-bumped |
 | Size budgets | core ≤ 5120 B, react ≤ 2048 B (dist ESM, min+gzip) via `tools/check-size.mjs` |
 | Publish | `release.yml` on `workflow_dispatch` only, changesets publish with npm provenance, `NPM_TOKEN` secret; owner triggers |
+| Release actions | pinned by commit; the job then asserts it either published or opened the version pull request |
+
+Third-party actions are pinned by commit rather than by tag, because a tag can
+be moved and the release job holds both the registry token and an OIDC signing
+identity. The pin brings its own hazard, though: `changesets/action` renames
+every input and output in its next major (`publish` → `publish-script`,
+`hasChangesets` → `has-changesets`), and a workflow that passes an input the
+action does not declare earns a warning annotation rather than an error. An
+upgrade that bumped the ref without renaming would therefore produce a release
+job that reopens the version pull request forever, never publishes, and goes
+green every time. Rather than try to predict which names move next, the job
+asserts the outcome it actually wants: a dispatch must end having either
+published or opened/updated the version pull request, or it fails. The cost is
+that an idle dispatch — nothing to version, nothing left to publish — also
+fails, which is the honest reading of a release that released nothing.
 
 Root `package.json`: `"private": true`, `"type": "module"`,
 `"workspaces": ["packages/*"]`, `"engines": { "node": ">=22" }`, and exactly
