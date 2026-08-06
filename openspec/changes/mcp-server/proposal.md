@@ -1,0 +1,77 @@
+# Proposal: mcp-server
+
+> `@pensketch/mcp` — an MCP server exposing the checker, a renderer, and the
+> reference material an agent needs, over stdio and over HTTP.
+
+## Why
+
+An agent writing a pensketch diagram is working blind. It can produce valid
+data — the types see to that — and still produce a picture with a connector
+through a label, a node half out of its lane, or a caption wider than the box
+around it. Nothing in the type system or in `draw` says so, because pensketch
+deliberately does no layout.
+
+`diagram-checker` turns that feedback into data. This change puts it where an
+agent can reach it, together with the two other things that made the
+difference when this repository's own examples were built: **worked examples**,
+which taught proportion far faster than field tables did, and **the numbers
+that matter** — default sizes, the jitter amplitude, the constants a caller
+has to design around.
+
+MCP is the way to hand all three to any agent harness at once, rather than
+once per harness.
+
+## What Changes
+
+- **New package** `@pensketch/mcp`, published, runnable two ways from one
+  implementation: `npx @pensketch/mcp` over stdio for local clients, and a
+  Cloudflare Worker `fetch` export for a hosted URL.
+- **Two tools**: `check_diagram`, which is `@pensketch/core/check` with a
+  schema on it, and `render_diagram`, which returns SVG.
+- **Four resources**: the agent-facing spec, the JSON Schema for `Diagram`,
+  the three shipped example diagrams as data, and the frozen constants. All
+  four are served from files that already exist in the repository for other
+  reasons — the server publishes them, it does not restate them.
+- **A tiny DOM shim** so rendering works with no browser and no jsdom. Core
+  touches exactly seven DOM members, all through `svg.ownerDocument`, which
+  the determinism test already enforces.
+
+## Capabilities
+
+### New Capabilities
+
+- `mcp-server`: the tool and resource surface, transport shapes, the
+  no-side-effects guarantee, and the rendering path that needs no browser
+
+### Modified Capabilities
+
+- `repo-tooling`: a third workspace package, its dependency posture, and the
+  release policy that now covers a package whose output is not a rendering
+
+## Impact
+
+- **npm**: one new public package, `@pensketch/mcp`.
+- **Dependency posture changes, and this is the notable one.** `@pensketch/mcp`
+  carries the MCP SDK and a schema library. The project invariant recorded in
+  `CONTRIBUTING.md` reads "no runtime dependency in either package"; it was
+  written when there were two. It SHALL be reworded to name `@pensketch/core`
+  and `@pensketch/react` explicitly, so the rule stays true and keeps meaning
+  what it meant: *the rendering packages* add nothing to a consumer's
+  lockfile. The MCP server is a tool an agent runs, not code that ships inside
+  a web page.
+- **Depends on**: `diagram-checker`. `check_diagram` is that function.
+- **Hosting**: a Worker on `workers.dev`. The server holds no secrets, makes
+  no network calls, and writes nothing, so it can be served without
+  authentication — a property worth keeping rather than a temporary
+  convenience.
+
+## Non-goals
+
+- **No diagram generation tool.** The agent writes the data; the server checks
+  and renders it. A `make_me_a_diagram` tool would put layout in the server,
+  which is the project's oldest non-goal.
+- **No state.** No sessions, no stored diagrams, no history. Every call is a
+  pure function of its arguments.
+- **No network or filesystem access from the tools.** This is what makes the
+  unauthenticated hosted server defensible, so it is a requirement rather than
+  a description.
