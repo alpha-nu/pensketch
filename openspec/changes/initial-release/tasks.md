@@ -130,20 +130,20 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
 
 ## 6. Release readiness
 
-- [ ] 6.1 Changesets present for everything shipped; versions resolve to
+- [x] 6.1 Changesets present for everything shipped; versions resolve to
       `0.1.0`. The release changeset must name **both** packages: a minor on
       core alone gives react a dependent patch bump to `0.0.2`, not `0.1.0`
-- [ ] 6.2 Copy `LICENSE` into each package directory (a real file, never a
+- [x] 6.2 Copy `LICENSE` into each package directory (a real file, never a
       symlink — npm anchors its automatic licence inclusion to the package
       root and never follows symlinks), then `npm pack --dry-run` per
       package: dist + README + license only
-- [ ] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`, plus a
+- [x] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`, plus a
       smoke over the built artifact: nothing else in the project consumes
       `dist/` (typecheck and tests both resolve core from source), so a broken
       exports map or declaration rollup would ship unnoticed. Import the ESM
       entry, require the CJS entry, and assert both export exactly the D2
       surface
-- [ ] 6.4 Confirm no `TODO(owner)` markers or unresolved URLs remain in either
+- [x] 6.4 Confirm no `TODO(owner)` markers or unresolved URLs remain in either
       package README
 - [ ] 6.5 **OWNER**: publishing `0.1.0` takes two dispatches of `release.yml`
       — the first opens the "Version Packages" pull request (no publish), and
