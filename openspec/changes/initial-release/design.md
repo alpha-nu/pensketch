@@ -326,7 +326,15 @@ one core in the tree, a rendering change reaches the component and a direct
 `draw()` call alike, so only an API break needs a new range. Changesets is
 configured with `onlyUpdatePeerDependentsWhenOutOfRange` so that a core minor
 does not force a react major — without it every core release drags the
-bindings to the next major for a range rewrite that changes nothing.
+bindings to the next major for a range rewrite that changes nothing. That is
+the only switch for this: the rule is otherwise unconditional in
+`assemble-release-plan`, and it fires even for a range the new version already
+satisfies. Because the option's own name reserves the right to change without
+notice, `@changesets/cli` is pinned to an exact version, and a test asserts
+the release plan directly — a core minor must leave the bindings alone and a
+core major must take them with it — so a change in that behaviour fails
+`npm test` rather than surfacing as an unexplained major on a release pull
+request.
 
 `tsconfig.base.json`: `strict`, `noUncheckedIndexedAccess`,
 `exactOptionalPropertyTypes` (without it `theme={{ ink: props.ink }}` with an
