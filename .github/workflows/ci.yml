@@ -42,14 +42,34 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Vitest titles every job-summary block "Vitest Test Report", and this
+      # job produces three of them. The reporter has no title option, but the
+      # summary is only markdown appended to a file, so each run announces
+      # itself first - at `#`, one level above the `##` vitest writes.
       - name: Test
-        run: npm test
+        run: |
+          {
+            echo "# Full suite"
+            echo "**Node** $(node -v) · **React** $(node -p 'require("react/package.json").version') · every project, coverage thresholds enforced."
+          } >> "$GITHUB_STEP_SUMMARY"
+          npm test
 
       - name: Build
         run: npm run build
 
+      # Budgets are a published contract, so the numbers belong in the summary
+      # rather than only in a log. The status is carried across the write so a
+      # breach still fails the step.
       - name: Size budgets
-        run: npm run size
+        run: |
+          out=$(npm run size --silent) && rc=0 || rc=$?
+          {
+            echo "# Size budgets"
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
 
       # Not a second opinion on the parity tests: those compare the port
       # against the goldens, this compares reference/renderer.html against
@@ -73,7 +93,12 @@ jobs:
           node-version: '22'
 
       - name: Test on the Node floor
-        run: npm test
+        run: |
+          {
+            echo "# Node floor"
+            echo "**Node** $(node -v) · the oldest runtime the manifests admit · the same suite again, so the published floor is a tested claim."
+          } >> "$GITHUB_STEP_SUMMARY"
+          npm test
 
       # Last, because it is the only step that mutates node_modules. The peer
       # range admits React 18, and shipping that claim untested is how
@@ -90,4 +115,9 @@ jobs:
         run: npm run typecheck
 
       - name: Test the bindings against React 18
-        run: npx vitest run --project react
+        run: |
+          {
+            echo "# React 18 bindings"
+            echo "**React** $(node -p 'require("react/package.json").version') · the older half of the ^18 || ^19 peer range · bindings only, since core does not touch React."
+          } >> "$GITHUB_STEP_SUMMARY"
+          npx vitest run --project react
