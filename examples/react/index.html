@@ -22,6 +22,13 @@ body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; }
 main { max-width: 960px; margin: 0 auto; }
 h1 { font-size: 20px; font-weight: 600; }
 svg { display: block; width: 100%; height: auto; margin-bottom: 24px; }
+/* Both drawings are stretched to the page width, and the caption's viewBox is
+   only 500 across - left alone it renders at nearly twice the scale of the
+   diagram it is captioning. */
+svg[aria-label="A hand-drawn caption"] { max-width: 500px; }
+fieldset { margin: 0 0 20px; }
+legend { font-size: 13px; color: #5A6572; }
+fieldset label { margin-right: 14px; }
 </style>
 <style>
 :root {

@@ -375,18 +375,28 @@ pensketch/
 
 ## D7 — Documentation, examples, and the single-source snippet rule
 
-Every code snippet in any README comes **verbatim from Appendix A below**;
-the examples mirror the same snippets (sole permitted divergence: import
-lines, §examples). If an API change invalidates a snippet, Appendix A is
-updated in the same commit and propagated everywhere.
+Every code snippet in any README comes **verbatim from Appendix A below**. If
+an API change invalidates a snippet, Appendix A is updated in the same commit
+and propagated everywhere.
 
-Biome would rewrite these snippets — it collapses the column alignment that
+The examples are **not** snippet copies. A quickstart earns its place by being
+the shortest thing that draws; an example earns its place by being worth
+looking at. Tying the two together held every example down to whatever the
+README could afford to print, which is how all three ended up drawing the same
+three-node flow. Each folder instead carries one diagram chosen to exercise
+what that folder exists to demonstrate — a CI pipeline for `draw` from data,
+an order lifecycle for the `raw` escape hatch, the OAuth authorization code
+flow for the React bindings — and is free to be longer than any snippet.
+
+Biome would rewrite diagram data — it collapses the column alignment that
 makes the node tables readable and explodes the nested waypoint arrays, at
-every line width — so `biome.json` exempts the two example files that carry
-verbatim snippets (`examples/vanilla/`, `examples/custom-pen/`) from both
-formatter and linter. `examples/react/` is ordinary authored code, not a
-snippet copy, and stays fully checked. Markdown is not processed by Biome at
-all, so every README snippet is unaffected.
+every line width. `biome.json` therefore exempts `examples/vanilla/` and
+`examples/custom-pen/` from both formatter and linter, and turns the formatter
+alone off for `examples/react/src/oauth.ts`, which is a coordinate table
+rather than authored logic — collapsed to one field per line it runs to 120
+lines of vertical noise. The rest of `examples/react/` stays fully checked.
+Markdown is not processed by Biome at all, so every README snippet is
+unaffected.
 
 **Root README sections, in order**: 1 Hero (name, tagline, SAMPLER hero image
 via theme-aware `<picture>` over `docs/assets/hero-{light,dark}.png`);

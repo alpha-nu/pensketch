@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <!--
-  pensketch - vanilla quickstart.
+  pensketch - a CI pipeline, drawn from data.
+
+  Nothing here is a picture of a pipeline. It is the pipeline's shape as a
+  plain object: groups for the two stages, a diamond for the gate, and one
+  dotted edge for the path back to the start. Change a job name and the diff
+  is one line.
 
   Two things have to happen before this page shows anything:
 
@@ -24,7 +29,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pensketch - vanilla quickstart</title>
+<title>pensketch - a CI pipeline</title>
 <style>
 /* Page chrome. The theming below this block is the documented snippet. */
 :root { color-scheme: light dark; }
@@ -55,21 +60,46 @@ svg text {
 </style>
 </head>
 <body>
-<svg id="flow" viewBox="0 0 700 150" role="img" aria-label="Request flow"></svg>
+<svg id="pipeline" viewBox="0 0 880 340" role="img" aria-label="A continuous integration pipeline"></svg>
 <script type="module">
-  import { draw } from '../../packages/core/dist/index.js'; // the one divergence from the documented snippet: a bare specifier needs a bundler, and this page has none
+  import { draw } from '../../packages/core/dist/index.js'; // a bare specifier needs a bundler, and this page has none
 
-  draw(document.getElementById('flow'), {
+  draw(document.getElementById('pipeline'), {
     nodes: [
-      { id: 'in',   shape: 'pill',    x: 40,  y: 50, w: 160, h: 50, lines: ['request'] },
-      { id: 'gate', shape: 'diamond', x: 260, y: 35, w: 150, h: 80, lines: ['allowed?'] },
-      { id: 'work', shape: 'box',     x: 480, y: 50, w: 180, h: 50, lines: ['do the work'], accent: true },
+      // Groups are drawn first and sit behind everything, so they read as
+      // stages rather than as boxes around boxes.
+      { id: 'ci',      shape: 'group',   x: 30,  y: 30,  w: 470, h: 230, lines: ['continuous integration'] },
+      { id: 'rel',     shape: 'group',   x: 530, y: 30,  w: 320, h: 230, lines: ['release'] },
+
+      { id: 'push',    shape: 'pill',    x: 55,  y: 120, w: 110, h: 48, lines: ['push'] },
+      { id: 'lint',    shape: 'box',     x: 195, y: 55,  w: 120, h: 44, lines: ['lint'] },
+      { id: 'test',    shape: 'box',     x: 195, y: 122, w: 120, h: 44, lines: ['test'] },
+      { id: 'build',   shape: 'box',     x: 195, y: 189, w: 120, h: 44, lines: ['build'] },
+      { id: 'gate',    shape: 'diamond', x: 355, y: 106, w: 120, h: 76, lines: ['all green?'], size: 12 },
+      { id: 'staging', shape: 'box',     x: 570, y: 75,  w: 150, h: 48, lines: ['deploy staging'], size: 12 },
+      { id: 'prod',    shape: 'box',     x: 570, y: 180, w: 150, h: 48, lines: ['deploy prod'], accent: true },
     ],
     edges: [
-      { from: ['in', 'r'],   to: ['gate', 'l'] },
-      { from: ['gate', 'r'], to: ['work', 'l'], label: 'yes', lx: 445, ly: 60 },
-      { from: ['gate', 'b'], to: ['in', 'b'], via: [[335, 135], [120, 135]],
-        dotted: true, label: 'no', lx: 225, ly: 122 },
+      // Three jobs from one push, then three results into one gate. Fanning
+      // out and back in is just six edges naming the same two anchors.
+      { from: ['push', 'r'],    to: ['lint', 'l'] },
+      { from: ['push', 'r'],    to: ['test', 'l'] },
+      { from: ['push', 'r'],    to: ['build', 'l'] },
+      { from: ['lint', 'r'],    to: ['gate', 'l'] },
+      { from: ['test', 'r'],    to: ['gate', 'l'] },
+      { from: ['build', 'r'],   to: ['gate', 'l'] },
+
+      { from: ['gate', 'r'],    to: ['staging', 'l'], label: 'green', lx: 522, ly: 108 },
+      { from: ['staging', 'b'], to: ['prod', 't'],    label: 'smoke passed', lx: 652, ly: 156, anchor: 'start' },
+
+      // The way back. `via` walks the legs exactly as given - under both
+      // groups, then up into the pill it started from.
+      { from: ['gate', 'b'],    to: ['push', 'b'], via: [[415, 300], [110, 300]],
+        dotted: true, label: 'any job red', lx: 262, ly: 292 },
+    ],
+    notes: [
+      { x: 850, y: 292, lines: ['prod only from a tag'], anchor: 'end',
+        arrowFrom: [770, 283], arrowTo: [700, 238] },
     ],
   }, { seed: 7 });
 </script>

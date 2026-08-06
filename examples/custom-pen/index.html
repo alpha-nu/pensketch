@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <!--
-  pensketch - the pen, and the raw escape hatch.
+  pensketch - a state machine, and the escape hatch that finishes it.
+
+  An order lifecycle is nearly all data: states, transitions, and two terminal
+  states that stop the machine. One thing is not. pensketch edges connect two
+  different nodes, so a self-transition - "retry the payment, stay pending" -
+  has no way to be said in the data model, by design.
+
+  That is what `raw` is for. The callback is handed the very pen that drew
+  everything above it, mid-sequence, so the loop it draws wobbles like the
+  rest of the picture instead of looking pasted on.
 
   Two things have to happen before this page shows anything:
 
@@ -24,12 +33,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pensketch - custom pen</title>
+<title>pensketch - a state machine, and the raw pen</title>
 <style>
 /* Page chrome. The theming below this block is the documented snippet. */
 :root { color-scheme: light dark; }
 body { margin: 0; padding: 24px; }
 svg { display: block; width: 100%; height: auto; margin-bottom: 24px; }
+/* Both drawings are stretched to the page width, and this one's viewBox is
+   only 500 across - left alone it renders nearly twice the scale of the
+   diagram above and reads as the more important of the two. */
+#primitives { max-width: 500px; }
 </style>
 <style>
 :root {
@@ -55,37 +68,59 @@ svg text {
 </style>
 </head>
 <body>
-<!-- The documented snippet reaches for the first svg on the page, so this one
-     has to come first. -->
-<svg viewBox="0 0 500 130" role="img" aria-label="A box and a pill"></svg>
+<svg id="lifecycle" viewBox="0 0 900 290" role="img" aria-label="An order lifecycle state machine"></svg>
 <script type="module">
-import { pen } from '../../packages/core/dist/index.js'; // the one divergence from the documented snippet: a bare specifier needs a bundler, and this page has none
+import { draw } from '../../packages/core/dist/index.js'; // a bare specifier needs a bundler, and this page has none
 
-const p = pen(document.querySelector('svg'), { seed: 3 });
+// The pen writes colors as var() references, exactly as the rest of the
+// diagram does, so the raw loop below follows the page into dark mode too.
+const PEN = 'var(--ps-pen, #2B5B8A)';
+const MUTED = 'var(--ps-muted, #5A6572)';
+
+draw(document.getElementById('lifecycle'), {
+  nodes: [
+    { id: 'placed',    shape: 'pill', x: 40,  y: 90,  w: 140, h: 50, lines: ['placed'] },
+    { id: 'pending',   shape: 'pill', x: 250, y: 90,  w: 160, h: 50, lines: ['payment pending'], size: 12 },
+    { id: 'paid',      shape: 'pill', x: 480, y: 90,  w: 130, h: 50, lines: ['paid'] },
+    { id: 'shipped',   shape: 'pill', x: 680, y: 90,  w: 150, h: 50, lines: ['shipped'] },
+
+    // Hatching marks the two states the machine never leaves.
+    { id: 'delivered', shape: 'pill', x: 680, y: 200, w: 150, h: 50, lines: ['delivered'], hatch: true },
+    { id: 'cancelled', shape: 'pill', x: 250, y: 200, w: 160, h: 50, lines: ['cancelled'], hatch: true },
+  ],
+  edges: [
+    { from: ['placed', 'r'],  to: ['pending', 'l'] },
+    { from: ['pending', 'r'], to: ['paid', 'l'],      label: 'authorised', lx: 445, ly: 105 },
+    { from: ['paid', 'r'],    to: ['shipped', 'l'],   label: 'dispatched', lx: 645, ly: 105 },
+    { from: ['shipped', 'b'], to: ['delivered', 't'], label: 'signed for', lx: 765, ly: 172, anchor: 'start' },
+
+    // Dotted for the unhappy paths, which also recolors their labels.
+    { from: ['pending', 'b'], to: ['cancelled', 't'], dotted: true, label: 'expired',  lx: 345, ly: 172, anchor: 'start' },
+    { from: ['paid', 'b'],    to: ['cancelled', 'r'], dotted: true, label: 'refunded', lx: 478, ly: 216, anchor: 'end',
+      via: [[545, 225]] },
+  ],
+  raw: [
+    // The self-transition the data model has no word for.
+    (p) => {
+      p.arrow([[290, 90], [290, 45], [370, 45], [370, 88]], { color: PEN });
+      p.label(330, 32, 'retry x3', { size: 12, color: MUTED });
+    },
+  ],
+}, { seed: 11 });
+</script>
+
+<!-- The same pen, reached the other way round: `pen()` hands it to you
+     directly, with no diagram in front of it. -->
+<svg id="primitives" viewBox="0 0 500 130" role="img" aria-label="The pen's primitives"></svg>
+<script type="module">
+import { pen } from '../../packages/core/dist/index.js';
+
+const p = pen(document.getElementById('primitives'), { seed: 3 });
 p.rect(20, 20, 200, 90);
 p.label(120, 65, 'hand-drawn box');
 p.arrow([[220, 65], [320, 65]]);
 p.pill(320, 40, 150, 50);
 p.label(395, 65, ['a pill', '(two lines)']);
-</script>
-
-<!-- The same pen, reached the other way round: a diagram's raw callbacks are
-     handed the very pen that drew the nodes above them. -->
-<svg id="escape" viewBox="0 0 560 140"></svg>
-<script type="module">
-import { draw } from '../../packages/core/dist/index.js';
-
-draw(document.getElementById('escape'), {
-  nodes: [
-    { id: 'data', shape: 'box', x: 30, y: 40, w: 200, h: 60, lines: ['drawn from data'] },
-  ],
-  raw: [
-    (p) => {
-      p.arrow([[230, 70], [320, 70]]);
-      p.label(430, 70, ['and finished by hand', 'with the same pen']);
-    },
-  ],
-}, { seed: 5, label: 'A diagram finished by a raw callback' });
 </script>
 </body>
 </html>

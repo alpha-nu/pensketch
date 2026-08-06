@@ -277,16 +277,16 @@ root provides.
 
 | Folder | Shows | Run |
 |---|---|---|
-| `examples/vanilla/` | The vanilla quickstart, themed with the CSS variables. | `npx serve .`, then open `/examples/vanilla/` |
-| `examples/custom-pen/` | The pen primitives, and a `raw` callback reaching the same pen. | `npx serve .`, then open `/examples/custom-pen/` |
-| `examples/react/` | `<PenSketch>` and `useSketch` in a Vite app, under StrictMode. | `cd examples/react && npm install && npm run dev` |
+| `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, and a dotted edge back to the start. | `npx serve .`, then open `/examples/vanilla/` |
+| `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, and the self-transition the data model has no word for drawn through `raw` — plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
+| `examples/react/` | **The OAuth 2.0 authorization code flow.** Four lanes, seven steps, and a seed control: same data, a different drawing of it, on demand. | `cd examples/react && npm install && npm run dev` |
 
-## pensketch and rough.js
+## In case you wonder about pensketch vs. rough.js
 
 Both draw hand-sketched graphics. They differ in what you hand them, and every
 other difference follows from that one.
 
-- **[rough.js](https://roughjs.com) hands you a pen.** `line`, `rectangle`,
+- **rough.js hands you a pen.** `line`, `rectangle`,
   `circle`, `path`, `arc` - you compose the picture stroke by stroke, and it
   will draw a great deal pensketch cannot.
 - **pensketch takes the finished description.** Nodes, edges and notes as one
@@ -310,12 +310,12 @@ already have - none of which is true of code that draws.
 Sizes are each project's published ESM bundle, minified and gzipped; rough.js
 measured at 4.6.6.
 
-**Reach for rough.js** when the picture is arbitrary - a sketchy chart, a game,
-a texture, anything worth composing stroke by stroke, on canvas or SVG.
-
 **Reach for pensketch** when the picture is boxes and arrows that belong in
 version control: one plain object your reviewers can read, rendering to the
 same bytes on every run, for 2 KB and no new entries in your lockfile.
+
+**Reach for rough.js** when the picture is arbitrary - a sketchy chart, a game,
+a texture, anything worth composing stroke by stroke, on canvas or SVG.
 
 ## License
 

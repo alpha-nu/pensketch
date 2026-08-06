@@ -54,6 +54,10 @@
       "includes": ["examples/vanilla/**", "examples/custom-pen/**"],
       "formatter": { "enabled": false },
       "linter": { "enabled": false }
+    },
+    {
+      "includes": ["examples/react/src/oauth.ts"],
+      "formatter": { "enabled": false }
     }
   ]
 }
