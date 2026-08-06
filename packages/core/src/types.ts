@@ -57,21 +57,33 @@ export interface Pen {
   rng(): number;
 }
 
-export interface DiagramNode {
+interface NodeBox {
   id: string;
-  shape: 'box' | 'pill' | 'diamond' | 'group';
   x: number;
   y: number;
   w: number;
   h: number;
+}
+
+// A group's title is drawn unconditionally, so declaring it optional would
+// invite a shape of data that cannot be rendered.
+interface GroupNode extends NodeBox {
+  shape: 'group';
+  lines: string[];
+}
+
+interface ShapeNode extends NodeBox {
+  shape: 'box' | 'pill' | 'diamond';
   lines?: string[];
-  // Label font size override, non-group nodes only.
+  // Label font size override.
   size?: number;
   // Stroke with theme.pen instead of theme.ink.
   accent?: boolean;
   // Hatch-fill the interior, inset 4 px, in theme.pen.
   hatch?: boolean;
 }
+
+export type DiagramNode = GroupNode | ShapeNode;
 
 export interface DiagramEdge {
   from: [string, Side];

@@ -62,7 +62,7 @@ coverage, and size budgets, ASCII-only in fixture strings, and
 screenshot-verified at implementation time and after any API change.
 
 #### Scenario: Vanilla example runs from a fresh clone
-- **WHEN** a user runs `npm ci && npm run build` at the root and opens `examples/vanilla/index.html`
+- **WHEN** a user runs `npm ci && npm run build` at the root, serves the repository over HTTP, and opens `examples/vanilla/index.html` (browsers refuse ES-module imports over `file://`)
 - **THEN** the quickstart diagram renders, and flips theme under a dark color scheme
 
 #### Scenario: React example exercises both APIs
@@ -70,7 +70,7 @@ screenshot-verified at implementation time and after any API change.
 - **THEN** the page renders the BUDGETS diagram via `<PenSketch>` and the custom drawing via `useSketch`, under StrictMode
 
 ### Requirement: README hero images are generated, deterministic, and committed
-`tools/render-assets.mjs` SHALL render the SAMPLER fixture at 2× to
+`tools/render-assets.mjs` SHALL render its own hero diagram at 2× to
 `docs/assets/hero-light.png` (background `#FFFFFF`) and, under emulated
 dark `prefers-color-scheme`, `hero-dark.png` (background `#161B21`), with
 corner pixels verified against the background; the PNGs SHALL be committed

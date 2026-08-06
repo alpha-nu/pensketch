@@ -88,15 +88,19 @@ export interface Pen {
   rng(): number;   // the pen's seeded PRNG (advances state)
 }
 
-export interface DiagramNode {
-  id: string;
-  shape: 'box' | 'pill' | 'diamond' | 'group';
-  x: number; y: number; w: number; h: number;
-  lines?: string[];
-  size?: number;      // label font-size override (non-group nodes)
-  accent?: boolean;   // stroke with theme.pen instead of theme.ink
-  hatch?: boolean;    // hatch-fill the interior (inset 4px, theme.pen)
-}
+// A group's title is drawn unconditionally, so `lines` is required there and
+// optional everywhere else. One interface with `lines?` would type-admit an
+// untitled group, which cannot render.
+export type DiagramNode =
+  | { id: string; x: number; y: number; w: number; h: number;
+      shape: 'group'; lines: string[] }
+  | { id: string; x: number; y: number; w: number; h: number;
+      shape: 'box' | 'pill' | 'diamond';
+      lines?: string[];
+      size?: number;      // label font-size override
+      accent?: boolean;   // stroke with theme.pen instead of theme.ink
+      hatch?: boolean;    // hatch-fill the interior (inset 4px, theme.pen)
+    };
 
 export interface DiagramEdge {
   from: [string, Side];
@@ -133,6 +137,7 @@ export function pen(svg: SVGSVGElement, options?: PenOptions): Pen;
 export function draw(svg: SVGSVGElement, diagram: Diagram, options?: DrawOptions): void;
 export function anchor(node: DiagramNode, side: Side): Point;
 export const defaultTheme: Theme;
+export const constants: Readonly<Record<string, number | string>>;
 ```
 
 Module layout: `src/{index,rng,constants,theme,pen,draw,types}.ts`. React
@@ -393,8 +398,12 @@ variables + font stack) in a context with `deviceScaleFactor: 2` →
 no margins, corner pixels verified against the background, PNGs committed.
 Deterministic by construction (seeded renderer, fixed viewport). The script is
 local-only — CI never renders assets — and exits with an
-`npx playwright-core install chromium` hint when no Chrome is found. The same
-harness screenshot-verifies the examples.
+`npx playwright-core install chrome` hint when no Chrome is found (`install
+chromium` fetches a Chrome-for-Testing build that `channel: 'chrome'` never
+uses, so it would leave the reader just as stuck). The same harness
+screenshot-verifies the examples. It defines its own hero diagram rather than
+importing a parity fixture: the hero is marketing, and coupling it to a
+fixture means any fixture edit silently changes the README image.
 
 **Examples** (`examples/` — runnable, never published, excluded from
 coverage/size/publish; all fixture strings ASCII with `\uXXXX` escapes):

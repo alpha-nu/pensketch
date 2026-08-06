@@ -47,8 +47,11 @@ export function draw(
   const p = pen(svg, options);
   const theme = resolveTheme(options.theme);
   const nodes = diagram.nodes || [];
-  const byId: Record<string, DiagramNode> = {};
-  for (const n of nodes) byId[n.id] = n;
+  // A Map rather than an object literal: an object inherits
+  // Object.prototype, so an edge naming a node "toString" would find a
+  // function there and skip the unknown-node error entirely.
+  const byId = new Map<string, DiagramNode>();
+  for (const n of nodes) byId.set(n.id, n);
 
   // Draw order is the z-order and, because it is also the order the seeded
   // sequence is consumed in, part of the rendered bytes.
@@ -61,7 +64,7 @@ export function draw(
         width: GROUP_W,
         amplitude: GROUP_AMP,
       });
-      p.label(n.x + TITLE_DX, n.y + TITLE_DY, n.lines as string[], {
+      p.label(n.x + TITLE_DX, n.y + TITLE_DY, n.lines, {
         anchor: 'start',
         size: TITLE_SIZE,
         color: theme.pen,
@@ -69,10 +72,10 @@ export function draw(
     });
 
   (diagram.edges || []).forEach((e, i) => {
-    const from = byId[e.from[0]];
+    const from = byId.get(e.from[0]);
     if (!from)
       throw new Error(`edge ${i} references unknown node "${e.from[0]}"`);
-    const to = byId[e.to[0]];
+    const to = byId.get(e.to[0]);
     if (!to) throw new Error(`edge ${i} references unknown node "${e.to[0]}"`);
     const pts: Point[] = [
       anchor(from, e.from[1]),

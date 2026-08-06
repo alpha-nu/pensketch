@@ -74,7 +74,12 @@ Gate: parity green; goldens-freshness green.
 - [ ] 3.1 Unit tests: primitives structure, draw order, idempotent redraw,
       aria labeling, validation errors with exact messages, theme fallbacks
       and partial override, jsdom-independence; ≥90% both dimensions
-- [ ] 3.2 JSDoc on all exports incl. `@example` on `draw`/`pen`
+- [ ] 3.2 JSDoc on all exports incl. `@example` on `draw`/`pen`. Field
+      comments must be block comments: `//` comments do not reach the emitted
+      declarations, and the declarations are the API reference. The `draw`
+      example must exercise `DrawOptions.label`, which is otherwise spec'd,
+      tested and undemonstrated. Freeze `defaultTheme`, which today is
+      exported mutable while its sibling `constants` is frozen
 - [ ] 3.3 Size budget met; `npm run size` wired
 - [ ] 3.4 `packages/core/README.md` per documentation spec
 
@@ -82,7 +87,13 @@ Gate: all six verification commands green.
 
 ## 4. React package
 
-- [ ] 4.1 `PenSketch.tsx`, `useSketch.ts`, `index.ts` per design.md D2
+- [ ] 4.1 `PenSketch.tsx`, `useSketch.ts`, `index.ts` per design.md D2.
+      Enable `exactOptionalPropertyTypes` with a `color` default on `hatch`
+      first: without it `theme={{ ink: props.ink }}` with an undefined prop
+      renders `stroke="undefined"` from a type-legal call. If the props type
+      cannot satisfy the flag without defensive code, revert it and document
+      the caveat instead. `useSketch` needs the same memoization guidance
+      `PenSketch` already carries -- its effect keys on callback identity
 - [ ] 4.2 Tests: mount draw, seed-change redraw, identity-stable no-redraw,
       StrictMode double-effect, `renderToString` SSR, `useSketch` pen
       delivery; ≥90%. Needs a react-project setup file running
@@ -100,12 +111,20 @@ Gate: all six verification commands green.
       commented as the only divergence)
 - [ ] 5.2 `examples/custom-pen/index.html` (A3 + one `raw`-callback `draw()`)
 - [ ] 5.3 `examples/react/` Vite app (BUDGETS via `<PenSketch>`,
-      `CustomSketch` via `useSketch`, StrictMode on) — files per design.md D7
+      `CustomSketch` via `useSketch`, StrictMode on) — files per design.md D7.
+      `vite.config.ts` needs `resolve.dedupe: ['react', 'react-dom']`: the
+      `file:`-linked package resolves react through its realpath in the
+      monorepo, so a build can bundle two copies. Pin vite `^8` (the react
+      plugin peers it). Hoist the `useSketch` callback to module scope
 - [ ] 5.4 `tools/render-assets.mjs` → `docs/assets/hero-{light,dark}.png`
       (2×, corner-pixel-verified, committed)
 - [ ] 5.5 Root `README.md` complete — every section of the documentation
       spec, snippets byte-identical to Appendix A
-- [ ] 5.6 Screenshot-verify all three examples (headless Chrome, light + dark)
+- [ ] 5.6 Screenshot-verify all three examples (headless Chrome, light +
+      dark). Serve the HTML examples over HTTP -- browsers block ES-module
+      imports over `file://` -- and verify the React example through
+      `vite build` + `vite preview`, not the dev server: a duplicate-react
+      bundling fault is invisible in dev
 
 Gate: examples render correctly; README snippet diff vs Appendix A clean.
 
@@ -118,7 +137,12 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
       symlink — npm anchors its automatic licence inclusion to the package
       root and never follows symlinks), then `npm pack --dry-run` per
       package: dist + README + license only
-- [ ] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`
+- [ ] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`, plus a
+      smoke over the built artifact: nothing else in the project consumes
+      `dist/` (typecheck and tests both resolve core from source), so a broken
+      exports map or declaration rollup would ship unnoticed. Import the ESM
+      entry, require the CJS entry, and assert both export exactly the D2
+      surface
 - [ ] 6.4 Confirm no `TODO(owner)` markers or unresolved URLs remain in either
       package README
 - [ ] 6.5 **OWNER**: publishing `0.1.0` takes two dispatches of `release.yml`
