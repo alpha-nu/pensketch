@@ -37,9 +37,9 @@ point and fail (non-zero exit, printing actual vs budget) when
 `@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 1536
 bytes, `@pensketch/core/server` exceeds 1536 bytes, or `@pensketch/react`
 exceeds 2048 bytes min+gzip. `@pensketch/mcp` SHALL NOT carry a byte budget —
-it is spawned or hosted, never bundled into a page — but its deployed worker
-size SHALL be measured and recorded, because a WebAssembly rasterizer and an
-embedded font are the bulk of it and the platform imposes its own limit.
+it is spawned, never bundled into a page — but its packed tarball size SHALL
+be reported at build time, because a WebAssembly rasterizer and an embedded
+font dominate it and a user fetching it through `npx` waits for every byte.
 
 #### Scenario: Budget breach
 - **WHEN** a change pushes core's min+gzip ESM output over 5120 bytes
@@ -49,9 +49,9 @@ embedded font are the bulk of it and the platform imposes its own limit.
 - **WHEN** either subpath exceeds its own budget
 - **THEN** `npm run size` fails, and the root entry's budget is unaffected either way
 
-#### Scenario: The worker payload is measured
-- **WHEN** the server is built for deployment
-- **THEN** its compressed size is reported, so the platform's script limit is a known number rather than a surprise at deploy time
+#### Scenario: The server's download weight is visible
+- **WHEN** `@pensketch/mcp` is packed
+- **THEN** its tarball size is reported, so the wait an `npx` user pays for is a known number rather than an accident
 
 ### Requirement: Releases are owner-triggered with a visual semver clause
 Publishing SHALL happen only via a `workflow_dispatch` release workflow using

@@ -37,10 +37,11 @@ rasterizes.
 - [ ] 2.2 Reword the dependency invariant in `CONTRIBUTING.md` to name
       `@pensketch/core` and `@pensketch/react`, so the rule keeps meaning what
       it meant
-- [ ] 2.3 Pin the SDK deliberately: its own docs use the scoped
-      `@modelcontextprotocol/server` layout while Cloudflare's MCP example
-      still shows the older `@modelcontextprotocol/sdk` one. Establish which
-      the Worker path needs at the version chosen, and record it
+- [ ] 2.3 Pin the SDK deliberately. Its published layout has moved to scoped
+      packages (`@modelcontextprotocol/server`, `serveStdio`) and much of the
+      material still in circulation shows the older single-package one, so
+      establish which applies at the version chosen and record it rather than
+      following whichever example turns up first
 
 ## 3. Tools
 
@@ -72,28 +73,25 @@ rasterizes.
 - [ ] 4.2 A test per resource asserting served bytes equal source bytes, so a
       resource cannot drift from the file it mirrors
 
-## 5. Transports
+## 5. Transport
 
-- [ ] 5.1 stdio entry and `bin`, verified by spawning the built server and
+- [ ] 5.1 Server factory separate from the transport entry, so a second
+      transport stays additive. A test constructing the factory directly and
+      asserting the full tool and resource surface without any transport
+      attached
+- [ ] 5.2 stdio entry and `bin`, verified by spawning the built server and
       completing an initialize / list-tools / call-tool round trip
-- [ ] 5.2 Worker `fetch` entry serving Streamable HTTP at `/mcp`, with a test
-      asserting the tool and resource surface is identical to stdio's
-- [ ] 5.3 `wrangler.toml`, a deploy script CI never runs, and a build step
-      that reports the compressed worker size against the platform limit
-- [ ] 5.4 If the rasterizer puts the worker over that limit, serve
-      `render_png` over stdio only and say so in the README — a fallback
-      reached by measurement, never assumed
+- [ ] 5.3 Report the packed tarball size at build time. The rasterizer alone
+      is 2.36 MB of wasm, and an `npx` user waits for all of it on first run
 
 ## 6. Documentation and release
 
 - [ ] 6.1 `packages/mcp/README.md`: registration for stdio clients with a
-      pinned version, the hosted URL, the `PATH` caveat, the purity guarantee
-      that explains why the hosted server needs no credentials, and the font
-      substitution
+      pinned version, the `PATH` caveat, the purity guarantee, and the font
+      substitution with what it does and does not affect
 - [ ] 6.2 Root README section pointing at it
 - [ ] 6.3 A changeset: **minor** on `@pensketch/mcp`
-- [ ] 6.4 **OWNER**: deploy the Worker and record the URL
-- [ ] 6.5 **OWNER**: publish, then register it locally and confirm a real
+- [ ] 6.4 **OWNER**: publish, then register it locally and confirm a real
       client lists all three tools and every resource, and that `render_png`
       returns an image the client displays
 

@@ -1,7 +1,7 @@
 # mcp-server — Delta Specification
 
-> `@pensketch/mcp`: tools, resources, transports and the guarantees that let
-> it be hosted without authentication. Exact shapes: design.md.
+> `@pensketch/mcp`: tools, resources, and the guarantees that let it be
+> installed with nothing but a package name. Exact shapes: design.md.
 
 ## ADDED Requirements
 
@@ -30,7 +30,7 @@ the image is authoritative about structure, and that `check_diagram` — not the
 image — is authoritative about whether text fits.
 
 #### Scenario: Same image everywhere
-- **WHEN** `render_png` is called with identical arguments over stdio on a machine that has the real fonts installed, and over HTTP on a worker that has none
+- **WHEN** `render_png` is called with identical arguments on a machine that has the real fonts installed and on one that has none
 - **THEN** both return the same image
 
 #### Scenario: The caller is told what the image cannot settle
@@ -73,45 +73,52 @@ SHALL assert the served bytes match that source.
 ### Requirement: Rendering needs no browser
 The server SHALL produce SVG through `@pensketch/core/server` rather than a
 renderer of its own, and SHALL NOT depend on jsdom, a browser, or any native
-module. Rasterization SHALL use a WebAssembly rasterizer, so the same code
-path serves both transports.
+module. Rasterization SHALL use a WebAssembly rasterizer rather than a native
+binding, so that installing the server cannot fail on an untested platform.
 
-#### Scenario: Renders on a worker runtime
-- **WHEN** `render_diagram` runs in an environment with no DOM and no Node built-ins
+#### Scenario: Renders with no DOM present
+- **WHEN** `render_diagram` runs in an environment with no `document` and no `SVGSVGElement`
 - **THEN** it returns SVG
 
 #### Scenario: One renderer, not two
 - **WHEN** core's rendering changes
 - **THEN** the server's SVG changes with it, because it holds no copy of that logic
 
-### Requirement: Both transports from one implementation
-The server SHALL be runnable over stdio through a published `bin`, so that
-`npx @pensketch/mcp` registers in any client that spawns a process, and over
-Streamable HTTP as a Cloudflare Worker. Both SHALL be built from one server
-factory. Documentation SHALL pin a version in the `npx` invocation and SHALL
-state that Node must be on the client's `PATH`.
+### Requirement: Distributed over stdio, and installable with nothing else
+The server SHALL run over stdio through a published `bin`, so that `npx
+@pensketch/mcp` registers in any client that spawns a process. It SHALL
+require no hosting, no account and no credentials. Documentation SHALL pin a
+version in the `npx` invocation and SHALL state that Node must be on the
+client's `PATH`, that being the most common reason such a server fails to
+start under a GUI-launched client.
 
 #### Scenario: Registered in a stdio client
-- **WHEN** a client is configured with `npx -y @pensketch/mcp` as the command
-- **THEN** the server starts, lists both tools and all resources
+- **WHEN** a client is configured with `npx -y @pensketch/mcp@<version>` as the command
+- **THEN** the server starts and lists all three tools and every resource
 
-#### Scenario: Same surface over HTTP
-- **WHEN** the Worker endpoint is used instead
-- **THEN** the tools and resources are identical to the stdio server's
+#### Scenario: Nothing to sign up for
+- **WHEN** a user installs the server
+- **THEN** no key, token, account or endpoint configuration is required
 
-### Requirement: The hosted server is unauthenticated, and stays safe to be
-The hosted endpoint SHALL require no authentication. This is permitted only
-while every tool is pure per the first requirement; a tool that reads the
-network, touches a filesystem, holds a secret or keeps state SHALL NOT be
-added without changing the hosting decision in the same change.
+### Requirement: The transport is separable from the server
+The tools and resources SHALL be built by a server factory that the transport
+entry merely connects, so that a second transport can be added as an entry
+point rather than a rewrite. No tool implementation SHALL depend on how the
+client is connected.
 
-#### Scenario: Anyone may call it
-- **WHEN** a client connects to the hosted endpoint with no credentials
-- **THEN** the tools work
+#### Scenario: A second transport would be additive
+- **WHEN** an HTTP transport is added later
+- **THEN** it connects the same factory, and no tool changes
 
-#### Scenario: An impure tool forces the question
+### Requirement: A tool that is not pure does not ship
+No tool SHALL read the network, touch a filesystem, hold a secret or keep
+state between calls. This is what makes every tool deterministic, testable
+without fixtures, and safe to run in any sandbox — and it is the same promise
+the rendering packages make, applied to the server.
+
+#### Scenario: An impure tool is rejected
 - **WHEN** a proposed tool would fetch a URL
-- **THEN** it cannot ship under this requirement without revisiting authentication
+- **THEN** it cannot ship under this requirement, because its output would no longer be a function of its arguments
 
 ### Requirement: No layout, no generation
 The server SHALL NOT expose a tool that produces or repairs a diagram's

@@ -1,8 +1,8 @@
 # Design: mcp-server
 
 Technical decisions for `@pensketch/mcp`. The delta spec states the
-requirements; this file fixes the tool and resource surface, the transports,
-and the two decisions that need the owner rather than the implementer.
+requirements; this file fixes the tool and resource surface, the transport,
+and records the three decisions the owner settled.
 
 ## D1 — Tools
 
@@ -79,7 +79,7 @@ independently constructed DOM.
 
 So the shim is about fifty lines: an element with attributes, children and
 text, plus a serializer. No jsdom, no browser, no native code, which is what
-lets the same implementation run on a Worker.
+lets it run wherever JavaScript does.
 
 It lives in **`@pensketch/core/server`** as `renderToString(diagram, options)`,
 not in this package. It is a zero-dependency pure function over public types,
@@ -96,9 +96,17 @@ break the byte-parity contract silently.
 
 ### PNG, in the server
 
-`@resvg/resvg-wasm` rasterizes on a Worker with no native modules. It draws
-text only with fonts handed to it as `fontBuffers`, and a Worker has no system
-fonts — so the server embeds one.
+`@resvg/resvg-wasm` rasterizes. It draws text only with fonts handed to it as
+`fontBuffers`, so the server embeds one.
+
+**WebAssembly rather than the native binding.** `@resvg/resvg-js` is faster,
+but ships per-platform native binaries as optional dependencies, and this
+package is fetched by `npx`
+on machines nobody has tested — an unusual platform, a restricted network, a
+locked-down CI box. A native install failure there produces a server that will
+not start, which is a bad outcome for a tool whose entire job is to be
+available when an agent reaches for it. One universal artefact is worth the
+speed.
 
 **It cannot be the real one.** The documented stack is `Chalkboard SE`,
 `Bradley Hand`, `Segoe Print`, `Comic Sans MS` — proprietary Apple and
@@ -109,49 +117,44 @@ the documented stack's measured 0.462 wins, so the substitution distorts text
 metrics as little as it can.
 
 `loadSystemFonts` SHALL be `false`, always. The tempting alternative — let the
-local stdio server pick up the user's real Chalkboard SE, which on a Mac it
-would find — is rejected deliberately: it would make the same call return
-different images on different machines, in a project whose entire identity is
-same input, same bytes. Determinism beats fidelity here, and the tool
-description says the text is a stand-in.
+server pick up the user's real Chalkboard SE, which on a Mac it would find —
+is rejected deliberately: it would make the same call return different images
+on different machines, in a project whose entire identity is same input, same
+bytes. Determinism beats fidelity here, and the tool description says the text
+is a stand-in.
 
-## D4 — Transports
+The embedded face SHALL be subset to the glyphs a diagram can contain. There
+is no platform ceiling to meet, but the whole package is fetched by `npx` on
+first use and a face nobody needs in full is latency the user pays for.
 
-One server factory, two entries, matching the layout the SDK's own examples
-use:
+## D4 — Transport
 
-- **stdio** — `bin` entry, so `npx @pensketch/mcp` works in any client that
-  spawns a process. Registration is `claude mcp add pensketch -- npx -y
-  @pensketch/mcp`, or the equivalent `mcpServers` JSON in Claude Desktop,
-  Cursor, VS Code or Zed.
-- **HTTP** — a Worker `fetch` export serving Streamable HTTP at `/mcp`.
+**stdio only.** A `bin` entry, so `npx @pensketch/mcp` works in any client
+that spawns a process:
 
-Documentation SHALL pin a version in the `npx` invocation. `-y` alone fetches
+```
+claude mcp add pensketch -- npx -y @pensketch/mcp@<version>
+```
+
+or the equivalent `mcpServers` JSON in Claude Desktop, Cursor, VS Code or Zed.
+
+Documentation SHALL pin a version in that invocation. `-y` alone fetches
 whatever is latest, which is the wrong default for something a client spawns
 unattended. Documentation SHALL also state that Node must be on `PATH` in the
 client's environment, because a GUI-launched client often has a minimal one
 and that is the most common failure report for npx-distributed servers.
 
-## D5 — Hosting
+The implementation is nonetheless arranged as a **server factory plus a thin
+transport entry**, which is the layout the SDK's own examples use. That costs
+nothing now and is what makes an HTTP transport additive later rather than a
+rewrite — see the Non-goals in the proposal for why it is not being built.
 
-Cloudflare Workers. No native modules anywhere in the payload, which is what
-makes this viable at all.
-
-The rasterizer changes the size picture: a WebAssembly blob plus an embedded
-font is the bulk of the bundle, against a compressed script limit that is
-3 MB on the free plan. Implementation SHALL measure the deployed size and
-record it, and SHALL subset the embedded font to the glyphs a diagram can
-actually contain rather than shipping a whole face. If the budget cannot be
-met, the fallback is to serve `render_png` only over stdio, where no such
-limit exists — but that is a fallback to be reached by measurement, not
-assumed in advance.
-
-Unauthenticated, deliberately. The server makes no network calls, touches no
-filesystem, holds no secrets and keeps no state, so there is nothing to
-protect and no reason to make every caller register. **This is a requirement,
-not a description** — a future tool that reads a URL or writes a file would
-invalidate it, and the spec says so, so that such a tool has to change the
-hosting story rather than sneak past it.
+Every tool stays a pure function of its arguments — no network, no filesystem,
+no state. With nothing to host that is not a security argument, it is a
+correctness one: it is what makes the tools deterministic, testable without
+fixtures, and safe to run inside any sandbox. **This is a requirement, not a
+description**, so a later tool that reads a URL has to argue for itself rather
+than slip in.
 
 ## D6 — Decisions taken, and why
 
@@ -168,6 +171,8 @@ the PNG is authoritative about structure and not about text fit, because its
 font is a stand-in. `check_diagram` remains the authority on fit, and it is
 calibrated against the real stack.
 
-The Cloudflare Browser Rendering alternative was not taken: it is a paid
-binding, it exists only on Workers, and it would leave the stdio server unable
-to answer the same question.
+**O3 — stdio only, no hosted server.** Owner decision, 2026-08-06. Hosting was
+this design's own suggestion rather than a requirement, and it carried a
+deploy step, a URL, an authentication question and a platform size ceiling for
+the sake of browser-based clients alone. D4 keeps the factory/transport split
+so adding it later is an entry point, not a redesign.

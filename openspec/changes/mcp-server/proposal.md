@@ -23,9 +23,9 @@ once per harness.
 
 ## What Changes
 
-- **New package** `@pensketch/mcp`, published, runnable two ways from one
-  implementation: `npx @pensketch/mcp` over stdio for local clients, and a
-  Cloudflare Worker `fetch` export for a hosted URL.
+- **New package** `@pensketch/mcp`, published, run over stdio: `npx
+  @pensketch/mcp` registers in any client that spawns a process, which is
+  every desktop and editor client. No hosted server — see Non-goals.
 - **Three tools**: `check_diagram`, which is `@pensketch/core/check` with a
   schema on it; `render_diagram`, which returns SVG; and `render_png`, which
   returns an image an agent can actually look at.
@@ -69,10 +69,7 @@ once per harness.
   rendering packages* add nothing to a consumer's lockfile. The MCP server is
   a tool an agent runs, not code that ships inside a web page.
 - **Depends on**: `diagram-checker`. `check_diagram` is that function.
-- **Hosting**: a Worker on `workers.dev`. The server holds no secrets, makes
-  no network calls, and writes nothing, so it can be served without
-  authentication — a property worth keeping rather than a temporary
-  convenience.
+- **Hosting**: none. Nothing to deploy, no URL to keep alive, no uptime.
 
 ## Non-goals
 
@@ -81,6 +78,13 @@ once per harness.
   which is the project's oldest non-goal.
 - **No state.** No sessions, no stored diagrams, no history. Every call is a
   pure function of its arguments.
-- **No network or filesystem access from the tools.** This is what makes the
-  unauthenticated hosted server defensible, so it is a requirement rather than
-  a description.
+- **No network or filesystem access from the tools.** A tool that reads a URL
+  is a tool whose output depends on something other than its arguments, which
+  makes it untestable and non-deterministic — in a project whose whole claim
+  is same input, same bytes. It is a requirement rather than a description.
+- **No hosted server, for now.** stdio covers every client that spawns a
+  process, which is every desktop and editor client. HTTP would buy only
+  browser-based agents, and would bring hosting, a deploy step, a URL to keep
+  alive, an authentication question and a platform size ceiling with it.
+  Adding it later is additive — a second entry against the same server
+  factory, which is how D4 is arranged — so nothing here forecloses it.
