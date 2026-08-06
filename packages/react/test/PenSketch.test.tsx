@@ -185,6 +185,32 @@ describe('<PenSketch> element', () => {
     expect(ref.current).toBe(svgIn(container));
   });
 
+  // Only newer React honours a cleanup returned from a callback ref; older
+  // React ignores it and calls the ref with null instead. Either is fine, but
+  // wrapping an element must not behave differently from the element itself,
+  // so this compares the two rather than pinning one React's semantics.
+  it('treats a cleanup-returning callback ref exactly as a bare svg does', () => {
+    const record = (seen: string[]) => (node: SVGSVGElement | null) => {
+      seen.push(node ? 'attached' : 'null');
+      return () => {
+        seen.push('cleanup');
+      };
+    };
+
+    const wrapped: string[] = [];
+    const bare: string[] = [];
+    const a = render(
+      <PenSketch diagram={FLOW} viewBox={VIEW_BOX} ref={record(wrapped)} />,
+    );
+    const b = render(<svg viewBox={VIEW_BOX} ref={record(bare)} />);
+
+    a.unmount();
+    b.unmount();
+
+    expect(wrapped).toEqual(bare);
+    expect(wrapped[0]).toBe('attached');
+  });
+
   it('forwards a callback ref, and detaches it on unmount', () => {
     const seen: (SVGSVGElement | null)[] = [];
     const { container, unmount } = render(

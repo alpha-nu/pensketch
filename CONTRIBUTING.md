@@ -47,6 +47,15 @@ the rendered output moved - that signal is the entire reason the test exists,
 and regenerating it destroys the evidence. Find out what moved and decide
 whether you meant it.
 
+There is one case where the answer is to regenerate. Trigonometry decides
+where a stroke wobbles, and the language leaves those functions approximate,
+so a JavaScript engine may change a result in the last digit across a major
+upgrade. The signature is unmistakable: the goldens and the parity tests fail
+together, on a commit that changed no source, and the diff is a handful of
+final digits inside path data. That is the engine moving, not the renderer.
+Regenerate deliberately, with the before and after images, and say so in the
+changeset.
+
 ## Patch vs minor
 
 Every user-visible change carries a changeset; create one with

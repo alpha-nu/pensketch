@@ -1,6 +1,6 @@
 import type { Pen, PenOptions } from '@pensketch/core';
 import { render } from '@testing-library/react';
-import { type RefObject, StrictMode } from 'react';
+import { StrictMode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { useSketch } from '../src/index';
 import { childrenOf, sketched, svgIn } from './helpers';
@@ -41,7 +41,7 @@ describe('useSketch', () => {
   });
 
   it('returns a ref that reaches the element it drew into', () => {
-    let ref: RefObject<SVGSVGElement | null> | undefined;
+    let ref: { current: SVGSVGElement | null } | undefined;
     function Probe() {
       ref = useSketch(BOX);
       return <svg ref={ref} viewBox={VIEW_BOX} />;

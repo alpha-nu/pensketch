@@ -1,6 +1,7 @@
 # @pensketch/react
 
-> Hand-sketched SVG diagrams from plain data. Tiny, seeded, zero dependencies.
+> Hand-sketched SVG diagrams from plain data, for React. Tiny, seeded, and
+> nothing in your tree but pensketch itself.
 
 ![A diagram drawn by pensketch](https://raw.githubusercontent.com/alpha-nu/pensketch/main/docs/assets/hero-light.png)
 

@@ -12,7 +12,8 @@
 - **A diagram is data.** A plain object, in your repository, that reviews and
   diffs like the code it describes.
 - **Determinism is the contract.** Same data, same seed, same package version,
-  same bytes - so a diagram can be snapshot-tested like anything else.
+  same engine, same bytes - so a diagram can be snapshot-tested like anything
+  else.
 - **Tiny and dependency-free.** The core is a shade over 2 KB minified and
   gzipped, and adds nothing else to your lockfile.
 - **Themed with CSS variables.** Colors are `var(--ps-*)` references, so dark
@@ -240,13 +241,20 @@ different hands writing the same diagram, and each of them writes it the same
 way forever. Pick the one you like and commit it.
 
 The version policy makes that promise checkable. A patch release renders
-byte-identical output for the same diagram, seed and JavaScript engine; a minor
-release may move the drawing, and its changelog entry says so, so a snapshot
-that moved always has a version to point at.
+byte-identical output for the same diagram, seed and JavaScript engine build; a
+minor release may move the drawing, and its changelog entry says so, so a
+snapshot that moved always has a version to point at.
+
+The engine is part of that list because it has to be. Trigonometry is where a
+diagram's wobble ends up, and the standard leaves those functions approximate,
+so two engines - or one engine across a major upgrade - may differ in the last
+digit. Compare snapshots taken the same way: a diagram rendered in a browser
+and the same diagram rendered under jsdom are not byte-comparable.
 
 That is what makes a rendered `<svg>` worth snapshotting:
 
 ```ts
+// @vitest-environment jsdom
 import { expect, test } from 'vitest';
 import { draw } from '@pensketch/core';
 import { FLOW } from './flow';
@@ -262,8 +270,8 @@ test('flow diagram renders byte-stably', () => {
 
 ## Examples
 
-Every example runs against the local packages, so build them once from the
-repository root with `npm run build`. The two HTML pages need a static server -
+Every example runs against the local packages, so install and build them
+once from the repository root with `npm ci && npm run build`. The two HTML pages need a static server -
 browsers refuse ES module imports over `file://` - which `npx serve .` from the
 root provides.
 

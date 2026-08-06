@@ -82,8 +82,20 @@ export const PenSketch = forwardRef(function PenSketch(
   const attach = useCallback(
     (node: SVGSVGElement | null) => {
       svgRef.current = node;
-      if (typeof ref === 'function') ref(node);
-      else if (ref) ref.current = node;
+      if (typeof ref === 'function') {
+        // A callback ref may return a cleanup, and a ref that does is
+        // promised it will never be called with null instead. Forwarding the
+        // cleanup keeps that promise; returning one only when the caller
+        // returned one leaves refs that do not on the older null-call path.
+        // Typed void, because the forwarded-ref alias narrows it that way;
+        // at runtime a caller on a version that supports cleanups returns one.
+        const cleanup: unknown = ref(node);
+        if (typeof cleanup === 'function')
+          return () => {
+            svgRef.current = null;
+            (cleanup as () => void)();
+          };
+      } else if (ref) ref.current = node;
     },
     [ref],
   );

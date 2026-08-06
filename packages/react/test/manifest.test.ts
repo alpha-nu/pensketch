@@ -27,8 +27,12 @@ describe('the public surface is closed', () => {
 });
 
 describe('the dependency shape', () => {
+  // The shape, not the range: the release's own version bump rewrites the
+  // range, and asserting it literally makes every release fail its own tests.
   it('takes core as its only regular dependency', () => {
-    expect(manifest.dependencies).toEqual({ '@pensketch/core': '^0.0.1' });
+    expect(Object.keys(manifest.dependencies ?? {})).toEqual([
+      '@pensketch/core',
+    ]);
   });
 
   it('peers on react alone, across both supported majors', () => {

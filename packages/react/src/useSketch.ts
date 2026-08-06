@@ -1,10 +1,15 @@
 import { type Pen, type PenOptions, pen } from '@pensketch/core';
-import { type RefObject, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * The escape hatch from `<PenSketch>`: a ref to put on an `<svg>` of your own,
  * and a callback handed a `Pen` bound to it once it is mounted. The svg is
- * cleared before each run, so the callback always draws onto an empty element.
+ * emptied before each run, so the callback always draws onto a blank element.
+ *
+ * That element must have no JSX children. Emptying it removes whatever is
+ * there, and React does not expect nodes it rendered to disappear underneath
+ * it: give the `<svg>` a `<title>` and the next re-render throws. Put
+ * accessible names on the element as attributes instead.
  *
  * The callback runs again whenever it, `options.seed` or `options.theme`
  * changes identity - so keep the callback module-level or memoized, or it
@@ -37,7 +42,7 @@ import { type RefObject, useEffect, useRef } from 'react';
 export function useSketch(
   sketch: (pen: Pen) => void,
   options: PenOptions = {},
-): RefObject<SVGSVGElement | null> {
+): { current: SVGSVGElement | null } {
   const { seed, theme } = options;
   const ref = useRef<SVGSVGElement | null>(null);
 

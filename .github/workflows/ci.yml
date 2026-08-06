@@ -56,3 +56,32 @@ jobs:
 
       - name: Size budgets
         run: npm run size
+
+  # The peer range admits React 18, so something has to compile against it.
+  # The job installs the older major over the top of the workspace install and
+  # runs the type gate and the React suite; the rest of the chain is
+  # version-independent and already covered above.
+  react18:
+    name: Verify against React 18
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install the older React major
+        run: npm install --no-save react@^18 react-dom@^18 @types/react@^18 @types/react-dom@^18
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test the bindings
+        run: npx vitest run --project react

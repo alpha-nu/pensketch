@@ -156,7 +156,8 @@ export const PenSketch: React.ForwardRefExoticComponent<
 export function useSketch(
   sketch: (pen: Pen) => void,
   options?: PenOptions
-): React.RefObject<SVGSVGElement | null>;
+): { current: SVGSVGElement | null };   // structural: React's own RefObject
+                                        // shape differs across ^18 and ^19
 ```
 
 ## D3 — Rendering behavior and aesthetic constants
@@ -334,7 +335,9 @@ checkout → setup-node (npm cache) → `npm ci` → `npm run lint` →
 assertion that the whole working tree is unchanged (`git status --porcelain`
 empty — a diff scoped to tracked files under the goldens directory would miss
 a newly emitted golden and would pass silently if the path were mistyped) →
-`npm run size`.
+`npm run size`. A second job installs React 18 over the workspace install and
+runs the type gate and the React suite against it: the peer range admits that
+major, and nothing else in the matrix exercises it.
 
 Repository layout:
 
@@ -539,6 +542,7 @@ svg text {
 ### A5 — snapshot-testing your own diagrams (vitest, jsdom environment)
 
 ```ts
+// @vitest-environment jsdom
 import { expect, test } from 'vitest';
 import { draw } from '@pensketch/core';
 import { FLOW } from './flow';
