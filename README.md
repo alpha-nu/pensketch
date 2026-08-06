@@ -281,6 +281,20 @@ root provides.
 | `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, and the self-transition the data model has no word for drawn through `raw` — plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
 | `examples/react/` | **The OAuth 2.0 authorization code flow.** Four lanes, seven steps, and a seed control: same data, a different drawing of it, on demand. | `cd examples/react && npm install && npm run dev` |
 
+## Generating diagrams programmatically
+
+When a script or an agent writes the diagram rather than a person,
+[docs/agents.md](docs/agents.md) is the reference: the whole type surface, the
+seven things that catch callers out, and the constants worth designing around.
+It exists because the mistakes that matter here — a label drawn through by its
+own connector, a box narrower than its text — are invisible to the type system,
+and whoever is writing the data may not be looking at the result.
+
+[`schema/diagram.schema.json`](schema/diagram.schema.json) is generated from
+the types, so data can be validated before anything is drawn. It covers the
+JSON-serialisable half of a diagram: `raw` holds functions, and no file carries
+one.
+
 ## In case you wonder about pensketch vs. rough.js
 
 Both draw hand-sketched graphics. They differ in what you hand them, and every

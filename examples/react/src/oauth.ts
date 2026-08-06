@@ -4,9 +4,10 @@ import type { Diagram } from '@pensketch/core';
 //
 // The four groups are lanes: drawn first, behind everything, they turn a flat
 // list of boxes into "who does what". Steps are numbered in their own labels
-// rather than on the arrows - the gaps between lanes are 34px, which is not
-// enough room to put text beside a connector without the line running through
-// it.
+// rather than on the arrows. A cross-lane connector sits in the 34px gap
+// between one row and the next, and a 13.5px label needs about 13px of
+// clearance, so there is no room to put text beside it without the line
+// running through the text.
 //
 // biome.json turns the formatter off for this file alone. Collapsed to one
 // field per line it is 120 lines of vertical noise; as a table you can read

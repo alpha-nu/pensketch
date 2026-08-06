@@ -58,7 +58,8 @@ The examples are resources rather than prose because that is what actually
 taught the fastest: rebuilding this repository's examples, one complete worked
 diagram with real coordinates was worth more than the field tables, because it
 carried proportion — that a box is about 150×52, that rows sit about 80 apart,
-that 34 px is not enough room for a label beside a connector.
+that a connector crossing the 34 px gap between rows leaves no room for a
+label beside it.
 
 ## D3 — Rendering without a browser
 

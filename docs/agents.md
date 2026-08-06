@@ -1,0 +1,199 @@
+# pensketch for machine callers
+
+Reference for generating pensketch diagrams programmatically — an agent, a
+script, anything writing diagram data without a person watching the result.
+
+This is **product documentation for callers**, not instructions for working on
+this repository. For that, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+---
+
+## What it is
+
+`draw(svg, diagram, options)` renders a diagram — a plain object of nodes,
+edges and notes — as hand-sketched SVG. The wobble comes from a seeded PRNG,
+so the same data and seed produce the same bytes every time.
+
+```js
+import { draw } from '@pensketch/core';
+draw(document.getElementById('flow'), diagram, { seed: 7 });
+```
+
+## The seven things that will catch you out
+
+**1. Nothing is laid out for you.** Every `x`, `y`, `w`, `h` and waypoint is
+yours. There is no autolayout, no autorouting, no "make this fit". This is a
+permanent design decision, not a missing feature.
+
+**2. Text is never measured, so a box never grows to fit its label.** If a
+label is too wide it simply overflows. Estimate width as:
+
+```
+width ≈ text.length × fontSize × 0.55
+```
+
+That factor was measured over this project's own labels in the documented
+handwriting stack: mean 0.462, max 0.515. 0.55 over-states slightly, which is
+the safe direction. All-capitals text runs near 0.99 and will overflow sooner
+than the estimate suggests.
+
+**3. A label sitting near a connector will be drawn through.** Labels are
+positioned by hand via `lx`/`ly`, and **`ly` is the text's vertical centre**,
+not its baseline. The drawn line also wanders from the ideal path by up to
+`AMP / 2` = 1.3 px, and the stroke is 1.6 px wide. So a 13.5 px label needs
+its centre roughly **13 px** clear of any segment. Nine is not enough — that
+mistake shipped in this repository's own OAuth example and put lines through
+three labels.
+
+When space is tight, put the text in the box instead of beside the arrow.
+
+**4. An edge connects two *different* nodes.** There are no self-transitions.
+A state machine's "retry, stay here" loop has to be drawn with the `raw`
+escape hatch.
+
+**5. `via` points are used exactly as given, in order.** The arrow walks the
+legs you describe and nothing is inferred. Orthogonal routing is three points
+you supply, not a mode you switch on.
+
+**6. Draw order is part of the output.** Phases run `nodes` where
+`shape === 'group'` → `edges` → the remaining `nodes` → `notes` → `raw`, each
+array in its own order. Because that is also the order the seeded sequence is
+consumed in, **reordering an array changes the rendered bytes**. It is the
+z-order too: groups sit behind everything.
+
+**7. `raw` cannot be JSON.** It holds functions. Over any interface that
+carries data rather than code — a file, an MCP tool — it is unavailable, and
+the JSON Schema rejects it.
+
+## Types
+
+```ts
+type Point = [number, number];
+type Side  = 't' | 'b' | 'l' | 'r';   // top, bottom, left, right edge midpoint
+
+type DiagramNode =
+  | { id: string; x: number; y: number; w: number; h: number;
+      shape: 'group'; lines: string[] }          // lines REQUIRED: a group is titled
+  | { id: string; x: number; y: number; w: number; h: number;
+      shape: 'box' | 'pill' | 'diamond';
+      lines?: string[];    // omit for an unlabelled shape
+      size?: number;       // label font px, default 13.5
+      accent?: boolean;    // stroke in --ps-pen instead of --ps-ink
+      hatch?: boolean };   // diagonal shading, inset 4px
+
+interface DiagramEdge {
+  from: [string, Side];    // node id + which side to leave
+  to:   [string, Side];
+  via?: Point[];           // corners, used verbatim
+  dotted?: boolean;        // dashes it and recolours it to --ps-accent
+  label?: string;          // one line; REQUIRES lx and ly
+  lx?: number; ly?: number;
+  anchor?: 'start' | 'middle' | 'end';   // default 'middle'
+}
+
+interface DiagramNote {    // free-standing annotation, always --ps-accent
+  x: number; y: number;    // y is the vertical centre of the block
+  lines: string[];
+  anchor?: 'start' | 'middle' | 'end';   // default 'start'
+  arrowFrom?: Point; via?: Point[]; arrowTo?: Point;   // arrow needs both ends
+}
+
+interface Diagram {
+  nodes?: DiagramNode[]; edges?: DiagramEdge[];
+  notes?: DiagramNote[]; raw?: Array<(pen: Pen) => void>;
+}
+
+draw(svg: SVGSVGElement, diagram: Diagram, options?: {
+  seed?: number;              // default 1 — picks which drawing you get
+  theme?: Partial<Theme>;
+  label?: string;             // sets role="img" + aria-label
+}): void;
+```
+
+JSON Schema for the data half: [`schema/diagram.schema.json`](../schema/diagram.schema.json).
+
+## Numbers worth designing around
+
+| | value | |
+|---|---|---|
+| `SIZE` | 13.5 | default label font px |
+| `TITLE_SIZE` | 14 | group title, not overridable |
+| `EDGE_SIZE` | 12.5 | edge label |
+| `NOTE_SIZE` | 13 | note text |
+| `LINE_H` | 1.28 | line spacing, × font size |
+| `WIDTH` | 1.6 | stroke width |
+| `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |
+| `OVERSHOOT` | 4 | how far box corners overrun |
+| `HATCH_INSET` | 4 | hatching inset from the outline |
+| `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |
+| `SEED` | 1 | default seed |
+
+All 33 are exported as `constants`.
+
+Proportions that read well, from this project's own diagrams: a labelled box
+about **150 × 46**, rows about **80** apart, a group title needing about **30 px**
+of clear space at the top of its box.
+
+## Errors you will hit, and what they mean
+
+| message | cause |
+|---|---|
+| `edge N names unknown node "x" in from; known ids are …` | typo in `from`/`to`; the message lists the real ids |
+| `two nodes share the id "x"` | ids must be unique — edges name nodes by id |
+| `node "x" has unknown shape "y"` | one of `group`, `box`, `pill`, `diamond` |
+| `edge N has label "…" but lx and ly are not both numbers` | a label is positioned by hand, because text is never measured |
+
+`draw` throws on the first defect and renders nothing.
+
+## A complete example
+
+Four lanes, seven steps — an OAuth authorization code flow. Note the numbered
+steps live *in* the boxes: a cross-lane connector sits in the 34 px gap
+between one row and the next, which leaves 17 px above it — not enough for a
+13.5 px label plus the clearance rule 3 asks for.
+
+```js
+const OAUTH = {
+  nodes: [
+    { id: 'lb', shape: 'group', x: 20,  y: 20, w: 195, h: 350, lines: ['browser'] },
+    { id: 'la', shape: 'group', x: 235, y: 20, w: 185, h: 350, lines: ['your app'] },
+    { id: 'ls', shape: 'group', x: 440, y: 20, w: 185, h: 350, lines: ['auth server'] },
+
+    { id: 's1', shape: 'box', x: 40,  y: 60,  w: 155, h: 46, lines: ['1. click sign in'],   size: 12 },
+    { id: 's2', shape: 'box', x: 250, y: 60,  w: 155, h: 46, lines: ['2. redirect + PKCE'], size: 12 },
+    { id: 's3', shape: 'box', x: 455, y: 140, w: 155, h: 46, lines: ['3. login + consent'], size: 12 },
+    { id: 's4', shape: 'box', x: 40,  y: 220, w: 155, h: 46, lines: ['4. code comes back'], size: 12 },
+  ],
+  edges: [
+    { from: ['s1', 'r'], to: ['s2', 'l'] },
+    // out of one lane, across the gap, into the next — corners given, never inferred
+    { from: ['s2', 'b'], to: ['s3', 't'], via: [[327, 123], [532, 123]] },
+    { from: ['s3', 'b'], to: ['s4', 't'], via: [[532, 203], [117, 203]] },
+  ],
+  notes: [
+    { x: 742, y: 150, anchor: 'middle', lines: ['the API only ever', 'sees a bearer token'] },
+  ],
+};
+```
+
+Two more, complete and runnable, in [`examples/`](../examples/): a CI pipeline
+(`vanilla/`) and an order lifecycle whose self-transition is drawn through
+`raw` (`custom-pen/`).
+
+## Checking your work
+
+You cannot see the result, so do not rely on having looked at it:
+
+- **`draw` throws** on unknown ids, duplicate ids, unknown shapes, and a label
+  without coordinates.
+- **The JSON Schema** rejects malformed data, including misspelled keys.
+- The traps in the list above — collisions, overflow, a node half out of its
+  lane — are **not** caught by either. Read the seven rules and budget the
+  clearance up front rather than hoping.
+
+## Theming
+
+Colours are emitted as `var(--ps-*, fallback)`, so a page restyles a drawn
+diagram by redefining variables: `--ps-ink`, `--ps-pen`, `--ps-accent`,
+`--ps-muted`, `--ps-wash`. The packages ship no CSS. The sketch look also
+depends on a handwriting font being applied to `svg text` by the page.
