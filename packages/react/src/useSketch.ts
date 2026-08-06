@@ -13,6 +13,26 @@ import { type RefObject, useEffect, useRef } from 'react';
  * @param sketch - What to draw. Every call on the pen consumes numbers from
  * the seeded sequence, so the order of the calls is part of the output.
  * @param options - The seed and theme the pen is built with.
+ *
+ * @example
+ * ```tsx
+ * import { useSketch } from '@pensketch/react';
+ * import type { Pen } from '@pensketch/core';
+ *
+ * // Module scope: a callback that keeps its identity does not redraw.
+ * function sketch(p: Pen) {
+ *   p.rect(20, 20, 200, 90);
+ *   p.label(120, 65, 'hand-drawn box');
+ *   p.arrow([[220, 65], [320, 65]]);
+ *   p.pill(320, 40, 150, 50);
+ *   p.label(395, 65, ['a pill', '(two lines)']);
+ * }
+ *
+ * export function Sketch() {
+ *   const ref = useSketch(sketch, { seed: 3 });
+ *   return <svg ref={ref} viewBox="0 0 500 130" />;
+ * }
+ * ```
  */
 export function useSketch(
   sketch: (pen: Pen) => void,

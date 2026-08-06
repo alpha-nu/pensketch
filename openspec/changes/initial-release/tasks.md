@@ -100,16 +100,16 @@ Gate: all six verification commands green.
       `afterEach(cleanup)` — Testing Library only self-registers cleanup when
       `afterEach` is a global, which it is not here, so mounted trees would
       otherwise leak between cases
-- [ ] 4.3 JSDoc incl. `@example` on `PenSketch`/`useSketch`; size budget;
+- [x] 4.3 JSDoc incl. `@example` on `PenSketch`/`useSketch`; size budget;
       `packages/react/README.md`
 
 Gate: all six verification commands green.
 
 ## 5. Examples + documentation
 
-- [ ] 5.1 `examples/vanilla/index.html` (A1 + A4; relative dist import
+- [x] 5.1 `examples/vanilla/index.html` (A1 + A4; relative dist import
       commented as the only divergence)
-- [ ] 5.2 `examples/custom-pen/index.html` (A3 + one `raw`-callback `draw()`)
+- [x] 5.2 `examples/custom-pen/index.html` (A3 + one `raw`-callback `draw()`)
 - [ ] 5.3 `examples/react/` Vite app (BUDGETS via `<PenSketch>`,
       `CustomSketch` via `useSketch`, StrictMode on) — files per design.md D7.
       `vite.config.ts` needs `resolve.dedupe: ['react', 'react-dom']`: the

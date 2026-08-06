@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!--
+  pensketch - the pen, and the raw escape hatch.
+
+  Two things have to happen before this page shows anything:
+
+    1. Build the packages. From the repository root:
+
+         npm run build
+
+       The page imports packages/core/dist/index.js, which is what the build
+       produces.
+
+    2. Serve the repository over HTTP. Also from the repository root:
+
+         npx serve .              -> http://localhost:3000/examples/custom-pen/
+         python3 -m http.server   -> http://localhost:8000/examples/custom-pen/
+
+  Double-clicking the file will not work. A file:// document has the opaque
+  origin "null", ES module scripts are fetched with CORS, and an opaque origin
+  fails that check - the module never loads and the page stays blank.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pensketch - custom pen</title>
+<style>
+/* Page chrome. The theming below this block is the documented snippet. */
+:root { color-scheme: light dark; }
+body { margin: 0; padding: 24px; }
+svg { display: block; width: 100%; height: auto; margin-bottom: 24px; }
+</style>
+<style>
+:root {
+  --ps-ink: #232B36;
+  --ps-pen: #2B5B8A;
+  --ps-accent: #B3402E;
+  --ps-muted: #5A6572;
+  --ps-wash: rgba(43, 91, 138, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ps-ink: #D9DFE7;
+    --ps-pen: #7FA9DB;
+    --ps-accent: #DB8570;
+    --ps-muted: #93A0AD;
+    --ps-wash: rgba(127, 169, 219, .07);
+  }
+}
+/* the hand-drawn feel depends on a handwriting font for labels */
+svg text {
+  font-family: "Chalkboard SE", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+}
+</style>
+</head>
+<body>
+<!-- The documented snippet reaches for the first svg on the page, so this one
+     has to come first. -->
+<svg viewBox="0 0 500 130" role="img" aria-label="A box and a pill"></svg>
+<script type="module">
+import { pen } from '../../packages/core/dist/index.js'; // the one divergence from the documented snippet: a bare specifier needs a bundler, and this page has none
+
+const p = pen(document.querySelector('svg'), { seed: 3 });
+p.rect(20, 20, 200, 90);
+p.label(120, 65, 'hand-drawn box');
+p.arrow([[220, 65], [320, 65]]);
+p.pill(320, 40, 150, 50);
+p.label(395, 65, ['a pill', '(two lines)']);
+</script>
+
+<!-- The same pen, reached the other way round: a diagram's raw callbacks are
+     handed the very pen that drew the nodes above them. -->
+<svg id="escape" viewBox="0 0 560 140"></svg>
+<script type="module">
+import { draw } from '../../packages/core/dist/index.js';
+
+draw(document.getElementById('escape'), {
+  nodes: [
+    { id: 'data', shape: 'box', x: 30, y: 40, w: 200, h: 60, lines: ['drawn from data'] },
+  ],
+  raw: [
+    (p) => {
+      p.arrow([[230, 70], [320, 70]]);
+      p.label(430, 70, ['and finished by hand', 'with the same pen']);
+    },
+  ],
+}, { seed: 5, label: 'A diagram finished by a raw callback' });
+</script>
+</body>
+</html>

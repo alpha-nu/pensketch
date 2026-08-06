@@ -48,6 +48,28 @@ export interface PenSketchProps
  * The drawing happens in an effect, which means the server renders the empty
  * element and the client fills it in after hydration - no mismatch, and no DOM
  * API touched while rendering.
+ *
+ * @example
+ * ```tsx
+ * import { PenSketch } from '@pensketch/react';
+ * import type { Diagram } from '@pensketch/core';
+ *
+ * const FLOW: Diagram = {
+ *   nodes: [
+ *     { id: 'in',   shape: 'pill',    x: 40,  y: 50, w: 160, h: 50, lines: ['request'] },
+ *     { id: 'gate', shape: 'diamond', x: 260, y: 35, w: 150, h: 80, lines: ['allowed?'] },
+ *     { id: 'work', shape: 'box',     x: 480, y: 50, w: 180, h: 50, lines: ['do the work'], accent: true },
+ *   ],
+ *   edges: [
+ *     { from: ['in', 'r'],   to: ['gate', 'l'] },
+ *     { from: ['gate', 'r'], to: ['work', 'l'], label: 'yes', lx: 445, ly: 60 },
+ *   ],
+ * };
+ *
+ * export function Flow() {
+ *   return <PenSketch diagram={FLOW} seed={7} viewBox="0 0 700 150" aria-label="Request flow" />;
+ * }
+ * ```
  */
 export const PenSketch = forwardRef(function PenSketch(
   { diagram, seed = 1, theme, ...rest }: PenSketchProps,
