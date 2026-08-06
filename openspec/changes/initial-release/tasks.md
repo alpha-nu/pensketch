@@ -49,12 +49,12 @@ cannot express it. Never a non-null assertion (lint warns on every one) and
 never a runtime guard: guards are forbidden defensive code, and their dead
 branch sinks the 90% branch threshold on its own.
 
-- [ ] 2.1 `src/rng.ts` (mulberry32, verbatim semantics)
-- [ ] 2.2 `src/constants.ts` (every aesthetic constant named — design.md D3)
-- [ ] 2.3 `src/theme.ts` (`Theme`, `defaultTheme`, shallow merge — D4)
-- [ ] 2.4 `src/pen.ts` (primitives, faithful port, `ownerDocument` creation)
-- [ ] 2.5 `src/draw.ts` (`draw`, `anchor`, validation, normative order)
-- [ ] 2.6 `src/types.ts` + `src/index.ts` (closed surface per D2)
+- [x] 2.1 `src/rng.ts` (mulberry32, verbatim semantics)
+- [x] 2.2 `src/constants.ts` (every aesthetic constant named — design.md D3)
+- [x] 2.3 `src/theme.ts` (`Theme`, `defaultTheme`, shallow merge — D4)
+- [x] 2.4 `src/pen.ts` (primitives, faithful port, `ownerDocument` creation)
+- [x] 2.5 `src/draw.ts` (`draw`, `anchor`, validation, normative order)
+- [x] 2.6 `src/types.ts` + `src/index.ts` (closed surface per D2)
 - [ ] 2.7 Shared serializer util (D5) at `packages/core/test/serialize.mjs`
       (plain ESM — the generator must import the same function and Node 20
       cannot import `.ts`), plus a test asserting its exact output for a
