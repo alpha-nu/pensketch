@@ -40,6 +40,17 @@
   },
   "overrides": [
     {
+      "includes": ["packages/*/src/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error",
+            "noProcessGlobal": "error"
+          }
+        }
+      }
+    },
+    {
       "includes": ["examples/vanilla/**", "examples/custom-pen/**"],
       "formatter": { "enabled": false },
       "linter": { "enabled": false }

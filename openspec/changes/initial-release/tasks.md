@@ -43,9 +43,8 @@ placeholder test, or a placeholder golden.
 
 Porting rules for this group: `noUncheckedIndexedAccess` will flag roughly a
 dozen sites in the reference's dense indexing. Resolve each at the type level
-first — non-empty tuple parameters for the polyline primitives, an explicit
-union key for the shape dispatch — then a type assertion where the type
-cannot express it. Never a non-null assertion (lint warns on every one) and
+first — a total lookup for the shape dispatch — then a type assertion where
+the type cannot express it. Never a non-null assertion (lint warns on every one) and
 never a runtime guard: guards are forbidden defensive code, and their dead
 branch sinks the 90% branch threshold on its own.
 
@@ -55,16 +54,16 @@ branch sinks the 90% branch threshold on its own.
 - [x] 2.4 `src/pen.ts` (primitives, faithful port, `ownerDocument` creation)
 - [x] 2.5 `src/draw.ts` (`draw`, `anchor`, validation, normative order)
 - [x] 2.6 `src/types.ts` + `src/index.ts` (closed surface per D2)
-- [ ] 2.7 Shared serializer util (D5) at `packages/core/test/serialize.mjs`
+- [x] 2.7 Shared serializer util (D5) at `packages/core/test/serialize.mjs`
       (plain ESM — the generator must import the same function and Node 20
       cannot import `.ts`), plus a test asserting its exact output for a
       hand-built fragment: the goldens and the assertions both flow through
       it, so a bug in it is invisible to every parity test
-- [ ] 2.8 `tools/generate-goldens.mjs` (jsdom over the reference) + checked-in
+- [x] 2.8 `tools/generate-goldens.mjs` (jsdom over the reference) + checked-in
       goldens + TS fixture copies of SAMPLER/BUDGETS (`\uXXXX` escapes)
-- [ ] 2.9 Parity tests: port output === goldens byte-for-byte via the
+- [x] 2.9 Parity tests: port output === goldens byte-for-byte via the
       reference-theme bridge
-- [ ] 2.10 `.gitattributes` marking `packages/core/test/goldens/**` binary
+- [x] 2.10 `.gitattributes` marking `packages/core/test/goldens/**` binary
       (`-text`), so the files whose bytes are the contract are never subject
       to line-ending normalization
 
