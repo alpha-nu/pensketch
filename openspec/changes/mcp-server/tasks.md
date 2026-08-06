@@ -7,68 +7,96 @@ owner, never the agent.
 
 Blocked on `diagram-checker`: `check_diagram` is that function.
 
-## 0. Decisions the owner settles first
+Owner decisions taken 2026-08-06 and recorded in design.md D6: the shim is
+promoted to `@pensketch/core/server` as `renderToString`, and the server
+rasterizes.
 
-- [ ] 0.1 **OWNER**: O1 — does the DOM shim stay private to `@pensketch/mcp`,
-      or is it promoted to `@pensketch/core/string` as `renderToString`?
-      design.md D6 states the case both ways
-- [ ] 0.2 **OWNER**: O2 — rasterize or not. `check_diagram` is built so that
-      seeing is unnecessary; adding raster later is a new tool, not a break
+## 1. `@pensketch/core/server`
 
-## 1. Package and rendering
+- [ ] 1.1 `packages/core/src/server.ts`: the DOM shim covering the seven
+      members core touches, plus serialization matching the golden
+      serializer's attribute ordering and escaping
+- [ ] 1.2 `renderToString(diagram, options)` over that shim, with the same
+      options `draw` takes
+- [ ] 1.3 Parity test against a checked-in golden, and a second asserting
+      `renderToString` equals `draw` into a jsdom `<svg>` for the same inputs.
+      Byte parity is the contract; a second renderer that drifts would break
+      it in silence
+- [ ] 1.4 Packaging: tsup `entry`, `exports` gains `./server`, size budget
+      1536 B, resolution test as ESM and CJS, coverage thresholds extended
+- [ ] 1.5 README and `packages/core/README.md` sections; a **minor** changeset
+      on `@pensketch/core`
 
-- [ ] 1.1 `packages/mcp` manifest: name, `bin`, `exports`, `files`,
+## 2. The package
+
+- [ ] 2.1 `packages/mcp` manifest: name, `bin`, `exports`, `files`,
       `publishConfig.access`, engines. Extend the manifest test so the
       zero-dependency assertion names the rendering packages rather than
-      applying to every workspace
-- [ ] 1.2 Reword the dependency invariant in `CONTRIBUTING.md` to name
+      applying to every workspace, and so `@pensketch/mcp` may not appear in
+      either rendering package's dependencies
+- [ ] 2.2 Reword the dependency invariant in `CONTRIBUTING.md` to name
       `@pensketch/core` and `@pensketch/react`, so the rule keeps meaning what
       it meant
-- [ ] 1.3 The DOM shim: the seven members core touches, plus serialization
-      matching the golden serializer's attribute ordering and escaping
-- [ ] 1.4 Parity test: render a golden fixture through the shim and assert the
-      bytes equal the checked-in golden. Same-engine byte parity is the
-      project's contract, and a second renderer that quietly disagrees would
-      break it silently
-
-## 2. Server surface
-
-- [ ] 2.1 Server factory with `check_diagram`, including the error/warning
-      counts, and input schemas
-- [ ] 2.2 `render_diagram`, returning SVG through the shim
-- [ ] 2.3 Tool descriptions carrying the two traps — coordinates are yours,
-      text is never measured — with a test asserting both phrases are present,
-      since a description nobody checks is a description that rots
-- [ ] 2.4 Resources: spec, JSON Schema, the three examples, constants. Each
-      read from its existing single source at build time
-- [ ] 2.5 A test per resource asserting served bytes equal source bytes, so a
-      resource cannot drift from the file it mirrors
-- [ ] 2.6 Purity test: the tools reach no network and no filesystem — a source
-      scan in the same spirit as core's determinism test, since this is what
-      the unauthenticated hosting rests on
-
-## 3. Transports
-
-- [ ] 3.1 stdio entry and `bin`, verified by spawning the built server and
-      completing an initialize / list-tools / call-tool round trip
-- [ ] 3.2 Worker `fetch` entry serving Streamable HTTP at `/mcp`, with a test
-      asserting the tool and resource surface is identical to stdio's
-- [ ] 3.3 Pin the SDK deliberately: the SDK's own docs use the scoped
+- [ ] 2.3 Pin the SDK deliberately: its own docs use the scoped
       `@modelcontextprotocol/server` layout while Cloudflare's MCP example
-      still shows the older `@modelcontextprotocol/sdk` one. Verify which the
-      Worker path needs at the version chosen, and record it
-- [ ] 3.4 `wrangler.toml`, and a deploy script that is never run by CI
+      still shows the older `@modelcontextprotocol/sdk` one. Establish which
+      the Worker path needs at the version chosen, and record it
 
-## 4. Documentation and release
+## 3. Tools
 
-- [ ] 4.1 `packages/mcp/README.md`: registration for stdio clients with a
-      pinned version, the hosted URL, the `PATH` caveat, and the purity
-      guarantee that explains why the hosted server needs no credentials
-- [ ] 4.2 Root README section pointing at it
-- [ ] 4.3 A changeset: **minor** on `@pensketch/mcp`
-- [ ] 4.4 **OWNER**: deploy the Worker and record the URL
-- [ ] 4.5 **OWNER**: publish, then register it locally and confirm a real
-      client lists both tools and every resource
+- [ ] 3.1 Server factory and `check_diagram`, including the error/warning
+      counts, with input schemas
+- [ ] 3.2 `render_diagram` through `@pensketch/core/server` — no rendering
+      logic of its own
+- [ ] 3.3 Choose the embedded font **by measurement**: render the repository's
+      own labels in each open-licence candidate and take the one whose mean
+      glyph-advance factor sits closest to the documented stack's 0.462.
+      Record the measurements alongside the choice
+- [ ] 3.4 Subset that font to the glyphs a diagram can contain, and record the
+      before and after sizes
+- [ ] 3.5 `render_png` with `loadSystemFonts: false`, the scale cap, and
+      refusal above it. Tests: identical bytes across two runs, and an
+      oversized request refused rather than served
+- [ ] 3.6 Tool descriptions carrying the traps — coordinates are yours, text
+      is never measured, and the PNG's font is a stand-in so `check_diagram`
+      owns questions of fit — with a test asserting the phrases are present,
+      since a description nobody checks is a description that rots
+- [ ] 3.7 Purity test: no tool reaches the network or a filesystem — a source
+      scan in the spirit of core's determinism test, since this is what the
+      unauthenticated hosting rests on
+
+## 4. Resources
+
+- [ ] 4.1 Spec, JSON Schema, the three examples, constants — each read from
+      its existing single source at build time
+- [ ] 4.2 A test per resource asserting served bytes equal source bytes, so a
+      resource cannot drift from the file it mirrors
+
+## 5. Transports
+
+- [ ] 5.1 stdio entry and `bin`, verified by spawning the built server and
+      completing an initialize / list-tools / call-tool round trip
+- [ ] 5.2 Worker `fetch` entry serving Streamable HTTP at `/mcp`, with a test
+      asserting the tool and resource surface is identical to stdio's
+- [ ] 5.3 `wrangler.toml`, a deploy script CI never runs, and a build step
+      that reports the compressed worker size against the platform limit
+- [ ] 5.4 If the rasterizer puts the worker over that limit, serve
+      `render_png` over stdio only and say so in the README — a fallback
+      reached by measurement, never assumed
+
+## 6. Documentation and release
+
+- [ ] 6.1 `packages/mcp/README.md`: registration for stdio clients with a
+      pinned version, the hosted URL, the `PATH` caveat, the purity guarantee
+      that explains why the hosted server needs no credentials, and the font
+      substitution
+- [ ] 6.2 Root README section pointing at it
+- [ ] 6.3 A changeset: **minor** on `@pensketch/mcp`
+- [ ] 6.4 **OWNER**: deploy the Worker and record the URL
+- [ ] 6.5 **OWNER**: publish, then register it locally and confirm a real
+      client lists all three tools and every resource, and that `render_png`
+      returns an image the client displays
 
 Gate: all verification commands green, `openspec validate mcp-server
---strict` green, a real client completing a `check_diagram` round trip.
+--strict` green, a real client completing a `check_diagram` round trip and
+displaying a `render_png` result.

@@ -5,19 +5,47 @@
 
 ## ADDED Requirements
 
-### Requirement: Two tools, both pure
-The server SHALL expose `check_diagram` and `render_diagram`. Both SHALL be
-pure functions of their arguments: no network access, no filesystem access, no
-stored state, no secrets. `check_diagram` SHALL return the checker's findings
-plus a count of errors and warnings. `render_diagram` SHALL return SVG text.
+### Requirement: Three tools, all pure
+The server SHALL expose `check_diagram`, `render_diagram` and `render_png`.
+All SHALL be pure functions of their arguments: no network access, no
+filesystem access, no stored state, no secrets. `check_diagram` SHALL return
+the checker's findings plus a count of errors and warnings. `render_diagram`
+SHALL return SVG text. `render_png` SHALL return image content.
 
 #### Scenario: Checking a diagram with a defect
 - **WHEN** `check_diagram` is called with a diagram whose nodes overlap
 - **THEN** it returns the finding and a non-zero error count
 
 #### Scenario: The same call twice
-- **WHEN** either tool is called twice with identical arguments
+- **WHEN** any tool is called twice with identical arguments
 - **THEN** the results are identical, because nothing outside the arguments is read
+
+### Requirement: The image is deterministic and honest about its font
+`render_png` SHALL rasterize with one embedded open-licence font and SHALL NOT
+load system fonts, so that the same arguments produce the same image on every
+machine and transport. The embedded face SHALL be chosen by measuring
+candidates against the documented font stack and taking the closest. The
+tool's description SHALL state that the text is drawn in a stand-in face, that
+the image is authoritative about structure, and that `check_diagram` — not the
+image — is authoritative about whether text fits.
+
+#### Scenario: Same image everywhere
+- **WHEN** `render_png` is called with identical arguments over stdio on a machine that has the real fonts installed, and over HTTP on a worker that has none
+- **THEN** both return the same image
+
+#### Scenario: The caller is told what the image cannot settle
+- **WHEN** a client lists the tools
+- **THEN** `render_png`'s description says the font is a stand-in and points at `check_diagram` for questions of text fit
+
+### Requirement: Image output is bounded
+`render_png` SHALL default to a scale of 1, SHALL cap the rendered pixel
+dimensions, and SHALL refuse a request that exceeds the cap rather than
+returning it. Images are base64-encoded into the caller's context, so an
+unbounded one costs the caller the very budget the tool exists to serve.
+
+#### Scenario: An oversized request is refused
+- **WHEN** a caller asks for a scale that would exceed the dimension cap
+- **THEN** the tool returns an error naming the cap, and no image
 
 ### Requirement: Tool descriptions state what the caller must do themselves
 Each tool's description SHALL state that coordinates are the caller's to
@@ -43,18 +71,18 @@ SHALL assert the served bytes match that source.
 - **THEN** it yields a diagram object that `render_diagram` accepts unchanged
 
 ### Requirement: Rendering needs no browser
-The server SHALL render through a DOM shim implementing only the members core
-uses, SHALL NOT depend on jsdom, a browser, or any native module, and its
-serialization SHALL match the attribute ordering and escaping of the golden
-serializer.
+The server SHALL produce SVG through `@pensketch/core/server` rather than a
+renderer of its own, and SHALL NOT depend on jsdom, a browser, or any native
+module. Rasterization SHALL use a WebAssembly rasterizer, so the same code
+path serves both transports.
 
 #### Scenario: Renders on a worker runtime
 - **WHEN** `render_diagram` runs in an environment with no DOM and no Node built-ins
 - **THEN** it returns SVG
 
-#### Scenario: Server output matches browser output
-- **WHEN** the same diagram and seed are rendered by the server and in a browser
-- **THEN** the two SVG strings are identical
+#### Scenario: One renderer, not two
+- **WHEN** core's rendering changes
+- **THEN** the server's SVG changes with it, because it holds no copy of that logic
 
 ### Requirement: Both transports from one implementation
 The server SHALL be runnable over stdio through a published `bin`, so that

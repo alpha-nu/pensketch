@@ -26,15 +26,20 @@ once per harness.
 - **New package** `@pensketch/mcp`, published, runnable two ways from one
   implementation: `npx @pensketch/mcp` over stdio for local clients, and a
   Cloudflare Worker `fetch` export for a hosted URL.
-- **Two tools**: `check_diagram`, which is `@pensketch/core/check` with a
-  schema on it, and `render_diagram`, which returns SVG.
+- **Three tools**: `check_diagram`, which is `@pensketch/core/check` with a
+  schema on it; `render_diagram`, which returns SVG; and `render_png`, which
+  returns an image an agent can actually look at.
 - **Four resources**: the agent-facing spec, the JSON Schema for `Diagram`,
   the three shipped example diagrams as data, and the frozen constants. All
   four are served from files that already exist in the repository for other
   reasons — the server publishes them, it does not restate them.
-- **A tiny DOM shim** so rendering works with no browser and no jsdom. Core
-  touches exactly seven DOM members, all through `svg.ownerDocument`, which
-  the determinism test already enforces.
+- **A new core subpath**, `@pensketch/core/server`, exporting
+  `renderToString(diagram, options)`. Rendering without a DOM turns out to
+  need about fifty lines, because core touches exactly seven DOM members and
+  reaches all of them through `svg.ownerDocument`, which the determinism test
+  already enforces. That is a zero-dependency pure function over public types,
+  so it goes where the checker went rather than being buried behind a server —
+  static site generators, CI badge renderers and test helpers want it too.
 
 ## Capabilities
 
@@ -45,20 +50,24 @@ once per harness.
 
 ### Modified Capabilities
 
-- `repo-tooling`: a third workspace package, its dependency posture, and the
-  release policy that now covers a package whose output is not a rendering
+- `core-renderer`: a `renderToString` subpath, so a diagram can be rendered
+  where there is no DOM
+- `repo-tooling`: a third workspace package, a third core build entry, their
+  dependency postures, and the release policy that now covers a package whose
+  output is not a rendering
 
 ## Impact
 
-- **npm**: one new public package, `@pensketch/mcp`.
+- **npm**: one new public package, `@pensketch/mcp`, and a second new subpath
+  on `@pensketch/core` — a **minor** on core, which stays dependency-free.
 - **Dependency posture changes, and this is the notable one.** `@pensketch/mcp`
-  carries the MCP SDK and a schema library. The project invariant recorded in
-  `CONTRIBUTING.md` reads "no runtime dependency in either package"; it was
-  written when there were two. It SHALL be reworded to name `@pensketch/core`
-  and `@pensketch/react` explicitly, so the rule stays true and keeps meaning
-  what it meant: *the rendering packages* add nothing to a consumer's
-  lockfile. The MCP server is a tool an agent runs, not code that ships inside
-  a web page.
+  carries the MCP SDK, a schema library, a WebAssembly rasterizer and one
+  embedded font. The project invariant recorded in `CONTRIBUTING.md` reads "no
+  runtime dependency in either package"; it was written when there were two.
+  It SHALL be reworded to name `@pensketch/core` and `@pensketch/react`
+  explicitly, so the rule stays true and keeps meaning what it meant: *the
+  rendering packages* add nothing to a consumer's lockfile. The MCP server is
+  a tool an agent runs, not code that ships inside a web page.
 - **Depends on**: `diagram-checker`. `check_diagram` is that function.
 - **Hosting**: a Worker on `workers.dev`. The server holds no secrets, makes
   no network calls, and writes nothing, so it can be served without

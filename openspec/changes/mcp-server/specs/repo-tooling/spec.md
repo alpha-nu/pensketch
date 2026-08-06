@@ -31,6 +31,28 @@ internal ranges current).
 - **WHEN** `@pensketch/mcp` appears in the dependencies of either rendering package
 - **THEN** the manifest test fails
 
+### Requirement: Size budgets are enforced
+`tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
+point and fail (non-zero exit, printing actual vs budget) when
+`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 1536
+bytes, `@pensketch/core/server` exceeds 1536 bytes, or `@pensketch/react`
+exceeds 2048 bytes min+gzip. `@pensketch/mcp` SHALL NOT carry a byte budget —
+it is spawned or hosted, never bundled into a page — but its deployed worker
+size SHALL be measured and recorded, because a WebAssembly rasterizer and an
+embedded font are the bulk of it and the platform imposes its own limit.
+
+#### Scenario: Budget breach
+- **WHEN** a change pushes core's min+gzip ESM output over 5120 bytes
+- **THEN** `npm run size` fails and CI goes red
+
+#### Scenario: Each subpath is held separately
+- **WHEN** either subpath exceeds its own budget
+- **THEN** `npm run size` fails, and the root entry's budget is unaffected either way
+
+#### Scenario: The worker payload is measured
+- **WHEN** the server is built for deployment
+- **THEN** its compressed size is reported, so the platform's script limit is a known number rather than a surprise at deploy time
+
 ### Requirement: Releases are owner-triggered with a visual semver clause
 Publishing SHALL happen only via a `workflow_dispatch` release workflow using
 changesets with npm provenance and an `NPM_TOKEN` secret. Version semantics
