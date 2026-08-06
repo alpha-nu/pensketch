@@ -74,19 +74,10 @@ jobs:
           # Read by the npm publish that the changesets CLI shells out to.
           NPM_CONFIG_PROVENANCE: 'true'
 
-      # A dispatch has exactly two honest outcomes: it opened or updated the
-      # version pull request, or it published. A run that did neither is a
-      # release that released nothing, and the step above will not say so —
-      # it exits zero either way.
-      #
-      # That matters most when the pin above is bumped. This action renames
-      # every input and output in its next major (publish -> publish-script,
-      # hasChangesets -> has-changesets), and a workflow that passes an input
-      # the action does not declare only earns a warning annotation. So an
-      # upgrade that forgets to rename would leave a release job that reopens
-      # the version pull request forever and never reaches the registry, with
-      # a green tick on every run. Asserting the outcome closes that off
-      # without having to predict which names change next.
+      # The step above exits zero even when it does nothing — which is what a
+      # bump of that pin looks like, since the action renames every input and
+      # output in its next major and Actions only warns about an input it does
+      # not declare. A release that released nothing should be red.
       - name: The dispatch released something
         env:
           PUBLISHED: ${{ steps.changesets.outputs.published }}
