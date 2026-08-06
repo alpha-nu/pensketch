@@ -419,7 +419,7 @@ embed `hero-light.png` via the absolute URL
 The repository exists at `https://github.com/alpha-nu/pensketch`, so every URL
 is written resolved — no placeholder markers at any point.
 
-**CONTRIBUTING.md**: setup (`npm ci`); the six verification commands with one
+**CONTRIBUTING.md**: setup (`npm ci`); every verification command with one
 line each; the golden policy (D5, including never-regenerate-to-green); how to
 pick patch-vs-minor under the visual clause; the ASCII/`\uXXXX` fixture rule.
 

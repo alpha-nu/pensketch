@@ -7,7 +7,7 @@ root. The repository is an npm workspace: the two published packages live in
 `packages/core` and `packages/react`, and a single root install wires them
 together, so run every command from the root unless told otherwise.
 
-## The six verification commands
+## The seven verification commands
 
 - `npm run lint` - Biome check across the repository. Proves formatting and
   lint rules hold everywhere; Biome is the only formatter and the only linter.
@@ -21,11 +21,16 @@ together, so run every command from the root unless told otherwise.
 - `npm run goldens` - regenerates the golden files from the reference
   renderer. `git diff` must be clean afterwards, which proves the reference,
   the generator, and the checked-in goldens have not drifted apart.
+- `npm run schema` - regenerates `schema/diagram.schema.json` from the
+  TypeScript types. `git diff` must be clean afterwards, which proves the
+  schema a caller validates against still describes the types the package
+  ships.
 - `npm run size` - gzipped size budgets. Proves the minified, gzipped ESM
   entry point stays within budget: 5120 bytes for core, 2048 bytes for react.
 
-All six must pass before a change is complete. CI runs the same six on every
-pull request and every push to `main`, so a local failure is a CI failure.
+All seven must pass before a change is complete. CI runs the same seven on
+every pull request and every push to `main`, so a local failure is a CI
+failure.
 
 ## Golden files
 

@@ -5,6 +5,7 @@
       "**",
       "!!reference",
       "!**/dist",
+      "!schema",
       "!**/coverage",
       "!**/node_modules",
       "!package-lock.json"

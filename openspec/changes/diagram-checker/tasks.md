@@ -67,5 +67,5 @@ owner, never the agent.
       output change — patch is reserved for byte-identical releases and this
       draws nothing
 
-Gate: all six verification commands green, the checker clean over the
+Gate: every verification command green, the checker clean over the
 repository's own diagrams, `openspec validate diagram-checker --strict` green.

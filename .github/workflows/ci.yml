@@ -71,13 +71,16 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $rc
 
-      # Not a second opinion on the parity tests: those compare the port
-      # against the goldens, this compares reference/renderer.html against
-      # them. Without it the goldens are only pinned to the port, and a parity
-      # failure can be made to pass by regenerating the thing it measures.
-      - name: Goldens still descend from the reference
+      # Two generated artefacts, one assertion. The goldens step is not a
+      # second opinion on the parity tests: those compare the port against the
+      # goldens, this compares reference/renderer.html against them. Without
+      # it the goldens are only pinned to the port, and a parity failure can be
+      # made to pass by regenerating the thing it measures. The schema is
+      # derived from the types, so this is what stops the two drifting.
+      - name: Generated files still match their sources
         run: |
           npm run goldens
+          npm run schema
           git status --porcelain
           test -z "$(git status --porcelain)"
 

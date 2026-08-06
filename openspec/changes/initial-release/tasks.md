@@ -83,7 +83,7 @@ Gate: parity green; goldens-freshness green.
 - [x] 3.3 Size budget met; `npm run size` wired
 - [x] 3.4 `packages/core/README.md` per documentation spec
 
-Gate: all six verification commands green.
+Gate: every verification command green.
 
 ## 4. React package
 
@@ -103,7 +103,7 @@ Gate: all six verification commands green.
 - [x] 4.3 JSDoc incl. `@example` on `PenSketch`/`useSketch`; size budget;
       `packages/react/README.md`
 
-Gate: all six verification commands green.
+Gate: every verification command green.
 
 ## 5. Examples + documentation
 

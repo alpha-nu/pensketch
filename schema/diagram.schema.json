@@ -1,0 +1,289 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DiagramNode"
+      },
+      "description": "Groups are drawn first, behind everything; the rest after the edges."
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DiagramEdge"
+      },
+      "description": "Arrows, drawn over the groups and under the shapes they connect."
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DiagramNote"
+      },
+      "description": "Annotations, drawn over everything but the raw callbacks."
+    }
+  },
+  "additionalProperties": false,
+  "description": "A hand-sketched diagram as plain data. Coordinates are given, never computed: pensketch performs no layout and never measures text, so a box does not grow to fit its label. The `raw` escape hatch is absent because it holds functions, which JSON cannot carry.",
+  "definitions": {
+    "DiagramNode": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "How edges name this node. Unique within the diagram."
+            },
+            "x": {
+              "type": "number",
+              "description": "Left edge of the box."
+            },
+            "y": {
+              "type": "number",
+              "description": "Top edge of the box."
+            },
+            "w": {
+              "type": "number",
+              "description": "Width of the box in px."
+            },
+            "h": {
+              "type": "number",
+              "description": "Height of the box in px."
+            },
+            "shape": {
+              "type": "string",
+              "const": "group",
+              "description": "Selects the group treatment: a wash, a border, and a title."
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The title, drawn inside the top left corner in `theme.pen`."
+            }
+          },
+          "required": [
+            "h",
+            "id",
+            "lines",
+            "shape",
+            "w",
+            "x",
+            "y"
+          ],
+          "additionalProperties": false,
+          "description": "A titled region drawn behind everything else. Its title is drawn unconditionally, so `lines` is required here and optional on every other shape: an untitled group cannot render."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "How edges name this node. Unique within the diagram."
+            },
+            "x": {
+              "type": "number",
+              "description": "Left edge of the box."
+            },
+            "y": {
+              "type": "number",
+              "description": "Top edge of the box."
+            },
+            "w": {
+              "type": "number",
+              "description": "Width of the box in px."
+            },
+            "h": {
+              "type": "number",
+              "description": "Height of the box in px."
+            },
+            "shape": {
+              "type": "string",
+              "enum": [
+                "box",
+                "pill",
+                "diamond"
+              ],
+              "description": "Which outline to trace around the box."
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Label lines, one `<text>` each. Omit for an unlabelled shape."
+            },
+            "size": {
+              "type": "number",
+              "description": "Label font size in px. Default: `13.5`."
+            },
+            "accent": {
+              "type": "boolean",
+              "description": "Stroke in `theme.pen` rather than `theme.ink`. Default: `false`."
+            },
+            "hatch": {
+              "type": "boolean",
+              "description": "Shade the interior, inset 4 px, in `theme.pen`. Default: `false`."
+            }
+          },
+          "required": [
+            "h",
+            "id",
+            "shape",
+            "w",
+            "x",
+            "y"
+          ],
+          "additionalProperties": false,
+          "description": "A drawn node, with an optional label centered in its box."
+        }
+      ],
+      "description": "Anything a diagram can place: a group, or one of the drawn shapes."
+    },
+    "DiagramEdge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "array",
+          "minItems": 2,
+          "items": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/Side"
+            }
+          ],
+          "maxItems": 2,
+          "description": "The id of the node to leave, and which side to leave from."
+        },
+        "to": {
+          "type": "array",
+          "minItems": 2,
+          "items": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/Side"
+            }
+          ],
+          "maxItems": 2,
+          "description": "The id of the node to reach, and which side the head lands on."
+        },
+        "via": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Point"
+          },
+          "description": "Corner points between the two anchors."
+        },
+        "dotted": {
+          "type": "boolean",
+          "description": "Dash the line and recolor it, and its label, to `theme.accent`."
+        },
+        "label": {
+          "type": "string",
+          "description": "A single line of text. Requires `lx` and `ly`."
+        },
+        "lx": {
+          "type": "number",
+          "description": "Label x. `draw` throws if `label` is set and this is not a number."
+        },
+        "ly": {
+          "type": "number",
+          "description": "Label y. `draw` throws if `label` is set and this is not a number."
+        },
+        "anchor": {
+          "type": "string",
+          "enum": [
+            "start",
+            "middle",
+            "end"
+          ],
+          "description": "Which end of the label sits on `lx`. Default: `'middle'`."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false,
+      "description": "An arrow from one node's side to another's. The path is exactly the legs between the anchors and whatever `via` points are given, in order: nothing routes around obstacles."
+    },
+    "Side": {
+      "type": "string",
+      "enum": [
+        "t",
+        "b",
+        "l",
+        "r"
+      ],
+      "description": "Which side of a node's box an edge attaches to: top, bottom, left, right."
+    },
+    "Point": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "An `[x, y]` position in the diagram's own coordinate space, which is the one the `<svg>` viewBox declares rather than screen pixels."
+    },
+    "DiagramNote": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "Horizontal origin of the text; `anchor` says which end of it sits here."
+        },
+        "y": {
+          "type": "number",
+          "description": "Vertical center of the whole block of lines."
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The lines of the note, one `<text>` each."
+        },
+        "anchor": {
+          "type": "string",
+          "enum": [
+            "start",
+            "middle",
+            "end"
+          ],
+          "description": "Which end of the text sits on `x`. Default: `'start'`."
+        },
+        "arrowFrom": {
+          "$ref": "#/definitions/Point",
+          "description": "Where the pointer arrow starts."
+        },
+        "via": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Point"
+          },
+          "description": "Corner points between `arrowFrom` and `arrowTo`."
+        },
+        "arrowTo": {
+          "$ref": "#/definitions/Point",
+          "description": "Where the pointer arrow ends. Drawn only when both ends are given."
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "lines"
+      ],
+      "additionalProperties": false,
+      "description": "Free-standing annotation text in `theme.accent`, optionally with a dotted arrow pointing at what it is about."
+    }
+  },
+  "title": "Pensketch diagram"
+}

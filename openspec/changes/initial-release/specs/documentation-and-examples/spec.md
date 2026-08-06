@@ -43,7 +43,7 @@ that already exists — no placeholder markers at any point.
 - **THEN** no `TODO(owner)` markers remain in either package README
 
 ### Requirement: CONTRIBUTING teaches the guardrails
-`CONTRIBUTING.md` SHALL cover: setup, the six verification commands with one
+`CONTRIBUTING.md` SHALL cover: setup, every verification command with one
 line each on what they prove, the golden policy including
 never-regenerate-to-green, patch-vs-minor selection under the visual clause,
 and the ASCII/`\uXXXX` rule for fixture strings.

@@ -15,6 +15,7 @@
     "test": "vitest run --coverage",
     "build": "npm run build --workspaces",
     "goldens": "node tools/generate-goldens.mjs",
+    "schema": "node tools/generate-schema.mjs",
     "size": "node tools/check-size.mjs"
   },
   "devDependencies": {
@@ -25,10 +26,12 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitest/coverage-v8": "^4.1.10",
+    "ajv": "^8.20.0",
     "jsdom": "^27.0.1",
     "playwright-core": "^1.62.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "ts-json-schema-generator": "^2.9.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
