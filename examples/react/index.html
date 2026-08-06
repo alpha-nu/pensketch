@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+  pensketch - React bindings.
+
+  From this directory:
+
+    npm install     # links ../../packages/core and ../../packages/react
+    npm run dev
+
+  The two file: links point at the packages' dist folders, so run
+  `npm run build` at the repository root once before installing.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pensketch - React</title>
+<style>
+/* Page chrome. The theming below this block is the documented snippet. */
+:root { color-scheme: light dark; }
+body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; }
+main { max-width: 960px; margin: 0 auto; }
+h1 { font-size: 20px; font-weight: 600; }
+svg { display: block; width: 100%; height: auto; margin-bottom: 24px; }
+</style>
+<style>
+:root {
+  --ps-ink: #232B36;
+  --ps-pen: #2B5B8A;
+  --ps-accent: #B3402E;
+  --ps-muted: #5A6572;
+  --ps-wash: rgba(43, 91, 138, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ps-ink: #D9DFE7;
+    --ps-pen: #7FA9DB;
+    --ps-accent: #DB8570;
+    --ps-muted: #93A0AD;
+    --ps-wash: rgba(127, 169, 219, .07);
+  }
+}
+/* the hand-drawn feel depends on a handwriting font for labels */
+svg text {
+  font-family: "Chalkboard SE", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

@@ -110,17 +110,17 @@ Gate: all six verification commands green.
 - [x] 5.1 `examples/vanilla/index.html` (A1 + A4; relative dist import
       commented as the only divergence)
 - [x] 5.2 `examples/custom-pen/index.html` (A3 + one `raw`-callback `draw()`)
-- [ ] 5.3 `examples/react/` Vite app (BUDGETS via `<PenSketch>`,
+- [x] 5.3 `examples/react/` Vite app (BUDGETS via `<PenSketch>`,
       `CustomSketch` via `useSketch`, StrictMode on) — files per design.md D7.
       `vite.config.ts` needs `resolve.dedupe: ['react', 'react-dom']`: the
       `file:`-linked package resolves react through its realpath in the
       monorepo, so a build can bundle two copies. Pin vite `^8` (the react
       plugin peers it). Hoist the `useSketch` callback to module scope
-- [ ] 5.4 `tools/render-assets.mjs` → `docs/assets/hero-{light,dark}.png`
+- [x] 5.4 `tools/render-assets.mjs` → `docs/assets/hero-{light,dark}.png`
       (2×, corner-pixel-verified, committed)
-- [ ] 5.5 Root `README.md` complete — every section of the documentation
+- [x] 5.5 Root `README.md` complete — every section of the documentation
       spec, snippets byte-identical to Appendix A
-- [ ] 5.6 Screenshot-verify all three examples (headless Chrome, light +
+- [x] 5.6 Screenshot-verify all three examples (headless Chrome, light +
       dark). Serve the HTML examples over HTTP -- browsers block ES-module
       imports over `file://` -- and verify the React example through
       `vite build` + `vite preview`, not the dev server: a duplicate-react

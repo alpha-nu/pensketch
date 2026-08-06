@@ -1,3 +1,291 @@
 # pensketch
 
 > Hand-sketched SVG diagrams from plain data. Tiny, seeded, zero dependencies.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
+  <img alt="A hand-sketched request flow drawn by pensketch" src="docs/assets/hero-light.png">
+</picture>
+
+## Why pensketch
+
+- **A diagram is data.** A plain object, in your repository, that reviews and
+  diffs like the code it describes.
+- **Determinism is the contract.** Same data, same seed, same package version,
+  same bytes - so a diagram can be snapshot-tested like anything else.
+- **Tiny and dependency-free.** The core is a shade over 2 KB minified and
+  gzipped, and adds nothing else to your lockfile.
+- **Themed with CSS variables.** Colors are `var(--ps-*)` references, so dark
+  mode is a variable the page redefines rather than a diagram it redraws.
+
+## Install
+
+```sh
+npm install @pensketch/core
+```
+
+The React bindings are a separate package. `react` is a peer dependency
+(`^18 || ^19`), so the bindings draw with the copy your app already has:
+
+```sh
+npm install @pensketch/react @pensketch/core
+```
+
+## Quickstart: vanilla
+
+Give `draw` an `<svg>` and a diagram. It empties the element first, so calling
+it again is a redraw rather than an overlay.
+
+```html
+<svg id="flow" viewBox="0 0 700 150" role="img" aria-label="Request flow"></svg>
+<script type="module">
+  import { draw } from '@pensketch/core';
+
+  draw(document.getElementById('flow'), {
+    nodes: [
+      { id: 'in',   shape: 'pill',    x: 40,  y: 50, w: 160, h: 50, lines: ['request'] },
+      { id: 'gate', shape: 'diamond', x: 260, y: 35, w: 150, h: 80, lines: ['allowed?'] },
+      { id: 'work', shape: 'box',     x: 480, y: 50, w: 180, h: 50, lines: ['do the work'], accent: true },
+    ],
+    edges: [
+      { from: ['in', 'r'],   to: ['gate', 'l'] },
+      { from: ['gate', 'r'], to: ['work', 'l'], label: 'yes', lx: 445, ly: 60 },
+      { from: ['gate', 'b'], to: ['in', 'b'], via: [[335, 135], [120, 135]],
+        dotted: true, label: 'no', lx: 225, ly: 122 },
+    ],
+  }, { seed: 7 });
+</script>
+```
+
+## Quickstart: React
+
+`<PenSketch>` renders the bare `<svg>` and fills it in an effect, so the server
+sends the element and the client draws into it after hydration.
+
+```tsx
+import { PenSketch } from '@pensketch/react';
+import type { Diagram } from '@pensketch/core';
+
+const FLOW: Diagram = {
+  nodes: [
+    { id: 'in',   shape: 'pill',    x: 40,  y: 50, w: 160, h: 50, lines: ['request'] },
+    { id: 'gate', shape: 'diamond', x: 260, y: 35, w: 150, h: 80, lines: ['allowed?'] },
+    { id: 'work', shape: 'box',     x: 480, y: 50, w: 180, h: 50, lines: ['do the work'], accent: true },
+  ],
+  edges: [
+    { from: ['in', 'r'],   to: ['gate', 'l'] },
+    { from: ['gate', 'r'], to: ['work', 'l'], label: 'yes', lx: 445, ly: 60 },
+    { from: ['gate', 'b'], to: ['in', 'b'], via: [[335, 135], [120, 135]],
+      dotted: true, label: 'no', lx: 225, ly: 122 },
+  ],
+};
+
+export function Flow() {
+  return <PenSketch diagram={FLOW} seed={7} viewBox="0 0 700 150" aria-label="Request flow" />;
+}
+```
+
+## The drawing model
+
+A diagram is a plain object with four optional arrays, and `draw` walks them in
+a fixed order: the `nodes` whose shape is `group`, then `edges`, then the rest
+of the `nodes`, then `notes`, then the `raw` callbacks. That order is the
+z-order, and since every wobble comes from one seeded sequence, it is also part
+of the rendered bytes. Coordinates are yours to choose and stay in the
+diagram's own space, the one the viewBox declares: pensketch never measures
+text, never fits a box to its label, and never routes an edge around an
+obstacle.
+
+### `DiagramNode`
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `id` | `string` | required | How edges name this node. Unique within the diagram. |
+| `x`, `y` | `number` | required | Top left corner of the node's box. |
+| `w`, `h` | `number` | required | Size of the box. |
+| `shape` | `'group' \| 'box' \| 'pill' \| 'diamond'` | required | `group` draws a wash, a border and a title behind everything else; the other three trace an outline around the box. |
+| `lines` | `string[]` | required on `group`, otherwise unlabelled | Label lines, one `<text>` each. A group's title is drawn unconditionally, so the type demands `lines` there and leaves it optional on the drawn shapes. |
+| `size` | `number` | `13.5` | Label font size in px. Drawn shapes only; a group's title is always 14. |
+| `accent` | `boolean` | `false` | Stroke in `--ps-pen` rather than `--ps-ink`. Drawn shapes only. |
+| `hatch` | `boolean` | `false` | Shade the interior, inset 4 px, in `--ps-pen`. Drawn shapes only. |
+
+### `DiagramEdge`
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `from` | `[string, Side]` | required | The node to leave, and which side to leave from. |
+| `to` | `[string, Side]` | required | The node to reach, and which side the arrowhead lands on. |
+| `via` | `Point[]` | none | Corner points between the two anchors. |
+| `dotted` | `boolean` | `false` | Dash the line and recolor it, and its label, to `--ps-accent`. |
+| `label` | `string` | none | One line of text. Requires `lx` and `ly`. |
+| `lx`, `ly` | `number` | none | Where the label sits. `draw` throws when `label` is set and these are not numbers. |
+| `anchor` | `'start' \| 'middle' \| 'end'` | `'middle'` | Which end of the label sits on `lx`. |
+
+### `DiagramNote`
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `x` | `number` | required | Horizontal origin of the text; `anchor` says which end of it sits here. |
+| `y` | `number` | required | Vertical center of the whole block of lines. |
+| `lines` | `string[]` | required | The lines of the note, one `<text>` each, in `--ps-accent`. |
+| `anchor` | `'start' \| 'middle' \| 'end'` | `'start'` | Which end of the text sits on `x`. |
+| `arrowFrom` | `Point` | none | Where the pointer arrow starts. |
+| `via` | `Point[]` | none | Corner points along that arrow. |
+| `arrowTo` | `Point` | none | Where the arrow ends. The arrow is drawn only when both ends are given. |
+
+### `Diagram`
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `nodes` | `DiagramNode[]` | `[]` | Groups, drawn first and behind everything; the drawn shapes, after the edges. |
+| `edges` | `DiagramEdge[]` | `[]` | Arrows, over the groups and under the shapes they connect. |
+| `notes` | `DiagramNote[]` | `[]` | Annotations, over everything but the raw callbacks. |
+| `raw` | `Array<(pen: Pen) => void>` | `[]` | The escape hatch, run last. Each callback is handed the same pen the rest of the diagram was drawn with, mid-sequence. |
+
+An edge names its ends by side rather than by coordinate, so moving or resizing
+a node carries everything attached to it:
+
+| `Side` | Anchor |
+|---|---|
+| `t` | Top edge, halfway across |
+| `b` | Bottom edge, halfway across |
+| `l` | Left edge, halfway down |
+| `r` | Right edge, halfway down |
+
+The `via` points are used exactly as given, in order, between the two anchors:
+the arrow walks the legs you describe, and nothing else is inferred.
+
+## The pen
+
+`pen(svg, options)` returns the drawing surface `draw` uses internally. Reach
+for it when a picture is not a diagram, or when a diagram needs one thing the
+data model does not describe - the same pen is handed to every callback in a
+diagram's `raw` array.
+
+```js
+import { pen } from '@pensketch/core';
+
+const p = pen(document.querySelector('svg'), { seed: 3 });
+p.rect(20, 20, 200, 90);
+p.label(120, 65, 'hand-drawn box');
+p.arrow([[220, 65], [320, 65]]);
+p.pill(320, 40, 150, 50);
+p.label(395, 65, ['a pill', '(two lines)']);
+```
+
+| Method | Draws |
+|---|---|
+| `stroke(pts, opts?)` | A polyline through the points, jittered and traced twice. |
+| `arrow(pts, opts?)` | The same, plus two barbs at the last point. |
+| `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. |
+| `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
+| `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
+| `hatch(x, y, w, h, color?)` | Diagonal shading across the box, clipped to it. |
+| `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |
+| `wash(x, y, w, h, fill?)` | A plain rounded background rect. |
+| `rng()` | The pen's seeded PRNG; calling it advances the sequence. |
+
+Every call consumes numbers from that sequence, so the order of the calls is
+part of the output.
+
+## Theming
+
+Colors are written into the SVG as `var(--ps-*, fallback)` references, so a
+page restyles a diagram that is already on screen - dark mode included - just
+by redefining the variables. The packages ship no CSS of their own.
+
+| Variable | Default | Used for |
+|---|---|---|
+| `--ps-ink` | `#232B36` | Primary strokes and labels |
+| `--ps-pen` | `#2B5B8A` | Group borders and accent nodes |
+| `--ps-accent` | `#B3402E` | Dotted edges and notes |
+| `--ps-muted` | `#5A6572` | Secondary labels |
+| `--ps-wash` | `rgba(43,91,138,.05)` | Group backgrounds |
+
+```css
+:root {
+  --ps-ink: #232B36;
+  --ps-pen: #2B5B8A;
+  --ps-accent: #B3402E;
+  --ps-muted: #5A6572;
+  --ps-wash: rgba(43, 91, 138, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ps-ink: #D9DFE7;
+    --ps-pen: #7FA9DB;
+    --ps-accent: #DB8570;
+    --ps-muted: #93A0AD;
+    --ps-wash: rgba(127, 169, 219, .07);
+  }
+}
+/* the hand-drawn feel depends on a handwriting font for labels */
+svg text {
+  font-family: "Chalkboard SE", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+}
+```
+
+Labels inherit the page's font, and the hand-drawn look leans on the
+handwriting stack above: the shapes wobble on their own, but text in a UI font
+gives the drawing away. Everything else about the aesthetic is fixed - the
+jitter, the double stroke, the corner overshoot - because the look is the
+product rather than a set of knobs.
+
+## Determinism and testing your diagrams
+
+Every wobble comes from one seeded PRNG, and nothing in either package reads
+`Math.random`, the clock, the locale, or the network. A seed is therefore a
+choice of drawing rather than a source of noise: seed 7 and seed 8 are two
+different hands writing the same diagram, and each of them writes it the same
+way forever. Pick the one you like and commit it.
+
+The version policy makes that promise checkable. A patch release renders
+byte-identical output for the same diagram, seed and JavaScript engine; a minor
+release may move the drawing, and its changelog entry says so, so a snapshot
+that moved always has a version to point at.
+
+That is what makes a rendered `<svg>` worth snapshotting:
+
+```ts
+import { expect, test } from 'vitest';
+import { draw } from '@pensketch/core';
+import { FLOW } from './flow';
+
+test('flow diagram renders byte-stably', () => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  draw(svg, FLOW, { seed: 7 });
+  // Same seed + same pensketch version = same bytes. A snapshot diff means
+  // either the diagram data changed or a visual-minor upgrade landed.
+  expect(svg.outerHTML).toMatchSnapshot();
+});
+```
+
+## Examples
+
+Every example runs against the local packages, so build them once from the
+repository root with `npm run build`. The two HTML pages need a static server -
+browsers refuse ES module imports over `file://` - which `npx serve .` from the
+root provides.
+
+| Folder | Shows | Run |
+|---|---|---|
+| `examples/vanilla/` | The vanilla quickstart, themed with the CSS variables. | `npx serve .`, then open `/examples/vanilla/` |
+| `examples/custom-pen/` | The pen primitives, and a `raw` callback reaching the same pen. | `npx serve .`, then open `/examples/custom-pen/` |
+| `examples/react/` | `<PenSketch>` and `useSketch` in a Vite app, under StrictMode. | `cd examples/react && npm install && npm run dev` |
+
+## pensketch and rough.js
+
+[rough.js](https://roughjs.com) is the reference for hand-drawn graphics on the
+web, and pensketch is not a replacement for it. rough.js hands you a sketchy
+primitive vocabulary - lines, curves, arcs, paths, fills, on canvas or SVG -
+and you compose any picture you like from it, including many pensketch cannot
+draw. pensketch starts one level up and a good deal narrower: you hand it a
+diagram as data and it decides the strokes, which is what buys the properties
+above - a file that diffs like code, output worth snapshot-testing, and a
+package small enough to stop thinking about. Drawing arbitrary sketchy
+graphics, reach for rough.js. Drawing boxes and arrows that live in version
+control, this is the smaller tool.
+
+## License
+
+MIT, copyright Anas K. See [LICENSE](LICENSE).
