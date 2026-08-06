@@ -16,6 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # One job, one install. The whole chain takes about ten seconds to run; what
+  # costs real time is `npm ci` and provisioning a runner, so paying for those
+  # once beats spreading the work over jobs that each pay again.
   verify:
     name: Verify
     runs-on: ubuntu-latest
@@ -32,6 +35,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Cheapest first, so an obvious failure does not wait on a build.
       - name: Lint
         run: npm run lint
 
@@ -44,70 +48,46 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Regenerate goldens
-        run: npm run goldens
-
-      # Regeneration above must leave the tree exactly as it was. A diff
-      # limited to tracked files under one directory would miss a generator
-      # that emits a brand new golden, and would silently pass forever if the
-      # path were ever mistyped, so the whole working tree is asserted clean.
-      - name: Regeneration leaves the tree unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
       - name: Size budgets
         run: npm run size
 
-  # The manifests say `engines: ">=22"`, so something has to prove 22 works.
-  # Only the suite is repeated: Biome, tsc and esbuild are the same binaries
-  # whichever Node invokes them, and the goldens are pinned against the
-  # version above rather than asserted identical across majors — the spec
-  # claims same-engine determinism, not cross-engine.
-  node22:
-    name: Verify the Node floor (22)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      # Not a second opinion on the parity tests: those compare the port
+      # against the goldens, this compares reference/renderer.html against
+      # them. Without it the goldens are only pinned to the port, and a parity
+      # failure can be made to pass by regenerating the thing it measures.
+      - name: Goldens still descend from the reference
+        run: |
+          npm run goldens
+          git status --porcelain
+          test -z "$(git status --porcelain)"
 
-      - name: Set up Node.js
+      # The manifests say `engines: ">=22"`. Only the suite is repeated -
+      # Biome, tsc and esbuild are the same binaries whichever Node invokes
+      # them, and node_modules is already installed, so this costs one Node
+      # download rather than another job.
+      # No `cache:` here or below - node_modules is already installed, and a
+      # second cache registration only races the first on the post-job save.
+      - name: Set up the supported Node floor
         uses: actions/setup-node@v7
         with:
           node-version: '22'
-          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Test
+      - name: Test on the Node floor
         run: npm test
 
-  # The peer range admits React 18, so something has to compile against it.
-  # The job installs the older major over the top of the workspace install and
-  # runs the type gate and the React suite; the rest of the chain is
-  # version-independent and already covered above.
-  react18:
-    name: Verify against React 18
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Node.js
+      # Last, because it is the only step that mutates node_modules. The peer
+      # range admits React 18, and shipping that claim untested is how
+      # useSketch once returned a ref type that 18 could not accept.
+      - name: Restore Node and install the older React major
         uses: actions/setup-node@v7
         with:
           node-version: '24'
-          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install the older React major
+      - name: Install React 18
         run: npm install --no-save react@^18 react-dom@^18 @types/react@^18 @types/react-dom@^18
 
-      - name: Typecheck
+      - name: Typecheck against React 18
         run: npm run typecheck
 
-      - name: Test the bindings
+      - name: Test the bindings against React 18
         run: npx vitest run --project react
