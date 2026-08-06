@@ -27,16 +27,22 @@ describe('the public surface is closed', () => {
 });
 
 describe('the dependency shape', () => {
-  // The shape, not the range: the release's own version bump rewrites the
-  // range, and asserting it literally makes every release fail its own tests.
-  it('takes core as its only regular dependency', () => {
-    expect(Object.keys(manifest.dependencies ?? {})).toEqual([
-      '@pensketch/core',
-    ]);
+  // Core is a peer, not a dependency: the bindings render through whichever
+  // copy the application already has. Owning one instead would let an app
+  // hold two renderers whose output for the same seed disagrees.
+  it('takes no regular dependency at all', () => {
+    expect(manifest.dependencies).toBeUndefined();
   });
 
-  it('peers on react alone, across both supported majors', () => {
-    expect(manifest.peerDependencies).toEqual({ react: '^18 || ^19' });
+  // The shape, not the ranges: the release's own version bump rewrites the
+  // core range, and asserting it literally makes every release fail its own
+  // tests.
+  it('peers on core and on react, and nothing else', () => {
+    expect(Object.keys(manifest.peerDependencies ?? {}).sort()).toEqual([
+      '@pensketch/core',
+      'react',
+    ]);
+    expect(manifest.peerDependencies?.react).toBe('^18 || ^19');
   });
 
   // react-dom is a root dev dependency the tests render with; the package

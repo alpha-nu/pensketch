@@ -2,7 +2,7 @@
 
 ## Setup
 
-Node 20 or newer is required. Clone the repository and run `npm ci` at the
+Node 22 or newer is required. Clone the repository and run `npm ci` at the
 root. The repository is an npm workspace: the two published packages live in
 `packages/core` and `packages/react`, and a single root install wires them
 together, so run every command from the root unless told otherwise.
@@ -72,6 +72,33 @@ Any change to an aesthetic constant, or to the order in which the seeded
 random number generator is consumed, changes the rendered bytes. That makes it
 a minor, even when the diagram looks identical to the eye. Reordering draw
 operations is such a change.
+
+## Project invariants
+
+These hold regardless of what a change is trying to do.
+
+**Neither package takes a runtime dependency.** Development tooling lives at
+the repository root; `@pensketch/react` reaches for `@pensketch/core` and the
+host's React and nothing else. A new entry under `dependencies` in either
+published package is a design decision, not an implementation detail.
+
+**The look is fixed.** The jitter, the double stroke, the corner overshoot and
+every constant behind them are the product rather than a set of knobs. They do
+not become options. There is no automatic layout, no edge routing, no text
+measurement, and no canvas renderer - a diagram's coordinates are the author's
+to choose.
+
+**Nothing in package source reads the outside world.** No `Math.random`, no
+clock, no timers, no locale-dependent formatting, and no reference to a global
+`document` or `window` - elements are created through the target element's own
+document. A test enforces this by reading the source, because output rendered
+on one machine cannot witness it.
+
+**Code in a README has one source.** The snippets in the root and package
+READMEs are copies of the canonical blocks in the change's design document,
+and the examples are copies of the same blocks with their import line adapted.
+Change the canonical block and propagate, in the same commit; do not edit a
+copy in place.
 
 ## ASCII source
 

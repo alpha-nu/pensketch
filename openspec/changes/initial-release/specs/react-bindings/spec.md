@@ -54,10 +54,14 @@ hydration mismatch, since children are added after hydration.
 - **THEN** it returns an empty svg element markup and does not throw
 
 ### Requirement: Dependency shape is minimal
-`@pensketch/react` SHALL declare `@pensketch/core` as its only regular
-dependency and `react` (`^18 || ^19`) as its only peer dependency — no
-`react-dom`, nothing else.
+`@pensketch/react` SHALL declare no regular dependency, and exactly two peer
+dependencies: `@pensketch/core` (any `0.x`) and `react` (`^18 || ^19`) — no `react-dom`,
+nothing else. Core is a peer rather than a dependency because the bindings
+render through it: owning a copy would let one application hold two renderers
+whose output for the same diagram and seed disagrees, and a package manager
+resolves that silently. As a peer, an incompatible pairing fails at install
+time instead.
 
 #### Scenario: Manifest audit
 - **WHEN** the published `package.json` is inspected
-- **THEN** `dependencies` contains exactly `@pensketch/core` and `peerDependencies` exactly `react`
+- **THEN** `dependencies` is absent and `peerDependencies` contains exactly `@pensketch/core` and `react`

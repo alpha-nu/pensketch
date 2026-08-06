@@ -11,10 +11,11 @@
 npm install @pensketch/react @pensketch/core
 ```
 
-`react` is a peer dependency (`^18 || ^19`): the bindings draw with whichever
-copy your app already has, and never bring their own. `@pensketch/core` is a
-regular dependency, so it arrives either way - install it directly to import
-its types, as the quickstart does.
+Both `react` (`^18 || ^19`) and `@pensketch/core` are peer dependencies: the
+bindings draw with whichever copies your app already has, and never bring
+their own. That matters for core in particular - two copies in one tree would
+be two renderers, and the same diagram at the same seed would come out
+differently through this component than through a direct `draw()` call.
 
 ## Quickstart
 

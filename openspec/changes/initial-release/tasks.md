@@ -55,8 +55,8 @@ branch sinks the 90% branch threshold on its own.
 - [x] 2.5 `src/draw.ts` (`draw`, `anchor`, validation, normative order)
 - [x] 2.6 `src/types.ts` + `src/index.ts` (closed surface per D2)
 - [x] 2.7 Shared serializer util (D5) at `packages/core/test/serialize.mjs`
-      (plain ESM — the generator must import the same function and Node 20
-      cannot import `.ts`), plus a test asserting its exact output for a
+      (plain ESM — the generator must import the same function, and bare Node
+      cannot be relied on to import a `.ts` module across the supported range), plus a test asserting its exact output for a
       hand-built fragment: the goldens and the assertions both flow through
       it, so a bug in it is invisible to every parity test
 - [x] 2.8 `tools/generate-goldens.mjs` (jsdom over the reference) + checked-in

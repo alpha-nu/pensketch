@@ -240,8 +240,8 @@ The port must reproduce the reference byte-for-byte for both fixtures in
   joined with `\n`. Sorting makes serialization independent of attribute
   insertion order across DOM implementations. It lives at
   `packages/core/test/serialize.mjs`: plain ESM, because
-  `tools/generate-goldens.mjs` must import the very same function and Node 20
-  cannot import a `.ts` file.
+  `tools/generate-goldens.mjs` must import the very same function, and bare
+  Node cannot be relied on to import a `.ts` file across the supported range.
 - **Generator** (`tools/generate-goldens.mjs`): jsdom over the reference file
   with `runScripts: 'dangerously'` (our own local file), serialize `#sampler`
   and `#budgets`, write `packages/core/test/goldens/sampler.seed7.svg.txt`
@@ -259,7 +259,7 @@ The port must reproduce the reference byte-for-byte for both fixtures in
 |---|---|
 | Workspaces | npm workspaces (no pnpm/turbo) |
 | Build | tsup per package: ESM + CJS + d.ts, minify, sourcemap, clean, target es2020 |
-| Node | `>=20` |
+| Node | `>=22` (20 reached end of life on 2026-04-30) |
 | Tests | vitest, jsdom environment; `@testing-library/react` for react package |
 | Coverage | v8, thresholds ≥90% lines and branches; verify per-package in the per-file report |
 | Lint/format | Biome only (no eslint, no prettier) |
@@ -269,7 +269,7 @@ The port must reproduce the reference byte-for-byte for both fixtures in
 | Publish | `release.yml` on `workflow_dispatch` only, changesets publish with npm provenance, `NPM_TOKEN` secret; owner triggers |
 
 Root `package.json`: `"private": true`, `"type": "module"`,
-`"workspaces": ["packages/*"]`, `"engines": { "node": ">=20" }`, and exactly
+`"workspaces": ["packages/*"]`, `"engines": { "node": ">=22" }`, and exactly
 these scripts (CI and CLAUDE.md call them by name):
 
 ```json
@@ -307,16 +307,26 @@ Package `package.json` (core shown; fields may be appended, never dropped):
   "files": ["dist"],
   "sideEffects": false,
   "publishConfig": { "access": "public" },
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22" },
   "scripts": { "build": "tsup", "typecheck": "tsc --noEmit" },
   "keywords": ["sketch", "hand-drawn", "svg", "diagram", "seeded", "deterministic", "napkin"]
 }
 ```
 
-`@pensketch/react` adds `"dependencies": { "@pensketch/core": "^0.0.1" }`
+`@pensketch/react` declares no regular dependency and
+`"peerDependencies": { "@pensketch/core": ">=0.0.1 <1.0.0", "react": "^18 || ^19" }`
 (plain semver — npm workspaces resolves locally, changesets keeps the range
-current; the `workspace:*` protocol is pnpm/yarn and must not appear) and
-`"peerDependencies": { "react": "^18 || ^19" }`. Nothing else; no react-dom.
+current; the `workspace:*` protocol is pnpm/yarn and must not appear).
+Nothing else; no react-dom. Core is a peer because the bindings are a
+pass-through to its renderer: a regular dependency would let an application
+resolve two copies and get two different drawings from one seed, silently,
+whereas a peer conflict fails at install time. The core range states *API*
+compatibility rather than rendering compatibility: because there is exactly
+one core in the tree, a rendering change reaches the component and a direct
+`draw()` call alike, so only an API break needs a new range. Changesets is
+configured with `onlyUpdatePeerDependentsWhenOutOfRange` so that a core minor
+does not force a react major — without it every core release drags the
+bindings to the next major for a range rewrite that changes nothing.
 
 `tsconfig.base.json`: `strict`, `noUncheckedIndexedAccess`,
 `exactOptionalPropertyTypes` (without it `theme={{ ink: props.ink }}` with an
@@ -329,7 +339,7 @@ organize-imports. changesets config: `"access": "public"`,
 `"baseBranch": "main"`. vitest: coverage excludes `examples/**`, `tools/**`,
 `**/dist/**`.
 
-CI (`ci.yml`): push/PR to `main`; matrix node 20 + 22; steps in order —
+CI (`ci.yml`): push/PR to `main`; matrix node 22 + 24; steps in order —
 checkout → setup-node (npm cache) → `npm ci` → `npm run lint` →
 `npm run typecheck` → `npm test` → `npm run build` → `npm run goldens` then an
 assertion that the whole working tree is unchanged (`git status --porcelain`

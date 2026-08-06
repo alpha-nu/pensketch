@@ -26,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           # Deliberately uncached: a release build should assemble what it
           # publishes from the registry, not from a restored directory.
           package-manager-cache: false

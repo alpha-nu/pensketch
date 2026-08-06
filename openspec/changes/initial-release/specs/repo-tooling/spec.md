@@ -22,7 +22,7 @@ changesets keeps internal ranges current).
 Each package SHALL build with tsup to ESM + CJS + `.d.ts` (minified,
 sourcemapped, target es2020) with a conditional `exports` map resolving
 `types`/`import`/`require`, `"sideEffects": false`, and
-`"engines": { "node": ">=20" }`.
+`"engines": { "node": ">=22" }`.
 
 #### Scenario: Both module systems resolve
 - **WHEN** the built package is consumed via `import` in ESM and `require` in CJS
@@ -50,7 +50,7 @@ exceeds 5120 bytes or `@pensketch/react` exceeds 2048 bytes min+gzip.
 - **THEN** `npm run size` fails and CI goes red
 
 ### Requirement: CI validates the full chain including golden freshness
-CI SHALL run on push/PR to `main` over Node 20 and 22 with, in order: `npm
+CI SHALL run on push/PR to `main` over Node 22 and 24 with, in order: `npm
 ci`, lint (Biome), typecheck (`tsc --noEmit`), tests with coverage, build,
 golden regeneration followed by an assertion that the working tree is
 completely unchanged, and the size check. A drift between
