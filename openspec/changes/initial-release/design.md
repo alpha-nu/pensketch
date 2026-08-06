@@ -285,7 +285,7 @@ fails, which is the honest reading of a release that released nothing.
 
 Root `package.json`: `"private": true`, `"type": "module"`,
 `"workspaces": ["packages/*"]`, `"engines": { "node": ">=22" }`, and exactly
-these scripts (CI and CLAUDE.md call them by name):
+these scripts (CI and `CONTRIBUTING.md` call them by name):
 
 ```json
 {
@@ -376,7 +376,7 @@ Repository layout:
 
 ```
 pensketch/
-├── package.json / LICENSE / README.md / CONTRIBUTING.md / CLAUDE.md
+├── package.json / LICENSE / README.md / CONTRIBUTING.md
 ├── openspec/                  # this change
 ├── reference/renderer.html    # normative reference (READ-ONLY)
 ├── packages/core/             # @pensketch/core  (src, test incl. goldens, README)

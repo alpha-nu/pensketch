@@ -1,7 +1,7 @@
 # Tasks: initial-release
 
 Execute groups in order. A group is done when the verification commands in
-`CLAUDE.md` are green, a self-review of the group's diff has been made, and
+`CONTRIBUTING.md` are green, a self-review of the group's diff has been made, and
 every finding is fixed. Items marked **OWNER** are performed by the repo
 owner, never the agent — surface them when unblocked and continue with what
 does not depend on them.
