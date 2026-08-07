@@ -43,6 +43,87 @@ describe('check', () => {
   });
 });
 
+describe('severity and order', () => {
+  // Fires four rules at once, in an order that is not the sorted one: the
+  // orphan is found before the overlap, and the overlap is the more serious.
+  const MESSY: Diagram = {
+    nodes: [
+      { id: 'a', shape: 'box', x: 300, y: 0, w: 100, h: 40 },
+      { id: 'b', shape: 'box', x: 340, y: 20, w: 100, h: 40 },
+      {
+        id: 'wordy',
+        shape: 'box',
+        x: 0,
+        y: 0,
+        w: 40,
+        h: 40,
+        lines: ['far too wide'],
+      },
+    ],
+  };
+
+  it('puts errors before warnings, whatever order the rules ran in', () => {
+    const findings = check(MESSY);
+    expect(rules(findings)).toEqual([
+      'node-overlap',
+      'orphan-node',
+      'orphan-node',
+      'orphan-node',
+      'text-overflow',
+    ]);
+  });
+
+  it('breaks ties by position, so the same rule twice has an order', () => {
+    const findings = check({
+      nodes: [
+        box('a', 500, 0),
+        box('b', 540, 0),
+        box('c', 100, 0),
+        box('d', 140, 0),
+      ],
+    });
+    const overlaps = findings.filter((f) => f.rule === 'node-overlap');
+    expect(overlaps.map((f) => f.at)).toEqual([
+      [140, 0],
+      [540, 0],
+    ]);
+  });
+
+  it('returns the same array twice for the same input', () => {
+    expect(check(MESSY)).toEqual(check(MESSY));
+  });
+
+  it('raises a rule, and sorts it into its new place', () => {
+    const findings = check(MESSY, { rules: { 'orphan-node': 'error' } });
+    expect(findings.every((f) => f.severity === 'error')).toBe(false);
+    expect(rules(findings)).toEqual([
+      'node-overlap',
+      'orphan-node',
+      'orphan-node',
+      'orphan-node',
+      'text-overflow',
+    ]);
+    expect(findings[1]?.severity).toBe('error');
+  });
+
+  it('lowers a rule', () => {
+    const findings = check(MESSY, { rules: { 'node-overlap': 'warning' } });
+    expect(findings.map((f) => f.severity)).toEqual(
+      Array(findings.length).fill('warning'),
+    );
+    expect(findings.find((f) => f.rule === 'node-overlap')?.severity).toBe(
+      'warning',
+    );
+  });
+
+  it('switches a rule off entirely', () => {
+    const findings = check(MESSY, {
+      rules: { 'orphan-node': 'off', 'text-overflow': 'off' },
+    });
+    expect(rules(findings)).toEqual(['node-overlap']);
+  });
+});
+
 describe('duplicate-id', () => {
   it('reports the second node, naming where both of them are', () => {
     const findings = check({
@@ -422,9 +503,11 @@ describe('label-collision', () => {
 
     const struck = findings.filter((f) => f.rule === 'label-collision');
     expect(struck).toHaveLength(3);
+    // Sorted by position rather than by edge, so this is the same three
+    // labels the example shipped, ordered left to right.
     expect(struck.map((f) => f.at)).toEqual([
-      [430, 114],
       [325, 194],
+      [430, 114],
       [430, 274],
     ]);
   });
@@ -478,7 +561,8 @@ describe('out-of-bounds', () => {
       { viewBox: VIEW_BOX },
     );
     expect(rules(findings)).toEqual(['out-of-bounds', 'out-of-bounds']);
-    expect(findings.map((f) => f.subjects)).toEqual([['edge 0'], ['note 0']]);
+    // Sorted by position, so the note at x=20 comes before the label at 900.
+    expect(findings.map((f) => f.subjects)).toEqual([['note 0'], ['edge 0']]);
   });
 
   it('counts everything inside the frame, including a box ending exactly on it', () => {

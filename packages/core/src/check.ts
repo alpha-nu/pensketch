@@ -81,6 +81,11 @@ const DEFAULTS: Record<RuleId, Severity> = {
   'orphan-node': 'warning',
 };
 
+// Errors first. Not alphabetical: `error` sorting before `warning` there is a
+// coincidence of English, and the day a third severity appears it would put
+// it in the wrong place.
+const RANK: Record<Severity, number> = { error: 0, warning: 1 };
+
 /**
  * Reports the layout defects a type system cannot see: overlaps, labels lying
  * under connectors, text wider than its box. It never renders, never touches
@@ -331,5 +336,16 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     });
   }
 
-  return findings;
+  // Sorted rather than returned in the order the rules happen to run, so that
+  // adding a rule or reordering one does not reorder the output. Comparing
+  // rule ids with < rather than localeCompare: nothing in this package is
+  // allowed to depend on a locale, and an array whose order changes with the
+  // machine's language is not snapshot-testable.
+  return findings.sort(
+    (a, b) =>
+      RANK[a.severity] - RANK[b.severity] ||
+      (a.rule < b.rule ? -1 : a.rule > b.rule ? 1 : 0) ||
+      a.at[0] - b.at[0] ||
+      a.at[1] - b.at[1],
+  );
 }
