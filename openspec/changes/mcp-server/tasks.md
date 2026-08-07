@@ -51,11 +51,11 @@ rasterizes.
       counts, with input schemas
 - [ ] 3.2 `render_diagram` through `@pensketch/core/server` — no rendering
       logic of its own
-- [ ] 3.3 Choose the embedded font **by measurement**: render the repository's
+- [x] 3.3 Choose the embedded font **by measurement**: render the repository's
       own labels in each open-licence candidate and take the one whose mean
       glyph-advance factor sits closest to the documented stack's 0.462.
       Record the measurements alongside the choice
-- [ ] 3.4 Subset that font to the glyphs a diagram can contain, and record the
+- [x] 3.4 Subset that font to the glyphs a diagram can contain, and record the
       before and after sizes
 - [ ] 3.5 `render_png` with `loadSystemFonts: false`, the scale cap, and
       refusal above it. Tests: identical bytes across two runs, and an

@@ -117,12 +117,77 @@ measurement**: the candidate whose mean glyph-advance factor sits closest to
 the documented stack's measured 0.462 wins, so the substitution distorts text
 metrics as little as it can.
 
-`loadSystemFonts` SHALL be `false`, always. The tempting alternative — let the
-server pick up the user's real Chalkboard SE, which on a Mac it would find —
-is rejected deliberately: it would make the same call return different images
-on different machines, in a project whose entire identity is same input, same
-bytes. Determinism beats fidelity here, and the tool description says the text
-is a stand-in.
+`loadSystemFonts` SHALL be `false`, and the reason is not the one first
+written here. The original argument was determinism — that letting the server
+pick up the user's real Chalkboard SE would return different images on
+different machines. That argument was weak: this project's determinism
+contract is about the *SVG bytes*, and it explicitly declines even
+cross-engine identity, so pensketch's rendered pixels already differ by
+machine wherever the CSS font stack resolves differently. Pixel identity was
+never promised.
+
+The real reason, measured on 2026-08-07: **in the WebAssembly build the option
+does nothing.** The same SVG naming `Chalkboard SE`, rendered on a Mac that
+has it installed:
+
+| | PNG |
+|---|---|
+| `loadSystemFonts: true`, no buffers | 270 B — a blank rectangle |
+| `loadSystemFonts: false`, no buffers | 270 B — identical |
+| the same face handed over as `fontBuffers` | 2485 B — text drawn |
+
+The option appears in the typings because they are shared with the native
+`@resvg/resvg-js`, where it works. The wasm module runs in the JavaScript
+sandbox with no filesystem behind it, so there are no font directories to
+enumerate; it does not fall back and does not warn, it silently draws nothing.
+The choice is therefore *embed a face or ship a picture with no text in it* —
+and the native rasterizer, which would honour system fonts, is rejected for
+the reason above: it needs a binary install, in the one place that cannot be
+relied on to have one.
+
+### The face, chosen by measurement
+
+Every label this repository draws — 47 of them — rendered at 13.5px in Chrome
+and measured with `getComputedTextLength`, the same instrument that produced
+the documented stack's figure:
+
+| face | mean advance | vs the stack | file |
+|---|---|---|---|
+| *the documented stack (control)* | *0.4696* | — | proprietary |
+| **Architects Daughter** | **0.4807** | **+0.011** | 43 KB |
+| Comic Neue | 0.4435 | −0.027 | 57 KB |
+| Indie Flower | 0.4271 | −0.043 | 108 KB |
+| Patrick Hand | 0.3742 | −0.096 | 215 KB |
+| Caveat | 0.3450 | −0.125 | 404 KB |
+
+**Architects Daughter** wins, and beat the prior: Comic Neue was the obvious
+pick, being an explicit Comic Sans replacement and Comic Sans being *in* the
+stack — but on a Mac the stack resolves to Chalkboard SE first, and Chalkboard
+is wider. Measuring beat guessing, which is the whole reason the task said to
+measure. It also errs wide of the real stack rather than narrow, which is the
+same conservative direction the checker's estimate takes, and it is the
+smallest file of the five.
+
+OFL-1.1, and its copyright line reserves no font name — so the subset may keep
+the name rather than having to be renamed, which the licence would otherwise
+require of a modified copy.
+
+### The subset
+
+`packages/mcp/fonts/ArchitectsDaughter-Subset.ttf`, **43352 B → 20404 B**.
+
+Provenance, so the binary in the repository is reproducible rather than
+magic. Source: `google/fonts`, `ofl/architectsdaughter/ArchitectsDaughter-Regular.ttf`,
+sha256 `6159718a…97359`. Glyphs kept: printable ASCII `U+0020–U+007E`,
+Latin-1 supplement `U+00A0–U+00FF`, and `– — ‘ ’ “ ” … ×`. Produced with
+`subset-font` at `targetFormat: 'truetype'`; result sha256 `6da876dd…a60c7`.
+
+Coverage verified by rendering each character through resvg and comparing
+against a blank frame: all 94 printable ASCII, all Latin-1 accents, and all
+eight marks are present. **Arrows and ticks are not** — `→ ← ↑ ↓ ✓ ✗` draw
+nothing, because the face has no such glyphs and no subset can add them. A
+label containing one renders as a gap in the PNG only; `render_diagram` and
+`check_diagram` are unaffected, since neither depends on a font.
 
 The embedded face SHALL be subset to the glyphs a diagram can contain. There
 is no platform ceiling to meet, but the whole package is fetched by `npx` on

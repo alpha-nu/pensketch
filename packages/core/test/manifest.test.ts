@@ -35,11 +35,29 @@ describe('the server package', () => {
 
   // The shape, not the ranges: a release rewrites the core range, and
   // asserting it literally makes every release fail its own tests.
-  it('depends on the SDK and on core, and nothing else', () => {
+  //
+  // Three, and each one is a decision worth failing a test to revisit: the
+  // SDK speaks the protocol, core does the drawing, and the rasterizer is
+  // what turns an SVG into something a client can actually display. A fourth
+  // arriving quietly is what this asserts against.
+  it('depends on the SDK, core and the rasterizer, and nothing else', () => {
     expect(Object.keys(mcp.dependencies ?? {}).sort()).toEqual([
       '@modelcontextprotocol/server',
       '@pensketch/core',
+      '@resvg/resvg-wasm',
     ]);
+  });
+
+  // Pinned exact, unlike the SDK: it renders the images this server returns,
+  // and a patch that shifts a glyph by a pixel changes bytes a caller may be
+  // comparing.
+  it('pins the rasterizer exactly', () => {
+    expect(mcp.dependencies).toMatchObject({ '@resvg/resvg-wasm': '2.6.2' });
+  });
+
+  // The licence has to travel with the font it covers.
+  it('ships the embedded font and its licence', () => {
+    expect(mcp.files).toContain('fonts');
   });
 
   // Pinned to the major deliberately. The SDK's published layout moved to
