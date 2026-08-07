@@ -31,5 +31,5 @@ demands ink of the right hue, which fails on the old code with `0` drawn.
 
 Also: the `bin` path loses its `./`, which npm silently rewrote on every
 publish while warning that it had been "invalid and removed" — it had not, but
-the warning is alarming and now does not appear. And the README said the
-server serves five resources; it serves six.
+the warning is alarming and now does not appear. And the README miscounted the
+resources, having folded three examples into one table row.

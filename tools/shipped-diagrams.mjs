@@ -87,6 +87,7 @@ export async function shippedDiagrams() {
   const all = [
     ...(await fromHtml('examples/vanilla/index.html')),
     ...(await fromHtml('examples/custom-pen/index.html')),
+    ...(await fromHtml('examples/state-machine/index.html')),
     ...(await fromReact()),
     {
       key: 'hero',

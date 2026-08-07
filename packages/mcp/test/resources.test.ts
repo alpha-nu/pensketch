@@ -43,6 +43,7 @@ describe('the resource surface', () => {
   it('publishes the spec, the schema, the constants and every example', () => {
     expect(Object.keys(resourcesOf()).sort()).toEqual([
       CONSTANTS_URI,
+      exampleUri('atm'),
       exampleUri('lifecycle'),
       exampleUri('oauth'),
       exampleUri('pipeline'),

@@ -96,7 +96,7 @@ try {
   const resources = await send('resources/list');
   check(
     'resources/list',
-    (resources.result?.resources ?? []).length === 6,
+    (resources.result?.resources ?? []).length === 7,
     `${resources.result?.resources?.length} resources`,
   );
 

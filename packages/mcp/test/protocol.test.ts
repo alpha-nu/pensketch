@@ -90,6 +90,7 @@ describe('a client talking to the server', () => {
     const resources = result?.resources as { uri: string }[];
     expect(resources.map((r) => r.uri).sort()).toEqual([
       'pensketch://constants',
+      'pensketch://example/atm',
       'pensketch://example/lifecycle',
       'pensketch://example/oauth',
       'pensketch://example/pipeline',

@@ -46,13 +46,13 @@ Run `check_diagram` before rendering and again after moving anything. It is
 the only one of the three that answers *does this fit* — see the font note
 below for why the picture cannot.
 
-## Six resources
+## Seven resources
 
 | uri | what it holds |
 |---|---|
 | `pensketch://spec` | The whole type surface, the constants worth designing around, every error the renderer throws, and the traps a type system cannot express. Read this first. |
 | `pensketch://schema` | JSON Schema for a diagram, generated from the TypeScript types. |
-| `pensketch://example/{pipeline,lifecycle,oauth}` | Three complete diagrams with real coordinates — a CI pipeline, an order lifecycle, an OAuth flow. |
+| `pensketch://example/{pipeline,lifecycle,oauth,atm}` | Four complete diagrams with real coordinates — a CI pipeline, an order lifecycle, an OAuth flow, an ATM state machine. The two that draw with `raw` carry a `rawOmitted` line saying which stroke the served copy is missing and why, since functions cannot cross JSON. |
 | `pensketch://constants` | Every aesthetic constant and its value, read from the installed renderer. |
 
 Each mirrors a file that exists in the repository for another reason, and a

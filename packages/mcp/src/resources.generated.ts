@@ -13,8 +13,12 @@ export const SCHEMA = "{\n  \"$schema\": \"http://json-schema.org/draft-07/schem
 /**
  * The diagrams this repository ships, as the data that drew them — minus
  * `raw`, which holds functions. JSON turns those into nulls, so serving it
- * would advertise a key carrying nothing, and the lifecycle example uses it
- * for the self-transition. The JSON Schema drops it for the same reason.
+ * would advertise a key carrying nothing, and the JSON Schema drops it for the
+ * same reason.
+ *
+ * Where that removed something, `rawOmitted` says what: the data here draws
+ * the rest of the picture, and a caller copying it should know which stroke it
+ * will not get rather than discover a gap.
  */
 export const EXAMPLES = {
   "pipeline": {
@@ -271,6 +275,7 @@ export const EXAMPLES = {
       900,
       290
     ],
+    "rawOmitted": "a self-transition on \"payment pending\" - the \"retry x3\" loop - because an edge joins two different nodes and cannot return to the one it left",
     "diagram": {
       "nodes": [
         {
@@ -427,6 +432,228 @@ export const EXAMPLES = {
             [
               545,
               225
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "atm": {
+    "title": "An ATM as a state machine, branching on a decision",
+    "viewBox": [
+      0,
+      0,
+      880,
+      580
+    ],
+    "rawOmitted": "a self-transition on \"awaiting PIN\" - the keypad loop labelled \"digit entered\" - because an edge joins two different nodes and cannot return to the one it left",
+    "diagram": {
+      "nodes": [
+        {
+          "id": "idle",
+          "shape": "pill",
+          "x": 60,
+          "y": 40,
+          "w": 190,
+          "h": 52,
+          "lines": [
+            "idle"
+          ]
+        },
+        {
+          "id": "pin",
+          "shape": "box",
+          "x": 60,
+          "y": 170,
+          "w": 190,
+          "h": 52,
+          "lines": [
+            "awaiting PIN"
+          ]
+        },
+        {
+          "id": "verify",
+          "shape": "diamond",
+          "x": 55,
+          "y": 300,
+          "w": 200,
+          "h": 94,
+          "lines": [
+            "PIN valid?"
+          ]
+        },
+        {
+          "id": "menu",
+          "shape": "box",
+          "x": 60,
+          "y": 470,
+          "w": 190,
+          "h": 52,
+          "lines": [
+            "select transaction"
+          ]
+        },
+        {
+          "id": "eject",
+          "shape": "box",
+          "x": 390,
+          "y": 170,
+          "w": 190,
+          "h": 52,
+          "lines": [
+            "eject card"
+          ]
+        },
+        {
+          "id": "cash",
+          "shape": "box",
+          "x": 390,
+          "y": 470,
+          "w": 190,
+          "h": 52,
+          "lines": [
+            "dispensing cash"
+          ]
+        },
+        {
+          "id": "retain",
+          "shape": "pill",
+          "x": 650,
+          "y": 321,
+          "w": 180,
+          "h": 52,
+          "lines": [
+            "card retained"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": [
+            "idle",
+            "b"
+          ],
+          "to": [
+            "pin",
+            "t"
+          ],
+          "label": "card inserted",
+          "lx": 170,
+          "ly": 131,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "pin",
+            "b"
+          ],
+          "to": [
+            "verify",
+            "t"
+          ],
+          "label": "PIN entered",
+          "lx": 170,
+          "ly": 261,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "verify",
+            "b"
+          ],
+          "to": [
+            "menu",
+            "t"
+          ],
+          "label": "valid",
+          "lx": 170,
+          "ly": 432,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "verify",
+            "r"
+          ],
+          "to": [
+            "retain",
+            "l"
+          ],
+          "label": "3 failures",
+          "lx": 340,
+          "ly": 334,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "verify",
+            "l"
+          ],
+          "to": [
+            "pin",
+            "l"
+          ],
+          "via": [
+            [
+              25,
+              347
+            ],
+            [
+              25,
+              196
+            ]
+          ],
+          "dotted": true,
+          "label": "invalid",
+          "lx": 40,
+          "ly": 271,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "menu",
+            "r"
+          ],
+          "to": [
+            "cash",
+            "l"
+          ],
+          "label": "withdraw",
+          "lx": 292,
+          "ly": 483,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "cash",
+            "t"
+          ],
+          "to": [
+            "eject",
+            "b"
+          ],
+          "label": "cash taken",
+          "lx": 500,
+          "ly": 290,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "eject",
+            "t"
+          ],
+          "to": [
+            "idle",
+            "r"
+          ],
+          "label": "card removed",
+          "lx": 326,
+          "ly": 53,
+          "anchor": "start",
+          "via": [
+            [
+              485,
+              66
             ]
           ]
         }
