@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
@@ -61,6 +62,24 @@ for (const { name, entry, budget } of PACKAGES) {
     `${over ? 'FAIL' : 'PASS'} ${name}: ${actual} B (budget ${budget} B, min+gzip)`,
   );
 }
+
+// `@pensketch/mcp` carries no byte budget: it is spawned, never bundled into
+// a page, so a kilobyte there costs nothing a reader waits for. What it does
+// cost is the first `npx`, and this is the part of that wait the repository
+// controls — its own files, the embedded font among them. The rasterizer is
+// another 2.5 MB that arrives as a dependency and is not counted here.
+// Reported rather than budgeted, so the number is one somebody has seen.
+const packed = JSON.parse(
+  execFileSync(
+    'npm',
+    ['pack', '--dry-run', '--json', '--workspace', '@pensketch/mcp'],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+  ),
+)[0];
+
+console.log(
+  `INFO @pensketch/mcp: ${Math.round(packed.size / 1024)} KB packed, ${Math.round(packed.unpackedSize / 1024)} KB unpacked, ${packed.entryCount} files`,
+);
 
 if (failed) {
   process.exit(1);

@@ -77,13 +77,13 @@ rasterizes.
 
 ## 5. Transport
 
-- [ ] 5.1 Server factory separate from the transport entry, so a second
+- [x] 5.1 Server factory separate from the transport entry, so a second
       transport stays additive. A test constructing the factory directly and
       asserting the full tool and resource surface without any transport
       attached
-- [ ] 5.2 stdio entry and `bin`, verified by spawning the built server and
+- [x] 5.2 stdio entry and `bin`, verified by spawning the built server and
       completing an initialize / list-tools / call-tool round trip
-- [ ] 5.3 Report the packed tarball size at build time. The rasterizer alone
+- [x] 5.3 Report the packed tarball size at build time. The rasterizer alone
       is 2.36 MB of wasm, and an `npx` user waits for all of it on first run
 
 ## 6. Documentation and release

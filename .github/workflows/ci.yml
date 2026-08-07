@@ -67,6 +67,12 @@ jobs:
       - name: Published entry points resolve
         run: npm run exports
 
+      # The other half of that claim: the file `bin` names has to start under
+      # a bare node and hold a conversation. A stray console.log on the way up
+      # corrupts the stream a client is parsing, and nothing else would see it.
+      - name: The server a client spawns answers over stdio
+        run: npm run stdio
+
       # Budgets are a published contract, so the numbers belong in the summary
       # rather than only in a log. The status is carried across the write so a
       # breach still fails the step.

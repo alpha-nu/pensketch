@@ -7,7 +7,7 @@ root. The repository is an npm workspace: the two published packages live in
 `packages/core` and `packages/react`, and a single root install wires them
 together, so run every command from the root unless told otherwise.
 
-## The ten verification commands
+## The eleven verification commands
 
 - `npm run lint` - Biome check across the repository. Proves formatting and
   lint rules hold everywhere; Biome is the only formatter and the only linter.
@@ -35,6 +35,11 @@ together, so run every command from the root unless told otherwise.
   and asserts each exposes exactly its documented surface. Nothing else in the
   project loads `dist/`, so this is the only thing that would notice an
   exports map pointing at a file that is not there.
+- `npm run stdio` - spawns the built MCP server the way a client spawns it
+  and completes a real round trip over stdin: initialize, list the tools,
+  call two of them. The suite proves the protocol wiring in memory; this
+  proves the file `bin` names starts under a bare `node` and that nothing it
+  prints corrupts the stream a client is parsing.
 - `npm run size` - gzipped size budgets. Proves each minified, gzipped ESM
   entry point stays within budget: 5120 bytes for core, 2560 for its checker
   subpath, 3072 for its DOM-free renderer, 2048 for react.
@@ -43,7 +48,7 @@ together, so run every command from the root unless told otherwise.
   hero. Errors fail; warnings are printed. The project that writes the rules
   is the first thing held to them.
 
-All ten must pass before a change is complete. CI runs the same ten on
+All eleven must pass before a change is complete. CI runs the same eleven on
 every pull request and every push to `main`, so a local failure is a CI
 failure. It can also be dispatched by hand from the Actions tab, for a commit
 whose run was lost to something other than the commit.
