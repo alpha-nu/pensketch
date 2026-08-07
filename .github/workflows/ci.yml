@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # A run belongs to a commit, not to the push that produced it. Without this,
+  # a run lost to an outage or a flake can only be retried by inventing
+  # another commit to push.
+  workflow_dispatch:
 
 permissions:
   contents: read

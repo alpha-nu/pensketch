@@ -36,18 +36,32 @@ bytes, or `@pensketch/react` exceeds 2048 bytes min+gzip.
 - **WHEN** the checker's min+gzip output exceeds 1536 bytes
 - **THEN** `npm run size` fails, and core's own budget is unaffected either way
 
-### Requirement: CI validates the full chain including golden freshness
-CI SHALL run on push/PR to `main` over Node 22 and 24 with, in order: `npm
-ci`, lint (Biome), typecheck (`tsc --noEmit`), tests with coverage, build,
-golden regeneration followed by an assertion that the working tree is
-completely unchanged, the size check, and the checker over every diagram this
-repository ships. A drift between `reference/renderer.html`, the generator,
-and the checked-in goldens SHALL therefore be impossible to merge silently,
-and so SHALL a layout defect in a shipped example.
+### Requirement: CI validates the full chain including generated-file freshness
+CI SHALL run on push and pull request to `main`, and on manual dispatch, as a
+single job that installs once and runs, in order: `npm ci`, lint (Biome),
+typecheck (`tsc --noEmit`), tests with coverage, build, the size check,
+regeneration of every generated artefact — goldens and the published schema —
+followed by an assertion that the whole working tree is unchanged, and the
+checker over every diagram this repository ships. It SHALL then repeat the
+suite on the oldest Node the manifests admit, and finally typecheck and run
+the bindings suite against the older React major the peer range allows. A
+newer run on the same ref SHALL cancel the one in flight. Drift between
+`reference/renderer.html`, the generator and the checked-in goldens SHALL
+therefore be impossible to merge silently, and so SHALL drift between the
+TypeScript types and the schema published beside them, and so SHALL a layout
+defect in a shipped example.
 
 #### Scenario: Stale goldens blocked
 - **WHEN** a commit edits the golden generator so its output differs from the checked-in goldens
-- **THEN** the goldens-freshness step fails CI
+- **THEN** the generated-files step leaves the tree dirty and CI fails
+
+#### Scenario: A schema that no longer describes the types
+- **WHEN** a commit changes a diagram type without regenerating the schema
+- **THEN** the same step fails, so no release ships a schema describing types it does not have
+
+#### Scenario: A commit can be re-verified without inventing another
+- **WHEN** a run is lost to something outside the commit — an outage, a flake
+- **THEN** CI can be dispatched by hand against that same commit
 
 #### Scenario: A shipped diagram develops a layout defect
 - **WHEN** a change makes two nodes overlap in an example diagram
