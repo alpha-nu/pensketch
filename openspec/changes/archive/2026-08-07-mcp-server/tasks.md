@@ -93,9 +93,15 @@ rasterizes.
       substitution with what it does and does not affect
 - [x] 6.2 Root README section pointing at it
 - [x] 6.3 A changeset: **minor** on `@pensketch/mcp`
-- [ ] 6.4 **OWNER**: publish, then register it locally and confirm a real
+- [x] 6.4 **OWNER**: publish, then register it locally and confirm a real
       client lists all three tools and every resource, and that `render_png`
-      returns an image the client displays
+      returns an image the client displays. Done against `0.1.1` in VS Code:
+      three tools, seven resources, and a displayed PNG. `0.1.0` published a
+      `render_png` that drew no stroke at all — the markup paints with
+      `var(--ps-*)`, which the rasterizer resolves nowhere, and an unparseable
+      paint takes the property's initial value: nothing for `stroke`, black
+      for `fill`. Nothing caught it because the suite asserted a PNG signature
+      and a byte count, both of which blank paper satisfies
 
 Gate: all verification commands green, `openspec validate mcp-server
 --strict` green, a real client completing a `check_diagram` round trip and

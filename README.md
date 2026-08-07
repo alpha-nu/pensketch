@@ -347,10 +347,10 @@ else will keep.
 
 `@pensketch/mcp` puts all of this behind three tools — `check_diagram`,
 `render_diagram`, `render_png` — and serves the reference, the schema and
-three worked examples as resources:
+four worked examples as resources:
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.1.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.1.1
 ```
 
 `render_png` matters more than it sounds: an agent handed

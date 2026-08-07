@@ -5,23 +5,46 @@ TBD - created by archiving change initial-release. Update Purpose after archive.
 ## Requirements
 ### Requirement: Scoped packages in an npm-workspaces monorepo
 The repository SHALL be an npm-workspaces monorepo with `@pensketch/core` in
-`packages/core` and `@pensketch/react` in `packages/react`, both `"license":
-"MIT"` and `"publishConfig": { "access": "public" }` (scoped packages default
-to restricted). Zero runtime dependencies in core; the react package's
-dependency shape is fixed by the react-bindings capability. The `workspace:*`
-protocol SHALL NOT appear (npm resolves plain semver ranges locally;
-changesets keeps internal ranges current). `@pensketch/core` SHALL also
-publish the JSON Schema generated from its types, at the `./schema.json`
-subpath, so that a caller validates against the version they installed rather
-than a copy taken once and left to drift.
+`packages/core`, `@pensketch/react` in `packages/react`, and `@pensketch/mcp`
+in `packages/mcp`, all `"license": "MIT"` and `"publishConfig": { "access":
+"public" }` (scoped packages default to restricted). **Zero runtime
+dependencies in the rendering packages** — `@pensketch/core` and
+`@pensketch/react` — which is what keeps them out of a consumer's lockfile;
+the react package's dependency shape is fixed by the react-bindings
+capability. `@pensketch/mcp` MAY carry runtime dependencies, because it is a
+tool an agent runs rather than code that ships inside a page, and it SHALL NOT
+be a dependency of either rendering package. The `workspace:*` protocol SHALL
+NOT appear (npm resolves plain semver ranges locally; changesets keeps
+internal ranges current). Every internal range SHALL exclude the next major of
+what it names, and any range a release rewrites SHALL be a caret or tilde
+range: changesets replaces a range with its leading operator plus the new
+version, reading that operator from the first two characters, so a compound
+range is flattened — `>=0.0.1 <1.0.0` comes back as `>=0.1.0` and the upper
+bound is gone. A peer range that a release leaves alone MAY stay compound.
+`@pensketch/core` SHALL also publish the JSON Schema
+generated from its types, at the `./schema.json` subpath, so that a caller
+validates against the version they installed rather than a copy taken once and
+left to drift.
 
 #### Scenario: Publishable as public
-- **WHEN** `npm publish --dry-run` runs in either package after a build
+- **WHEN** `npm publish --dry-run` runs in any package after a build
 - **THEN** the resolved access is public, and the tarball contains `dist`, `README.md`, license metadata, and — for core alone — the generated schema, and nothing else
 
 #### Scenario: The schema is reachable by name
 - **WHEN** `@pensketch/core/schema.json` is imported by an installed consumer
 - **THEN** it resolves to the schema generated from the types that same version ships
+
+#### Scenario: The rendering packages stay dependency-free
+- **WHEN** `@pensketch/core` or `@pensketch/react` gains a runtime dependency
+- **THEN** the manifest test fails, regardless of what `@pensketch/mcp` depends on
+
+#### Scenario: A release cannot widen an internal range
+- **WHEN** the version bump rewrites the range `@pensketch/mcp` declares on `@pensketch/core`, or the peer range `@pensketch/react` declares on it
+- **THEN** the rewritten range still excludes the next core major, and the manifest test fails if it does not
+
+#### Scenario: The server never leaks into the browser packages
+- **WHEN** `@pensketch/mcp` appears in the dependencies of either rendering package
+- **THEN** the manifest test fails
 
 ### Requirement: Dual-format builds with types
 Each package SHALL build with tsup to ESM + CJS + `.d.ts` (minified,
@@ -56,22 +79,25 @@ uncovered instead of vanishing from the report.
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
 `@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 2560
-bytes, or `@pensketch/react` exceeds 2048 bytes min+gzip. Each published
-entry SHALL be a self-contained file: build-time code splitting SHALL be off,
-because a shared chunk makes the root entry's budget measure a re-export
-rather than the code it stands for.
+bytes, `@pensketch/core/server` exceeds 3072 bytes, or `@pensketch/react`
+exceeds 2048 bytes min+gzip. Each published entry SHALL be a self-contained
+file: build-time code splitting SHALL be off, because a shared chunk makes an
+entry's budget measure a re-export rather than the code it stands for. `@pensketch/mcp` SHALL NOT carry a byte budget —
+it is spawned, never bundled into a page — but its packed tarball size SHALL
+be reported at build time, because a WebAssembly rasterizer and an embedded
+font dominate it and a user fetching it through `npx` waits for every byte.
 
 #### Scenario: Budget breach
 - **WHEN** a change pushes core's min+gzip ESM output over 5120 bytes
 - **THEN** `npm run size` fails and CI goes red
 
-#### Scenario: The checker has its own budget
-- **WHEN** the checker's min+gzip output exceeds 2560 bytes
-- **THEN** `npm run size` fails, and core's own budget is unaffected either way
+#### Scenario: Each subpath is held separately
+- **WHEN** either subpath exceeds its own budget
+- **THEN** `npm run size` fails, and the root entry's budget is unaffected either way
 
-#### Scenario: An entry point stands on its own
-- **WHEN** a second entry is added to a package's build
-- **THEN** each entry remains a self-contained file, so neither one's budget is measuring a re-export and neither drags in the other's code
+#### Scenario: The server's download weight is visible
+- **WHEN** `@pensketch/mcp` is packed
+- **THEN** its tarball size is reported, so the wait an `npx` user pays for is a known number rather than an accident
 
 ### Requirement: CI validates the full chain including generated-file freshness
 CI SHALL run on push and pull request to `main`, and on manual dispatch, as a
@@ -121,14 +147,16 @@ assert the runner's npm can perform that exchange, because an npm too old to
 try fails at the registry with a plain authentication error that reads like a
 misconfigured secret. Version semantics
 pre-1.0: **patch** guarantees byte-identical rendered output; **minor** may
-change rendered output or add API, and its changeset SHALL say so and
-describe what shifts; every user-visible change SHALL carry a changeset; the
+change rendered output or add API, and its changeset SHALL say so and describe
+what shifts; every user-visible change SHALL carry a changeset; the
 implementing agent SHALL never publish, tag, or push. The release job SHALL
 assert its own outcome and fail when a dispatch neither published nor opened a
 version pull request: the changesets action is pinned by commit, renames every
 input in its next major, and Actions only warns about an input a workflow
 declares that the action does not — so a bad upgrade of that pin does nothing
-and exits zero.
+and exits zero. For `@pensketch/mcp`, which renders nothing of its own, the
+byte-identity clause SHALL be read as applying to the SVG its `render_diagram`
+tool returns.
 
 #### Scenario: A dispatch that released nothing goes red
 - **WHEN** a dispatch neither publishes nor opens a version pull request
@@ -142,7 +170,7 @@ and exits zero.
 - **WHEN** all CI checks pass on `main`
 - **THEN** nothing is published until the owner triggers the release workflow
 
-#### Scenario: There is no registry credential to steal
-- **WHEN** the repository's secrets are enumerated
-- **THEN** none of them grants publish rights, because the release workflow authenticates by exchanging a per-run OIDC token instead
+#### Scenario: The server's patch promise is about its output
+- **WHEN** a patch release of `@pensketch/mcp` changes the SVG `render_diagram` returns
+- **THEN** the release is misclassified and the change requires a minor instead
 
