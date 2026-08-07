@@ -88,11 +88,11 @@ rasterizes.
 
 ## 6. Documentation and release
 
-- [ ] 6.1 `packages/mcp/README.md`: registration for stdio clients with a
+- [x] 6.1 `packages/mcp/README.md`: registration for stdio clients with a
       pinned version, the `PATH` caveat, the purity guarantee, and the font
       substitution with what it does and does not affect
-- [ ] 6.2 Root README section pointing at it
-- [ ] 6.3 A changeset: **minor** on `@pensketch/mcp`
+- [x] 6.2 Root README section pointing at it
+- [x] 6.3 A changeset: **minor** on `@pensketch/mcp`
 - [ ] 6.4 **OWNER**: publish, then register it locally and confirm a real
       client lists all three tools and every resource, and that `render_png`
       returns an image the client displays

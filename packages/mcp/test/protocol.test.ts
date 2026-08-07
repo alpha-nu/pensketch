@@ -9,23 +9,33 @@ import { createServer } from '../src/index';
 // shaped like content. That the *binary* starts and talks over stdin is a
 // different claim, proved by spawning it in `npm run stdio`.
 
+/** Only what a JSON-RPC reply has to have for these to read it. */
+interface Reply {
+  id?: number;
+  result?: Record<string, unknown>;
+}
+
+/** A transport that takes whatever the protocol calls a message. */
+type Loose = {
+  send(message: unknown): Promise<void>;
+  onmessage?: (message: Reply) => void;
+};
+
 /** A client that only knows how to ask, which is all this needs. */
 const connected = async () => {
-  const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  const server = createServer();
-  await server.connect(serverSide);
+  const [client, serverSide] = InMemoryTransport.createLinkedPair();
+  const clientSide = client as unknown as Loose;
+  await createServer().connect(serverSide);
 
   let id = 0;
   const send = (method: string, params?: unknown) =>
-    new Promise<Record<string, never> & { result?: any; error?: any }>(
-      (resolve) => {
-        const request = { jsonrpc: '2.0' as const, id: ++id, method, params };
-        clientSide.onmessage = (message: any) => {
-          if (message.id === request.id) resolve(message);
-        };
-        void clientSide.send(request);
-      },
-    );
+    new Promise<Reply>((resolve) => {
+      const request = { jsonrpc: '2.0' as const, id: ++id, method, params };
+      clientSide.onmessage = (message) => {
+        if (message.id === request.id) resolve(message);
+      };
+      void clientSide.send(request);
+    });
 
   await send('initialize', {
     protocolVersion: '2025-06-18',
@@ -35,15 +45,16 @@ const connected = async () => {
   await clientSide.send({
     jsonrpc: '2.0',
     method: 'notifications/initialized',
-  } as any);
+  });
   return { send };
 };
 
 describe('a client talking to the server', () => {
   it('completes an initialize handshake naming the package', async () => {
-    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    const [client, serverSide] = InMemoryTransport.createLinkedPair();
+    const clientSide = client as unknown as Loose;
     await createServer().connect(serverSide);
-    const reply = await new Promise<any>((resolve) => {
+    const reply = await new Promise<Reply>((resolve) => {
       clientSide.onmessage = resolve;
       void clientSide.send({
         jsonrpc: '2.0',
@@ -54,27 +65,30 @@ describe('a client talking to the server', () => {
           capabilities: {},
           clientInfo: { name: 'test', version: '0' },
         },
-      } as any);
+      });
     });
-    expect(reply.result.serverInfo.name).toBe('pensketch');
-    expect(reply.result.serverInfo.version).toBe(__MCP_VERSION__);
+    const info = reply.result?.serverInfo as { name: string; version: string };
+    expect(info.name).toBe('pensketch');
+    expect(info.version).toBe(__MCP_VERSION__);
   });
 
   it('lists the three tools with their descriptions', async () => {
     const { send } = await connected();
     const { result } = await send('tools/list');
-    expect(result.tools.map((t: { name: string }) => t.name).sort()).toEqual([
+    const tools = result?.tools as { name: string; description?: string }[];
+    expect(tools.map((t) => t.name).sort()).toEqual([
       'check_diagram',
       'render_diagram',
       'render_png',
     ]);
-    for (const tool of result.tools) expect(tool.description).toBeTruthy();
+    for (const tool of tools) expect(tool.description).toBeTruthy();
   });
 
   it('lists every resource', async () => {
     const { send } = await connected();
     const { result } = await send('resources/list');
-    expect(result.resources.map((r: { uri: string }) => r.uri).sort()).toEqual([
+    const resources = result?.resources as { uri: string }[];
+    expect(resources.map((r) => r.uri).sort()).toEqual([
       'pensketch://constants',
       'pensketch://example/lifecycle',
       'pensketch://example/oauth',
@@ -97,8 +111,9 @@ describe('a client talking to the server', () => {
         },
       },
     });
-    expect(result.isError).toBeFalsy();
-    expect(result.content[0].text).toContain('node-overlap');
+    expect(result?.isError).toBeFalsy();
+    const content = result?.content as { text: string }[];
+    expect(content[0]?.text).toContain('node-overlap');
   });
 
   it('reads a resource and gets the file it mirrors', async () => {
@@ -106,6 +121,9 @@ describe('a client talking to the server', () => {
     const { result } = await send('resources/read', {
       uri: 'pensketch://schema',
     });
-    expect(JSON.parse(result.contents[0].text).title).toBe('Pensketch diagram');
+    const contents = result?.contents as { text: string }[];
+    expect(JSON.parse(contents[0]?.text ?? '{}').title).toBe(
+      'Pensketch diagram',
+    );
   });
 });

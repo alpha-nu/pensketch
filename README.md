@@ -343,6 +343,22 @@ This repository runs the checker over its own examples and its README image
 on every push, because rules the author's own diagrams break are rules nobody
 else will keep.
 
+### For an agent: the MCP server
+
+`@pensketch/mcp` puts all of this behind three tools — `check_diagram`,
+`render_diagram`, `render_png` — and serves the reference, the schema and
+three worked examples as resources:
+
+```sh
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.1.0
+```
+
+`render_png` matters more than it sounds: an agent handed
+`<path d="M40 90 C41.2 88.7…">` is reading a few thousand numbers, not looking
+at a picture. Its text is drawn in a stand-in face, so it is authoritative
+about structure and `check_diagram` remains the authority on fit —
+[packages/mcp/README.md](packages/mcp/README.md) explains why.
+
 ### Rendering where there is no DOM
 
 `draw` needs an `<svg>` element to fill. A build step, a CI job or a server
