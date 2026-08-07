@@ -6,6 +6,7 @@
       "!!reference",
       "!**/dist",
       "!packages/core/schema",
+      "!packages/mcp/src/resources.generated.ts",
       "!**/coverage",
       "!**/node_modules",
       "!package-lock.json"
@@ -41,7 +42,7 @@
   },
   "overrides": [
     {
-      "includes": ["packages/*/src/**"],
+      "includes": ["packages/core/src/**", "packages/react/src/**"],
       "linter": {
         "rules": {
           "correctness": {

@@ -66,7 +66,9 @@ const notify = (method, params) =>
 
 let failed = false;
 const check = (label, ok, detail = '') => {
-  console.log(`${ok ? 'PASS' : 'FAIL'} ${label}${detail ? ` — ${detail}` : ''}`);
+  console.log(
+    `${ok ? 'PASS' : 'FAIL'} ${label}${detail ? ` — ${detail}` : ''}`,
+  );
   failed = failed || !ok;
 };
 
@@ -123,7 +125,19 @@ try {
   const png = await send('tools/call', {
     name: 'render_png',
     arguments: {
-      diagram: { nodes: [{ id: 'a', shape: 'box', x: 10, y: 10, w: 100, h: 40, lines: ['hello'] }] },
+      diagram: {
+        nodes: [
+          {
+            id: 'a',
+            shape: 'box',
+            x: 10,
+            y: 10,
+            w: 100,
+            h: 40,
+            lines: ['hello'],
+          },
+        ],
+      },
       viewBox: [0, 0, 200, 80],
     },
   });

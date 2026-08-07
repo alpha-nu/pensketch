@@ -5,12 +5,10 @@
 // regenerates and asserts the tree is unchanged.
 
 /** The reference written for callers that are programs: docs/agents.md. */
-export const SPEC =
-  "# pensketch for machine callers\n\nReference for generating pensketch diagrams programmatically — an agent, a\nscript, anything writing diagram data without a person watching the result.\n\nThis is **product documentation for callers**, not instructions for working on\nthis repository. For that, see [CONTRIBUTING.md](../CONTRIBUTING.md).\n\n---\n\n## What it is\n\n`draw(svg, diagram, options)` renders a diagram — a plain object of nodes,\nedges and notes — as hand-sketched SVG. The wobble comes from a seeded PRNG,\nso the same data and seed produce the same bytes every time.\n\n```js\nimport { draw } from '@pensketch/core';\ndraw(document.getElementById('flow'), diagram, { seed: 7 });\n```\n\n## The seven things that will catch you out\n\n**1. Nothing is laid out for you.** Every `x`, `y`, `w`, `h` and waypoint is\nyours. There is no autolayout, no autorouting, no \"make this fit\". This is a\npermanent design decision, not a missing feature.\n\n**2. Text is never measured, so a box never grows to fit its label.** If a\nlabel is too wide it simply overflows. Estimate width as:\n\n```\nwidth ≈ text.length × fontSize × 0.55\n```\n\nThat factor was measured over this project's own labels in the documented\nhandwriting stack: mean 0.462, max 0.515. 0.55 over-states slightly, which is\nthe safe direction. All-capitals text runs near 0.99 and will overflow sooner\nthan the estimate suggests.\n\n**3. A label sitting near a connector will be drawn through.** Labels are\npositioned by hand via `lx`/`ly`, and **`ly` is the text's vertical centre**,\nnot its baseline. The drawn line also wanders from the ideal path by up to\n`AMP / 2` = 1.3 px, and the stroke is 1.6 px wide. So a 13.5 px label needs\nits centre roughly **13 px** clear of any segment. Nine is not enough — that\nmistake shipped in this repository's own OAuth example and put lines through\nthree labels.\n\nWhen space is tight, put the text in the box instead of beside the arrow.\n\n**4. An edge connects two *different* nodes.** There are no self-transitions.\nA state machine's \"retry, stay here\" loop has to be drawn with the `raw`\nescape hatch.\n\n**5. `via` points are used exactly as given, in order.** The arrow walks the\nlegs you describe and nothing is inferred. Orthogonal routing is three points\nyou supply, not a mode you switch on.\n\n**6. Draw order is part of the output.** Phases run `nodes` where\n`shape === 'group'` → `edges` → the remaining `nodes` → `notes` → `raw`, each\narray in its own order. Because that is also the order the seeded sequence is\nconsumed in, **reordering an array changes the rendered bytes**. It is the\nz-order too: groups sit behind everything.\n\n**7. `raw` cannot be JSON.** It holds functions. Over any interface that\ncarries data rather than code — a file, an MCP tool — it is unavailable, and\nthe JSON Schema rejects it.\n\n## Types\n\n```ts\ntype Point = [number, number];\ntype Side  = 't' | 'b' | 'l' | 'r';   // top, bottom, left, right edge midpoint\n\ntype DiagramNode =\n  | { id: string; x: number; y: number; w: number; h: number;\n      shape: 'group'; lines: string[] }          // lines REQUIRED: a group is titled\n  | { id: string; x: number; y: number; w: number; h: number;\n      shape: 'box' | 'pill' | 'diamond';\n      lines?: string[];    // omit for an unlabelled shape\n      size?: number;       // label font px, default 13.5\n      accent?: boolean;    // stroke in --ps-pen instead of --ps-ink\n      hatch?: boolean };   // diagonal shading, inset 4px\n\ninterface DiagramEdge {\n  from: [string, Side];    // node id + which side to leave\n  to:   [string, Side];\n  via?: Point[];           // corners, used verbatim\n  dotted?: boolean;        // dashes it and recolours it to --ps-accent\n  label?: string;          // one line; REQUIRES lx and ly\n  lx?: number; ly?: number;\n  anchor?: 'start' | 'middle' | 'end';   // default 'middle'\n}\n\ninterface DiagramNote {    // free-standing annotation, always --ps-accent\n  x: number; y: number;    // y is the vertical centre of the block\n  lines: string[];\n  anchor?: 'start' | 'middle' | 'end';   // default 'start'\n  arrowFrom?: Point; via?: Point[]; arrowTo?: Point;   // arrow needs both ends\n}\n\ninterface Diagram {\n  nodes?: DiagramNode[]; edges?: DiagramEdge[];\n  notes?: DiagramNote[]; raw?: Array<(pen: Pen) => void>;\n}\n\ndraw(svg: SVGSVGElement, diagram: Diagram, options?: {\n  seed?: number;              // default 1 — picks which drawing you get\n  theme?: Partial<Theme>;\n  label?: string;             // sets role=\"img\" + aria-label\n}): void;\n```\n\nA [JSON Schema](../packages/core/schema/diagram.schema.json) for the data half\nships with the package, so you validate against the version installed rather\nthan a copy that has drifted:\n\n```js\nimport schema from '@pensketch/core/schema.json' with { type: 'json' };\n```\n\nFor a validator that wants a path — or an editor `$schema` reference — it is\n`node_modules/@pensketch/core/schema/diagram.schema.json`.\n\n## Numbers worth designing around\n\n| | value | |\n|---|---|---|\n| `SIZE` | 13.5 | default label font px |\n| `TITLE_SIZE` | 14 | group title, not overridable |\n| `EDGE_SIZE` | 12.5 | edge label |\n| `NOTE_SIZE` | 13 | note text |\n| `LINE_H` | 1.28 | line spacing, × font size |\n| `WIDTH` | 1.6 | stroke width |\n| `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |\n| `OVERSHOOT` | 4 | how far box corners overrun |\n| `HATCH_INSET` | 4 | hatching inset from the outline |\n| `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |\n| `SEED` | 1 | default seed |\n\nAll 33 are exported as `constants`.\n\nProportions that read well, from this project's own diagrams: a labelled box\nabout **150 × 46**, rows about **80** apart, a group title needing about **30 px**\nof clear space at the top of its box.\n\n## Errors you will hit, and what they mean\n\n| message | cause |\n|---|---|\n| `edge N names unknown node \"x\" in from; known ids are …` | typo in `from`/`to`; the message lists the real ids |\n| `two nodes share the id \"x\"` | ids must be unique — edges name nodes by id |\n| `node \"x\" has unknown shape \"y\"` | one of `group`, `box`, `pill`, `diamond` |\n| `edge N has label \"…\" but lx and ly are not both numbers` | a label is positioned by hand, because text is never measured |\n\n`draw` throws on the first defect and renders nothing.\n\n## A complete example\n\nFour lanes, seven steps — an OAuth authorization code flow. Note the numbered\nsteps live *in* the boxes: a cross-lane connector sits in the 34 px gap\nbetween one row and the next, which leaves 17 px above it — not enough for a\n13.5 px label plus the clearance rule 3 asks for.\n\n```js\nconst OAUTH = {\n  nodes: [\n    { id: 'lb', shape: 'group', x: 20,  y: 20, w: 195, h: 350, lines: ['browser'] },\n    { id: 'la', shape: 'group', x: 235, y: 20, w: 185, h: 350, lines: ['your app'] },\n    { id: 'ls', shape: 'group', x: 440, y: 20, w: 185, h: 350, lines: ['auth server'] },\n\n    { id: 's1', shape: 'box', x: 40,  y: 60,  w: 155, h: 46, lines: ['1. click sign in'],   size: 12 },\n    { id: 's2', shape: 'box', x: 250, y: 60,  w: 155, h: 46, lines: ['2. redirect + PKCE'], size: 12 },\n    { id: 's3', shape: 'box', x: 455, y: 140, w: 155, h: 46, lines: ['3. login + consent'], size: 12 },\n    { id: 's4', shape: 'box', x: 40,  y: 220, w: 155, h: 46, lines: ['4. code comes back'], size: 12 },\n  ],\n  edges: [\n    { from: ['s1', 'r'], to: ['s2', 'l'] },\n    // out of one lane, across the gap, into the next — corners given, never inferred\n    { from: ['s2', 'b'], to: ['s3', 't'], via: [[327, 123], [532, 123]] },\n    { from: ['s3', 'b'], to: ['s4', 't'], via: [[532, 203], [117, 203]] },\n  ],\n  notes: [\n    { x: 742, y: 150, anchor: 'middle', lines: ['the API only ever', 'sees a bearer token'] },\n  ],\n};\n```\n\nTwo more, complete and runnable, in [`examples/`](../examples/): a CI pipeline\n(`vanilla/`) and an order lifecycle whose self-transition is drawn through\n`raw` (`custom-pen/`).\n\n## Checking your work\n\nYou cannot see the result, so do not rely on having looked at it. Three\nthings look for you, in increasing order of what they can tell:\n\n- **`draw` throws** on unknown ids, duplicate ids, unknown shapes, and a label\n  without coordinates. It stops at the first one.\n- **The JSON Schema** rejects malformed data, including misspelled keys.\n- **`check` finds the rest** — every trap in the list above — and reports all\n  of them at once, without drawing anything:\n\n```js\nimport { check } from '@pensketch/core/check';\n\nconst findings = check(diagram, { viewBox: [0, 0, 880, 340] });\n// [{ rule, severity, message, at: [x, y], subjects, estimated? }, ...]\n```\n\n| rule | fires when | default |\n|---|---|---|\n| `duplicate-id` | two nodes share an `id` | **error** |\n| `node-overlap` | two node boxes share area | **error** |\n| `out-of-bounds` | a box, waypoint or label lies outside the `viewBox` | **error** |\n| `label-collision` | a label sits within `clearance` (default 4) of a connector | warning |\n| `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |\n| `group-escape` | a node is half inside a group | warning |\n| `orphan-node` | no edge names a node | warning |\n\nFindings arrive sorted by severity, then rule, then position, so the array is\nstable enough to snapshot. `at` is a point in the diagram's own coordinates —\nthe place to look. Anything resting on the width estimate carries\n`estimated: true`.\n\nWhat it does not know about: group borders and note arrows are not edges, so\na label lying across one of those is not reported. `raw` is invisible to it.\nAnd it never moves anything — there is no autolayout here either.\n\n## Theming\n\nColours are emitted as `var(--ps-*, fallback)`, so a page restyles a drawn\ndiagram by redefining variables: `--ps-ink`, `--ps-pen`, `--ps-accent`,\n`--ps-muted`, `--ps-wash`. The packages ship no CSS. The sketch look also\ndepends on a handwriting font being applied to `svg text` by the page.\n";
+export const SPEC = "# pensketch for machine callers\n\nReference for generating pensketch diagrams programmatically — an agent, a\nscript, anything writing diagram data without a person watching the result.\n\nThis is **product documentation for callers**, not instructions for working on\nthis repository. For that, see [CONTRIBUTING.md](../CONTRIBUTING.md).\n\n---\n\n## What it is\n\n`draw(svg, diagram, options)` renders a diagram — a plain object of nodes,\nedges and notes — as hand-sketched SVG. The wobble comes from a seeded PRNG,\nso the same data and seed produce the same bytes every time.\n\n```js\nimport { draw } from '@pensketch/core';\ndraw(document.getElementById('flow'), diagram, { seed: 7 });\n```\n\n## The seven things that will catch you out\n\n**1. Nothing is laid out for you.** Every `x`, `y`, `w`, `h` and waypoint is\nyours. There is no autolayout, no autorouting, no \"make this fit\". This is a\npermanent design decision, not a missing feature.\n\n**2. Text is never measured, so a box never grows to fit its label.** If a\nlabel is too wide it simply overflows. Estimate width as:\n\n```\nwidth ≈ text.length × fontSize × 0.55\n```\n\nThat factor was measured over this project's own labels in the documented\nhandwriting stack: mean 0.462, max 0.515. 0.55 over-states slightly, which is\nthe safe direction. All-capitals text runs near 0.99 and will overflow sooner\nthan the estimate suggests.\n\n**3. A label sitting near a connector will be drawn through.** Labels are\npositioned by hand via `lx`/`ly`, and **`ly` is the text's vertical centre**,\nnot its baseline. The drawn line also wanders from the ideal path by up to\n`AMP / 2` = 1.3 px, and the stroke is 1.6 px wide. So a 13.5 px label needs\nits centre roughly **13 px** clear of any segment. Nine is not enough — that\nmistake shipped in this repository's own OAuth example and put lines through\nthree labels.\n\nWhen space is tight, put the text in the box instead of beside the arrow.\n\n**4. An edge connects two *different* nodes.** There are no self-transitions.\nA state machine's \"retry, stay here\" loop has to be drawn with the `raw`\nescape hatch.\n\n**5. `via` points are used exactly as given, in order.** The arrow walks the\nlegs you describe and nothing is inferred. Orthogonal routing is three points\nyou supply, not a mode you switch on.\n\n**6. Draw order is part of the output.** Phases run `nodes` where\n`shape === 'group'` → `edges` → the remaining `nodes` → `notes` → `raw`, each\narray in its own order. Because that is also the order the seeded sequence is\nconsumed in, **reordering an array changes the rendered bytes**. It is the\nz-order too: groups sit behind everything.\n\n**7. `raw` cannot be JSON.** It holds functions. Over any interface that\ncarries data rather than code — a file, an MCP tool — it is unavailable, and\nthe JSON Schema rejects it.\n\n## Types\n\n```ts\ntype Point = [number, number];\ntype Side  = 't' | 'b' | 'l' | 'r';   // top, bottom, left, right edge midpoint\n\ntype DiagramNode =\n  | { id: string; x: number; y: number; w: number; h: number;\n      shape: 'group'; lines: string[] }          // lines REQUIRED: a group is titled\n  | { id: string; x: number; y: number; w: number; h: number;\n      shape: 'box' | 'pill' | 'diamond';\n      lines?: string[];    // omit for an unlabelled shape\n      size?: number;       // label font px, default 13.5\n      accent?: boolean;    // stroke in --ps-pen instead of --ps-ink\n      hatch?: boolean };   // diagonal shading, inset 4px\n\ninterface DiagramEdge {\n  from: [string, Side];    // node id + which side to leave\n  to:   [string, Side];\n  via?: Point[];           // corners, used verbatim\n  dotted?: boolean;        // dashes it and recolours it to --ps-accent\n  label?: string;          // one line; REQUIRES lx and ly\n  lx?: number; ly?: number;\n  anchor?: 'start' | 'middle' | 'end';   // default 'middle'\n}\n\ninterface DiagramNote {    // free-standing annotation, always --ps-accent\n  x: number; y: number;    // y is the vertical centre of the block\n  lines: string[];\n  anchor?: 'start' | 'middle' | 'end';   // default 'start'\n  arrowFrom?: Point; via?: Point[]; arrowTo?: Point;   // arrow needs both ends\n}\n\ninterface Diagram {\n  nodes?: DiagramNode[]; edges?: DiagramEdge[];\n  notes?: DiagramNote[]; raw?: Array<(pen: Pen) => void>;\n}\n\ndraw(svg: SVGSVGElement, diagram: Diagram, options?: {\n  seed?: number;              // default 1 — picks which drawing you get\n  theme?: Partial<Theme>;\n  label?: string;             // sets role=\"img\" + aria-label\n}): void;\n```\n\nA [JSON Schema](../packages/core/schema/diagram.schema.json) for the data half\nships with the package, so you validate against the version installed rather\nthan a copy that has drifted:\n\n```js\nimport schema from '@pensketch/core/schema.json' with { type: 'json' };\n```\n\nFor a validator that wants a path — or an editor `$schema` reference — it is\n`node_modules/@pensketch/core/schema/diagram.schema.json`.\n\n## Numbers worth designing around\n\n| | value | |\n|---|---|---|\n| `SIZE` | 13.5 | default label font px |\n| `TITLE_SIZE` | 14 | group title, not overridable |\n| `EDGE_SIZE` | 12.5 | edge label |\n| `NOTE_SIZE` | 13 | note text |\n| `LINE_H` | 1.28 | line spacing, × font size |\n| `WIDTH` | 1.6 | stroke width |\n| `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |\n| `OVERSHOOT` | 4 | how far box corners overrun |\n| `HATCH_INSET` | 4 | hatching inset from the outline |\n| `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |\n| `SEED` | 1 | default seed |\n\nAll 33 are exported as `constants`.\n\nProportions that read well, from this project's own diagrams: a labelled box\nabout **150 × 46**, rows about **80** apart, a group title needing about **30 px**\nof clear space at the top of its box.\n\n## Errors you will hit, and what they mean\n\n| message | cause |\n|---|---|\n| `edge N names unknown node \"x\" in from; known ids are …` | typo in `from`/`to`; the message lists the real ids |\n| `two nodes share the id \"x\"` | ids must be unique — edges name nodes by id |\n| `node \"x\" has unknown shape \"y\"` | one of `group`, `box`, `pill`, `diamond` |\n| `edge N has label \"…\" but lx and ly are not both numbers` | a label is positioned by hand, because text is never measured |\n\n`draw` throws on the first defect and renders nothing.\n\n## A complete example\n\nFour lanes, seven steps — an OAuth authorization code flow. Note the numbered\nsteps live *in* the boxes: a cross-lane connector sits in the 34 px gap\nbetween one row and the next, which leaves 17 px above it — not enough for a\n13.5 px label plus the clearance rule 3 asks for.\n\n```js\nconst OAUTH = {\n  nodes: [\n    { id: 'lb', shape: 'group', x: 20,  y: 20, w: 195, h: 350, lines: ['browser'] },\n    { id: 'la', shape: 'group', x: 235, y: 20, w: 185, h: 350, lines: ['your app'] },\n    { id: 'ls', shape: 'group', x: 440, y: 20, w: 185, h: 350, lines: ['auth server'] },\n\n    { id: 's1', shape: 'box', x: 40,  y: 60,  w: 155, h: 46, lines: ['1. click sign in'],   size: 12 },\n    { id: 's2', shape: 'box', x: 250, y: 60,  w: 155, h: 46, lines: ['2. redirect + PKCE'], size: 12 },\n    { id: 's3', shape: 'box', x: 455, y: 140, w: 155, h: 46, lines: ['3. login + consent'], size: 12 },\n    { id: 's4', shape: 'box', x: 40,  y: 220, w: 155, h: 46, lines: ['4. code comes back'], size: 12 },\n  ],\n  edges: [\n    { from: ['s1', 'r'], to: ['s2', 'l'] },\n    // out of one lane, across the gap, into the next — corners given, never inferred\n    { from: ['s2', 'b'], to: ['s3', 't'], via: [[327, 123], [532, 123]] },\n    { from: ['s3', 'b'], to: ['s4', 't'], via: [[532, 203], [117, 203]] },\n  ],\n  notes: [\n    { x: 742, y: 150, anchor: 'middle', lines: ['the API only ever', 'sees a bearer token'] },\n  ],\n};\n```\n\nTwo more, complete and runnable, in [`examples/`](../examples/): a CI pipeline\n(`vanilla/`) and an order lifecycle whose self-transition is drawn through\n`raw` (`custom-pen/`).\n\n## Checking your work\n\nYou cannot see the result, so do not rely on having looked at it. Three\nthings look for you, in increasing order of what they can tell:\n\n- **`draw` throws** on unknown ids, duplicate ids, unknown shapes, and a label\n  without coordinates. It stops at the first one.\n- **The JSON Schema** rejects malformed data, including misspelled keys.\n- **`check` finds the rest** — every trap in the list above — and reports all\n  of them at once, without drawing anything:\n\n```js\nimport { check } from '@pensketch/core/check';\n\nconst findings = check(diagram, { viewBox: [0, 0, 880, 340] });\n// [{ rule, severity, message, at: [x, y], subjects, estimated? }, ...]\n```\n\n| rule | fires when | default |\n|---|---|---|\n| `duplicate-id` | two nodes share an `id` | **error** |\n| `node-overlap` | two node boxes share area | **error** |\n| `out-of-bounds` | a box, waypoint or label lies outside the `viewBox` | **error** |\n| `label-collision` | a label sits within `clearance` (default 4) of a connector | warning |\n| `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |\n| `group-escape` | a node is half inside a group | warning |\n| `orphan-node` | no edge names a node | warning |\n\nFindings arrive sorted by severity, then rule, then position, so the array is\nstable enough to snapshot. `at` is a point in the diagram's own coordinates —\nthe place to look. Anything resting on the width estimate carries\n`estimated: true`.\n\nWhat it does not know about: group borders and note arrows are not edges, so\na label lying across one of those is not reported. `raw` is invisible to it.\nAnd it never moves anything — there is no autolayout here either.\n\n## Theming\n\nColours are emitted as `var(--ps-*, fallback)`, so a page restyles a drawn\ndiagram by redefining variables: `--ps-ink`, `--ps-pen`, `--ps-accent`,\n`--ps-muted`, `--ps-wash`. The packages ship no CSS. The sketch look also\ndepends on a handwriting font being applied to `svg text` by the page.\n";
 
 /** The JSON Schema for a diagram, generated from the TypeScript types. */
-export const SCHEMA =
-  '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "type": "object",\n  "properties": {\n    "nodes": {\n      "type": "array",\n      "items": {\n        "$ref": "#/definitions/DiagramNode"\n      },\n      "description": "Groups are drawn first, behind everything; the rest after the edges."\n    },\n    "edges": {\n      "type": "array",\n      "items": {\n        "$ref": "#/definitions/DiagramEdge"\n      },\n      "description": "Arrows, drawn over the groups and under the shapes they connect."\n    },\n    "notes": {\n      "type": "array",\n      "items": {\n        "$ref": "#/definitions/DiagramNote"\n      },\n      "description": "Annotations, drawn over everything but the raw callbacks."\n    }\n  },\n  "additionalProperties": false,\n  "description": "A hand-sketched diagram as plain data. Coordinates are given, never computed: pensketch performs no layout and never measures text, so a box does not grow to fit its label. The `raw` escape hatch is absent because it holds functions, which JSON cannot carry.",\n  "definitions": {\n    "DiagramNode": {\n      "anyOf": [\n        {\n          "type": "object",\n          "properties": {\n            "id": {\n              "type": "string",\n              "description": "How edges name this node. Unique within the diagram."\n            },\n            "x": {\n              "type": "number",\n              "description": "Left edge of the box."\n            },\n            "y": {\n              "type": "number",\n              "description": "Top edge of the box."\n            },\n            "w": {\n              "type": "number",\n              "description": "Width of the box in px."\n            },\n            "h": {\n              "type": "number",\n              "description": "Height of the box in px."\n            },\n            "shape": {\n              "type": "string",\n              "const": "group",\n              "description": "Selects the group treatment: a wash, a border, and a title."\n            },\n            "lines": {\n              "type": "array",\n              "items": {\n                "type": "string"\n              },\n              "description": "The title, drawn inside the top left corner in `theme.pen`."\n            }\n          },\n          "required": [\n            "h",\n            "id",\n            "lines",\n            "shape",\n            "w",\n            "x",\n            "y"\n          ],\n          "additionalProperties": false,\n          "description": "A titled region drawn behind everything else. Its title is drawn unconditionally, so `lines` is required here and optional on every other shape: an untitled group cannot render."\n        },\n        {\n          "type": "object",\n          "properties": {\n            "id": {\n              "type": "string",\n              "description": "How edges name this node. Unique within the diagram."\n            },\n            "x": {\n              "type": "number",\n              "description": "Left edge of the box."\n            },\n            "y": {\n              "type": "number",\n              "description": "Top edge of the box."\n            },\n            "w": {\n              "type": "number",\n              "description": "Width of the box in px."\n            },\n            "h": {\n              "type": "number",\n              "description": "Height of the box in px."\n            },\n            "shape": {\n              "type": "string",\n              "enum": [\n                "box",\n                "pill",\n                "diamond"\n              ],\n              "description": "Which outline to trace around the box."\n            },\n            "lines": {\n              "type": "array",\n              "items": {\n                "type": "string"\n              },\n              "description": "Label lines, one `<text>` each. Omit for an unlabelled shape."\n            },\n            "size": {\n              "type": "number",\n              "description": "Label font size in px. Default: `13.5`."\n            },\n            "accent": {\n              "type": "boolean",\n              "description": "Stroke in `theme.pen` rather than `theme.ink`. Default: `false`."\n            },\n            "hatch": {\n              "type": "boolean",\n              "description": "Shade the interior, inset 4 px, in `theme.pen`. Default: `false`."\n            }\n          },\n          "required": [\n            "h",\n            "id",\n            "shape",\n            "w",\n            "x",\n            "y"\n          ],\n          "additionalProperties": false,\n          "description": "A drawn node, with an optional label centered in its box."\n        }\n      ],\n      "description": "Anything a diagram can place: a group, or one of the drawn shapes."\n    },\n    "DiagramEdge": {\n      "type": "object",\n      "properties": {\n        "from": {\n          "type": "array",\n          "minItems": 2,\n          "items": [\n            {\n              "type": "string"\n            },\n            {\n              "$ref": "#/definitions/Side"\n            }\n          ],\n          "maxItems": 2,\n          "description": "The id of the node to leave, and which side to leave from."\n        },\n        "to": {\n          "type": "array",\n          "minItems": 2,\n          "items": [\n            {\n              "type": "string"\n            },\n            {\n              "$ref": "#/definitions/Side"\n            }\n          ],\n          "maxItems": 2,\n          "description": "The id of the node to reach, and which side the head lands on."\n        },\n        "via": {\n          "type": "array",\n          "items": {\n            "$ref": "#/definitions/Point"\n          },\n          "description": "Corner points between the two anchors."\n        },\n        "dotted": {\n          "type": "boolean",\n          "description": "Dash the line and recolor it, and its label, to `theme.accent`."\n        },\n        "label": {\n          "type": "string",\n          "description": "A single line of text. Requires `lx` and `ly`."\n        },\n        "lx": {\n          "type": "number",\n          "description": "Label x. `draw` throws if `label` is set and this is not a number."\n        },\n        "ly": {\n          "type": "number",\n          "description": "Label y. `draw` throws if `label` is set and this is not a number."\n        },\n        "anchor": {\n          "type": "string",\n          "enum": [\n            "start",\n            "middle",\n            "end"\n          ],\n          "description": "Which end of the label sits on `lx`. Default: `\'middle\'`."\n        }\n      },\n      "required": [\n        "from",\n        "to"\n      ],\n      "additionalProperties": false,\n      "description": "An arrow from one node\'s side to another\'s. The path is exactly the legs between the anchors and whatever `via` points are given, in order: nothing routes around obstacles."\n    },\n    "Side": {\n      "type": "string",\n      "enum": [\n        "t",\n        "b",\n        "l",\n        "r"\n      ],\n      "description": "Which side of a node\'s box an edge attaches to: top, bottom, left, right."\n    },\n    "Point": {\n      "type": "array",\n      "items": {\n        "type": "number"\n      },\n      "minItems": 2,\n      "maxItems": 2,\n      "description": "An `[x, y]` position in the diagram\'s own coordinate space, which is the one the `<svg>` viewBox declares rather than screen pixels."\n    },\n    "DiagramNote": {\n      "type": "object",\n      "properties": {\n        "x": {\n          "type": "number",\n          "description": "Horizontal origin of the text; `anchor` says which end of it sits here."\n        },\n        "y": {\n          "type": "number",\n          "description": "Vertical center of the whole block of lines."\n        },\n        "lines": {\n          "type": "array",\n          "items": {\n            "type": "string"\n          },\n          "description": "The lines of the note, one `<text>` each."\n        },\n        "anchor": {\n          "type": "string",\n          "enum": [\n            "start",\n            "middle",\n            "end"\n          ],\n          "description": "Which end of the text sits on `x`. Default: `\'start\'`."\n        },\n        "arrowFrom": {\n          "$ref": "#/definitions/Point",\n          "description": "Where the pointer arrow starts."\n        },\n        "via": {\n          "type": "array",\n          "items": {\n            "$ref": "#/definitions/Point"\n          },\n          "description": "Corner points between `arrowFrom` and `arrowTo`."\n        },\n        "arrowTo": {\n          "$ref": "#/definitions/Point",\n          "description": "Where the pointer arrow ends. Drawn only when both ends are given."\n        }\n      },\n      "required": [\n        "x",\n        "y",\n        "lines"\n      ],\n      "additionalProperties": false,\n      "description": "Free-standing annotation text in `theme.accent`, optionally with a dotted arrow pointing at what it is about."\n    }\n  },\n  "title": "Pensketch diagram"\n}\n';
+export const SCHEMA = "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"nodes\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/definitions/DiagramNode\"\n      },\n      \"description\": \"Groups are drawn first, behind everything; the rest after the edges.\"\n    },\n    \"edges\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/definitions/DiagramEdge\"\n      },\n      \"description\": \"Arrows, drawn over the groups and under the shapes they connect.\"\n    },\n    \"notes\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/definitions/DiagramNote\"\n      },\n      \"description\": \"Annotations, drawn over everything but the raw callbacks.\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"description\": \"A hand-sketched diagram as plain data. Coordinates are given, never computed: pensketch performs no layout and never measures text, so a box does not grow to fit its label. The `raw` escape hatch is absent because it holds functions, which JSON cannot carry.\",\n  \"definitions\": {\n    \"DiagramNode\": {\n      \"anyOf\": [\n        {\n          \"type\": \"object\",\n          \"properties\": {\n            \"id\": {\n              \"type\": \"string\",\n              \"description\": \"How edges name this node. Unique within the diagram.\"\n            },\n            \"x\": {\n              \"type\": \"number\",\n              \"description\": \"Left edge of the box.\"\n            },\n            \"y\": {\n              \"type\": \"number\",\n              \"description\": \"Top edge of the box.\"\n            },\n            \"w\": {\n              \"type\": \"number\",\n              \"description\": \"Width of the box in px.\"\n            },\n            \"h\": {\n              \"type\": \"number\",\n              \"description\": \"Height of the box in px.\"\n            },\n            \"shape\": {\n              \"type\": \"string\",\n              \"const\": \"group\",\n              \"description\": \"Selects the group treatment: a wash, a border, and a title.\"\n            },\n            \"lines\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"string\"\n              },\n              \"description\": \"The title, drawn inside the top left corner in `theme.pen`.\"\n            }\n          },\n          \"required\": [\n            \"h\",\n            \"id\",\n            \"lines\",\n            \"shape\",\n            \"w\",\n            \"x\",\n            \"y\"\n          ],\n          \"additionalProperties\": false,\n          \"description\": \"A titled region drawn behind everything else. Its title is drawn unconditionally, so `lines` is required here and optional on every other shape: an untitled group cannot render.\"\n        },\n        {\n          \"type\": \"object\",\n          \"properties\": {\n            \"id\": {\n              \"type\": \"string\",\n              \"description\": \"How edges name this node. Unique within the diagram.\"\n            },\n            \"x\": {\n              \"type\": \"number\",\n              \"description\": \"Left edge of the box.\"\n            },\n            \"y\": {\n              \"type\": \"number\",\n              \"description\": \"Top edge of the box.\"\n            },\n            \"w\": {\n              \"type\": \"number\",\n              \"description\": \"Width of the box in px.\"\n            },\n            \"h\": {\n              \"type\": \"number\",\n              \"description\": \"Height of the box in px.\"\n            },\n            \"shape\": {\n              \"type\": \"string\",\n              \"enum\": [\n                \"box\",\n                \"pill\",\n                \"diamond\"\n              ],\n              \"description\": \"Which outline to trace around the box.\"\n            },\n            \"lines\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"string\"\n              },\n              \"description\": \"Label lines, one `<text>` each. Omit for an unlabelled shape.\"\n            },\n            \"size\": {\n              \"type\": \"number\",\n              \"description\": \"Label font size in px. Default: `13.5`.\"\n            },\n            \"accent\": {\n              \"type\": \"boolean\",\n              \"description\": \"Stroke in `theme.pen` rather than `theme.ink`. Default: `false`.\"\n            },\n            \"hatch\": {\n              \"type\": \"boolean\",\n              \"description\": \"Shade the interior, inset 4 px, in `theme.pen`. Default: `false`.\"\n            }\n          },\n          \"required\": [\n            \"h\",\n            \"id\",\n            \"shape\",\n            \"w\",\n            \"x\",\n            \"y\"\n          ],\n          \"additionalProperties\": false,\n          \"description\": \"A drawn node, with an optional label centered in its box.\"\n        }\n      ],\n      \"description\": \"Anything a diagram can place: a group, or one of the drawn shapes.\"\n    },\n    \"DiagramEdge\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"from\": {\n          \"type\": \"array\",\n          \"minItems\": 2,\n          \"items\": [\n            {\n              \"type\": \"string\"\n            },\n            {\n              \"$ref\": \"#/definitions/Side\"\n            }\n          ],\n          \"maxItems\": 2,\n          \"description\": \"The id of the node to leave, and which side to leave from.\"\n        },\n        \"to\": {\n          \"type\": \"array\",\n          \"minItems\": 2,\n          \"items\": [\n            {\n              \"type\": \"string\"\n            },\n            {\n              \"$ref\": \"#/definitions/Side\"\n            }\n          ],\n          \"maxItems\": 2,\n          \"description\": \"The id of the node to reach, and which side the head lands on.\"\n        },\n        \"via\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"$ref\": \"#/definitions/Point\"\n          },\n          \"description\": \"Corner points between the two anchors.\"\n        },\n        \"dotted\": {\n          \"type\": \"boolean\",\n          \"description\": \"Dash the line and recolor it, and its label, to `theme.accent`.\"\n        },\n        \"label\": {\n          \"type\": \"string\",\n          \"description\": \"A single line of text. Requires `lx` and `ly`.\"\n        },\n        \"lx\": {\n          \"type\": \"number\",\n          \"description\": \"Label x. `draw` throws if `label` is set and this is not a number.\"\n        },\n        \"ly\": {\n          \"type\": \"number\",\n          \"description\": \"Label y. `draw` throws if `label` is set and this is not a number.\"\n        },\n        \"anchor\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"start\",\n            \"middle\",\n            \"end\"\n          ],\n          \"description\": \"Which end of the label sits on `lx`. Default: `'middle'`.\"\n        }\n      },\n      \"required\": [\n        \"from\",\n        \"to\"\n      ],\n      \"additionalProperties\": false,\n      \"description\": \"An arrow from one node's side to another's. The path is exactly the legs between the anchors and whatever `via` points are given, in order: nothing routes around obstacles.\"\n    },\n    \"Side\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"t\",\n        \"b\",\n        \"l\",\n        \"r\"\n      ],\n      \"description\": \"Which side of a node's box an edge attaches to: top, bottom, left, right.\"\n    },\n    \"Point\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"number\"\n      },\n      \"minItems\": 2,\n      \"maxItems\": 2,\n      \"description\": \"An `[x, y]` position in the diagram's own coordinate space, which is the one the `<svg>` viewBox declares rather than screen pixels.\"\n    },\n    \"DiagramNote\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"x\": {\n          \"type\": \"number\",\n          \"description\": \"Horizontal origin of the text; `anchor` says which end of it sits here.\"\n        },\n        \"y\": {\n          \"type\": \"number\",\n          \"description\": \"Vertical center of the whole block of lines.\"\n        },\n        \"lines\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"description\": \"The lines of the note, one `<text>` each.\"\n        },\n        \"anchor\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"start\",\n            \"middle\",\n            \"end\"\n          ],\n          \"description\": \"Which end of the text sits on `x`. Default: `'start'`.\"\n        },\n        \"arrowFrom\": {\n          \"$ref\": \"#/definitions/Point\",\n          \"description\": \"Where the pointer arrow starts.\"\n        },\n        \"via\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"$ref\": \"#/definitions/Point\"\n          },\n          \"description\": \"Corner points between `arrowFrom` and `arrowTo`.\"\n        },\n        \"arrowTo\": {\n          \"$ref\": \"#/definitions/Point\",\n          \"description\": \"Where the pointer arrow ends. Drawn only when both ends are given.\"\n        }\n      },\n      \"required\": [\n        \"x\",\n        \"y\",\n        \"lines\"\n      ],\n      \"additionalProperties\": false,\n      \"description\": \"Free-standing annotation text in `theme.accent`, optionally with a dotted arrow pointing at what it is about.\"\n    }\n  },\n  \"title\": \"Pensketch diagram\"\n}\n";
 
 /**
  * The diagrams this repository ships, as the data that drew them — minus
@@ -19,432 +17,666 @@ export const SCHEMA =
  * for the self-transition. The JSON Schema drops it for the same reason.
  */
 export const EXAMPLES = {
-  pipeline: {
-    title: 'A continuous integration pipeline',
-    viewBox: [0, 0, 880, 340],
-    diagram: {
-      nodes: [
+  "pipeline": {
+    "title": "A continuous integration pipeline",
+    "viewBox": [
+      0,
+      0,
+      880,
+      340
+    ],
+    "diagram": {
+      "nodes": [
         {
-          id: 'ci',
-          shape: 'group',
-          x: 30,
-          y: 30,
-          w: 470,
-          h: 230,
-          lines: ['continuous integration'],
+          "id": "ci",
+          "shape": "group",
+          "x": 30,
+          "y": 30,
+          "w": 470,
+          "h": 230,
+          "lines": [
+            "continuous integration"
+          ]
         },
         {
-          id: 'rel',
-          shape: 'group',
-          x: 530,
-          y: 30,
-          w: 320,
-          h: 230,
-          lines: ['release'],
+          "id": "rel",
+          "shape": "group",
+          "x": 530,
+          "y": 30,
+          "w": 320,
+          "h": 230,
+          "lines": [
+            "release"
+          ]
         },
         {
-          id: 'push',
-          shape: 'pill',
-          x: 55,
-          y: 120,
-          w: 110,
-          h: 48,
-          lines: ['push'],
+          "id": "push",
+          "shape": "pill",
+          "x": 55,
+          "y": 120,
+          "w": 110,
+          "h": 48,
+          "lines": [
+            "push"
+          ]
         },
         {
-          id: 'lint',
-          shape: 'box',
-          x: 195,
-          y: 55,
-          w: 120,
-          h: 44,
-          lines: ['lint'],
+          "id": "lint",
+          "shape": "box",
+          "x": 195,
+          "y": 55,
+          "w": 120,
+          "h": 44,
+          "lines": [
+            "lint"
+          ]
         },
         {
-          id: 'test',
-          shape: 'box',
-          x: 195,
-          y: 122,
-          w: 120,
-          h: 44,
-          lines: ['test'],
+          "id": "test",
+          "shape": "box",
+          "x": 195,
+          "y": 122,
+          "w": 120,
+          "h": 44,
+          "lines": [
+            "test"
+          ]
         },
         {
-          id: 'build',
-          shape: 'box',
-          x: 195,
-          y: 189,
-          w: 120,
-          h: 44,
-          lines: ['build'],
+          "id": "build",
+          "shape": "box",
+          "x": 195,
+          "y": 189,
+          "w": 120,
+          "h": 44,
+          "lines": [
+            "build"
+          ]
         },
         {
-          id: 'gate',
-          shape: 'diamond',
-          x: 355,
-          y: 106,
-          w: 120,
-          h: 76,
-          lines: ['all green?'],
-          size: 12,
-        },
-        {
-          id: 'staging',
-          shape: 'box',
-          x: 570,
-          y: 75,
-          w: 150,
-          h: 48,
-          lines: ['deploy staging'],
-          size: 12,
-        },
-        {
-          id: 'prod',
-          shape: 'box',
-          x: 570,
-          y: 180,
-          w: 150,
-          h: 48,
-          lines: ['deploy prod'],
-          accent: true,
-        },
-      ],
-      edges: [
-        {
-          from: ['push', 'r'],
-          to: ['lint', 'l'],
-        },
-        {
-          from: ['push', 'r'],
-          to: ['test', 'l'],
-        },
-        {
-          from: ['push', 'r'],
-          to: ['build', 'l'],
-        },
-        {
-          from: ['lint', 'r'],
-          to: ['gate', 'l'],
-        },
-        {
-          from: ['test', 'r'],
-          to: ['gate', 'l'],
-        },
-        {
-          from: ['build', 'r'],
-          to: ['gate', 'l'],
-        },
-        {
-          from: ['gate', 'r'],
-          to: ['staging', 'l'],
-          label: 'green',
-          lx: 500,
-          ly: 100,
-        },
-        {
-          from: ['staging', 'b'],
-          to: ['prod', 't'],
-          label: 'smoke passed',
-          lx: 652,
-          ly: 156,
-          anchor: 'start',
-        },
-        {
-          from: ['gate', 'b'],
-          to: ['push', 'b'],
-          via: [
-            [415, 300],
-            [110, 300],
+          "id": "gate",
+          "shape": "diamond",
+          "x": 355,
+          "y": 106,
+          "w": 120,
+          "h": 76,
+          "lines": [
+            "all green?"
           ],
-          dotted: true,
-          label: 'any job red',
-          lx: 262,
-          ly: 286,
+          "size": 12
         },
-      ],
-      notes: [
         {
-          x: 850,
-          y: 292,
-          lines: ['prod only from a tag'],
-          anchor: 'end',
-          arrowFrom: [770, 283],
-          arrowTo: [700, 238],
+          "id": "staging",
+          "shape": "box",
+          "x": 570,
+          "y": 75,
+          "w": 150,
+          "h": 48,
+          "lines": [
+            "deploy staging"
+          ],
+          "size": 12
         },
+        {
+          "id": "prod",
+          "shape": "box",
+          "x": 570,
+          "y": 180,
+          "w": 150,
+          "h": 48,
+          "lines": [
+            "deploy prod"
+          ],
+          "accent": true
+        }
       ],
-    },
+      "edges": [
+        {
+          "from": [
+            "push",
+            "r"
+          ],
+          "to": [
+            "lint",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "push",
+            "r"
+          ],
+          "to": [
+            "test",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "push",
+            "r"
+          ],
+          "to": [
+            "build",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "lint",
+            "r"
+          ],
+          "to": [
+            "gate",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "test",
+            "r"
+          ],
+          "to": [
+            "gate",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "build",
+            "r"
+          ],
+          "to": [
+            "gate",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "gate",
+            "r"
+          ],
+          "to": [
+            "staging",
+            "l"
+          ],
+          "label": "green",
+          "lx": 500,
+          "ly": 100
+        },
+        {
+          "from": [
+            "staging",
+            "b"
+          ],
+          "to": [
+            "prod",
+            "t"
+          ],
+          "label": "smoke passed",
+          "lx": 652,
+          "ly": 156,
+          "anchor": "start"
+        },
+        {
+          "from": [
+            "gate",
+            "b"
+          ],
+          "to": [
+            "push",
+            "b"
+          ],
+          "via": [
+            [
+              415,
+              300
+            ],
+            [
+              110,
+              300
+            ]
+          ],
+          "dotted": true,
+          "label": "any job red",
+          "lx": 262,
+          "ly": 286
+        }
+      ],
+      "notes": [
+        {
+          "x": 850,
+          "y": 292,
+          "lines": [
+            "prod only from a tag"
+          ],
+          "anchor": "end",
+          "arrowFrom": [
+            770,
+            283
+          ],
+          "arrowTo": [
+            700,
+            238
+          ]
+        }
+      ]
+    }
   },
-  lifecycle: {
-    title: 'An order lifecycle, with a self-transition drawn through raw',
-    viewBox: [0, 0, 900, 290],
-    diagram: {
-      nodes: [
+  "lifecycle": {
+    "title": "An order lifecycle, with a self-transition drawn through raw",
+    "viewBox": [
+      0,
+      0,
+      900,
+      290
+    ],
+    "diagram": {
+      "nodes": [
         {
-          id: 'placed',
-          shape: 'pill',
-          x: 40,
-          y: 90,
-          w: 140,
-          h: 50,
-          lines: ['placed'],
+          "id": "placed",
+          "shape": "pill",
+          "x": 40,
+          "y": 90,
+          "w": 140,
+          "h": 50,
+          "lines": [
+            "placed"
+          ]
         },
         {
-          id: 'pending',
-          shape: 'pill',
-          x: 250,
-          y: 90,
-          w: 160,
-          h: 50,
-          lines: ['payment pending'],
-          size: 12,
+          "id": "pending",
+          "shape": "pill",
+          "x": 250,
+          "y": 90,
+          "w": 160,
+          "h": 50,
+          "lines": [
+            "payment pending"
+          ],
+          "size": 12
         },
         {
-          id: 'paid',
-          shape: 'pill',
-          x: 480,
-          y: 90,
-          w: 130,
-          h: 50,
-          lines: ['paid'],
+          "id": "paid",
+          "shape": "pill",
+          "x": 480,
+          "y": 90,
+          "w": 130,
+          "h": 50,
+          "lines": [
+            "paid"
+          ]
         },
         {
-          id: 'shipped',
-          shape: 'pill',
-          x: 680,
-          y: 90,
-          w: 150,
-          h: 50,
-          lines: ['shipped'],
+          "id": "shipped",
+          "shape": "pill",
+          "x": 680,
+          "y": 90,
+          "w": 150,
+          "h": 50,
+          "lines": [
+            "shipped"
+          ]
         },
         {
-          id: 'delivered',
-          shape: 'pill',
-          x: 680,
-          y: 200,
-          w: 150,
-          h: 50,
-          lines: ['delivered'],
-          hatch: true,
+          "id": "delivered",
+          "shape": "pill",
+          "x": 680,
+          "y": 200,
+          "w": 150,
+          "h": 50,
+          "lines": [
+            "delivered"
+          ],
+          "hatch": true
         },
         {
-          id: 'cancelled',
-          shape: 'pill',
-          x: 250,
-          y: 200,
-          w: 160,
-          h: 50,
-          lines: ['cancelled'],
-          hatch: true,
-        },
+          "id": "cancelled",
+          "shape": "pill",
+          "x": 250,
+          "y": 200,
+          "w": 160,
+          "h": 50,
+          "lines": [
+            "cancelled"
+          ],
+          "hatch": true
+        }
       ],
-      edges: [
+      "edges": [
         {
-          from: ['placed', 'r'],
-          to: ['pending', 'l'],
+          "from": [
+            "placed",
+            "r"
+          ],
+          "to": [
+            "pending",
+            "l"
+          ]
         },
         {
-          from: ['pending', 'r'],
-          to: ['paid', 'l'],
-          label: 'authorised',
-          lx: 445,
-          ly: 100,
+          "from": [
+            "pending",
+            "r"
+          ],
+          "to": [
+            "paid",
+            "l"
+          ],
+          "label": "authorised",
+          "lx": 445,
+          "ly": 100
         },
         {
-          from: ['paid', 'r'],
-          to: ['shipped', 'l'],
-          label: 'dispatched',
-          lx: 645,
-          ly: 100,
+          "from": [
+            "paid",
+            "r"
+          ],
+          "to": [
+            "shipped",
+            "l"
+          ],
+          "label": "dispatched",
+          "lx": 645,
+          "ly": 100
         },
         {
-          from: ['shipped', 'b'],
-          to: ['delivered', 't'],
-          label: 'signed for',
-          lx: 765,
-          ly: 172,
-          anchor: 'start',
+          "from": [
+            "shipped",
+            "b"
+          ],
+          "to": [
+            "delivered",
+            "t"
+          ],
+          "label": "signed for",
+          "lx": 765,
+          "ly": 172,
+          "anchor": "start"
         },
         {
-          from: ['pending', 'b'],
-          to: ['cancelled', 't'],
-          dotted: true,
-          label: 'expired',
-          lx: 345,
-          ly: 172,
-          anchor: 'start',
+          "from": [
+            "pending",
+            "b"
+          ],
+          "to": [
+            "cancelled",
+            "t"
+          ],
+          "dotted": true,
+          "label": "expired",
+          "lx": 345,
+          "ly": 172,
+          "anchor": "start"
         },
         {
-          from: ['paid', 'b'],
-          to: ['cancelled', 'r'],
-          dotted: true,
-          label: 'refunded',
-          lx: 478,
-          ly: 210,
-          anchor: 'end',
-          via: [[545, 225]],
-        },
-      ],
-    },
+          "from": [
+            "paid",
+            "b"
+          ],
+          "to": [
+            "cancelled",
+            "r"
+          ],
+          "dotted": true,
+          "label": "refunded",
+          "lx": 478,
+          "ly": 210,
+          "anchor": "end",
+          "via": [
+            [
+              545,
+              225
+            ]
+          ]
+        }
+      ]
+    }
   },
-  oauth: {
-    title: 'The OAuth 2.0 authorization code flow, in four lanes',
-    viewBox: [0, 0, 880, 400],
-    diagram: {
-      nodes: [
+  "oauth": {
+    "title": "The OAuth 2.0 authorization code flow, in four lanes",
+    "viewBox": [
+      0,
+      0,
+      880,
+      400
+    ],
+    "diagram": {
+      "nodes": [
         {
-          id: 'lb',
-          shape: 'group',
-          x: 20,
-          y: 20,
-          w: 195,
-          h: 350,
-          lines: ['browser'],
+          "id": "lb",
+          "shape": "group",
+          "x": 20,
+          "y": 20,
+          "w": 195,
+          "h": 350,
+          "lines": [
+            "browser"
+          ]
         },
         {
-          id: 'la',
-          shape: 'group',
-          x: 235,
-          y: 20,
-          w: 185,
-          h: 350,
-          lines: ['your app'],
+          "id": "la",
+          "shape": "group",
+          "x": 235,
+          "y": 20,
+          "w": 185,
+          "h": 350,
+          "lines": [
+            "your app"
+          ]
         },
         {
-          id: 'ls',
-          shape: 'group',
-          x: 440,
-          y: 20,
-          w: 185,
-          h: 350,
-          lines: ['auth server'],
+          "id": "ls",
+          "shape": "group",
+          "x": 440,
+          "y": 20,
+          "w": 185,
+          "h": 350,
+          "lines": [
+            "auth server"
+          ]
         },
         {
-          id: 'lr',
-          shape: 'group',
-          x: 645,
-          y: 20,
-          w: 195,
-          h: 350,
-          lines: ['resource API'],
+          "id": "lr",
+          "shape": "group",
+          "x": 645,
+          "y": 20,
+          "w": 195,
+          "h": 350,
+          "lines": [
+            "resource API"
+          ]
         },
         {
-          id: 's1',
-          shape: 'box',
-          x: 40,
-          y: 60,
-          w: 155,
-          h: 46,
-          lines: ['1. click sign in'],
-          size: 12,
-        },
-        {
-          id: 's2',
-          shape: 'box',
-          x: 250,
-          y: 60,
-          w: 155,
-          h: 46,
-          lines: ['2. redirect + PKCE'],
-          size: 12,
-        },
-        {
-          id: 's3',
-          shape: 'box',
-          x: 455,
-          y: 140,
-          w: 155,
-          h: 46,
-          lines: ['3. login + consent'],
-          size: 12,
-        },
-        {
-          id: 's4',
-          shape: 'box',
-          x: 40,
-          y: 220,
-          w: 155,
-          h: 46,
-          lines: ['4. code comes back'],
-          size: 12,
-        },
-        {
-          id: 's5',
-          shape: 'box',
-          x: 250,
-          y: 220,
-          w: 155,
-          h: 46,
-          lines: ['5. code + verifier'],
-          size: 12,
-          accent: true,
-        },
-        {
-          id: 's6',
-          shape: 'box',
-          x: 455,
-          y: 300,
-          w: 155,
-          h: 46,
-          lines: ['6. access token'],
-          size: 12,
-        },
-        {
-          id: 's7',
-          shape: 'box',
-          x: 665,
-          y: 300,
-          w: 155,
-          h: 46,
-          lines: ['7. call with bearer'],
-          size: 12,
-        },
-      ],
-      edges: [
-        {
-          from: ['s1', 'r'],
-          to: ['s2', 'l'],
-        },
-        {
-          from: ['s2', 'b'],
-          to: ['s3', 't'],
-          via: [
-            [327, 123],
-            [532, 123],
+          "id": "s1",
+          "shape": "box",
+          "x": 40,
+          "y": 60,
+          "w": 155,
+          "h": 46,
+          "lines": [
+            "1. click sign in"
           ],
+          "size": 12
         },
         {
-          from: ['s3', 'b'],
-          to: ['s4', 't'],
-          via: [
-            [532, 203],
-            [117, 203],
+          "id": "s2",
+          "shape": "box",
+          "x": 250,
+          "y": 60,
+          "w": 155,
+          "h": 46,
+          "lines": [
+            "2. redirect + PKCE"
           ],
+          "size": 12
         },
         {
-          from: ['s4', 'r'],
-          to: ['s5', 'l'],
-        },
-        {
-          from: ['s5', 'b'],
-          to: ['s6', 't'],
-          via: [
-            [327, 283],
-            [532, 283],
+          "id": "s3",
+          "shape": "box",
+          "x": 455,
+          "y": 140,
+          "w": 155,
+          "h": 46,
+          "lines": [
+            "3. login + consent"
           ],
+          "size": 12
         },
         {
-          from: ['s6', 'r'],
-          to: ['s7', 'l'],
+          "id": "s4",
+          "shape": "box",
+          "x": 40,
+          "y": 220,
+          "w": 155,
+          "h": 46,
+          "lines": [
+            "4. code comes back"
+          ],
+          "size": 12
         },
-      ],
-      notes: [
         {
-          x: 742,
-          y: 150,
-          anchor: 'middle',
-          lines: ['the API only ever', 'sees a short-lived', 'bearer token'],
+          "id": "s5",
+          "shape": "box",
+          "x": 250,
+          "y": 220,
+          "w": 155,
+          "h": 46,
+          "lines": [
+            "5. code + verifier"
+          ],
+          "size": 12,
+          "accent": true
         },
+        {
+          "id": "s6",
+          "shape": "box",
+          "x": 455,
+          "y": 300,
+          "w": 155,
+          "h": 46,
+          "lines": [
+            "6. access token"
+          ],
+          "size": 12
+        },
+        {
+          "id": "s7",
+          "shape": "box",
+          "x": 665,
+          "y": 300,
+          "w": 155,
+          "h": 46,
+          "lines": [
+            "7. call with bearer"
+          ],
+          "size": 12
+        }
       ],
-    },
-  },
+      "edges": [
+        {
+          "from": [
+            "s1",
+            "r"
+          ],
+          "to": [
+            "s2",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "s2",
+            "b"
+          ],
+          "to": [
+            "s3",
+            "t"
+          ],
+          "via": [
+            [
+              327,
+              123
+            ],
+            [
+              532,
+              123
+            ]
+          ]
+        },
+        {
+          "from": [
+            "s3",
+            "b"
+          ],
+          "to": [
+            "s4",
+            "t"
+          ],
+          "via": [
+            [
+              532,
+              203
+            ],
+            [
+              117,
+              203
+            ]
+          ]
+        },
+        {
+          "from": [
+            "s4",
+            "r"
+          ],
+          "to": [
+            "s5",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "s5",
+            "b"
+          ],
+          "to": [
+            "s6",
+            "t"
+          ],
+          "via": [
+            [
+              327,
+              283
+            ],
+            [
+              532,
+              283
+            ]
+          ]
+        },
+        {
+          "from": [
+            "s6",
+            "r"
+          ],
+          "to": [
+            "s7",
+            "l"
+          ]
+        }
+      ],
+      "notes": [
+        {
+          "x": 742,
+          "y": 150,
+          "anchor": "middle",
+          "lines": [
+            "the API only ever",
+            "sees a short-lived",
+            "bearer token"
+          ]
+        }
+      ]
+    }
+  }
 } as const;
