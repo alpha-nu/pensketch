@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { intersects, labelBox, pointToSegment } from '../src/geometry';
+import { AMP } from '../src/constants';
+import { draw } from '../src/draw';
+import {
+  edgePath,
+  intersects,
+  labelBox,
+  pointToSegment,
+} from '../src/geometry';
+import type { DiagramEdge, DiagramNode, Point } from '../src/types';
 
 // Every expectation here is worked out by hand from the rule it encodes. A
 // test that recomputes the implementation's own arithmetic proves the code
@@ -61,6 +69,76 @@ describe('intersects', () => {
   it('separates on either axis alone', () => {
     expect(intersects(BOX, { x: 20, y: 0, w: 5, h: 5 })).toBe(false);
     expect(intersects(BOX, { x: 0, y: 20, w: 5, h: 5 })).toBe(false);
+  });
+});
+
+describe('edgePath', () => {
+  // Anchors by hand: 'a' right is (40 + 160, 60 + 40 / 2); 'b' top is
+  // (300 + 100 / 2, 200).
+  const NODES: DiagramNode[] = [
+    { id: 'a', shape: 'box', x: 40, y: 60, w: 160, h: 40 },
+    { id: 'b', shape: 'box', x: 300, y: 200, w: 100, h: 60 },
+  ];
+  const BY_ID = new Map(NODES.map((n) => [n.id, n]));
+  const EDGE: DiagramEdge = {
+    from: ['a', 'r'],
+    to: ['b', 't'],
+    via: [
+      [250, 80],
+      [250, 140],
+    ],
+  };
+  const IDEAL: Point[] = [
+    [200, 80],
+    [250, 80],
+    [250, 140],
+    [350, 200],
+  ];
+
+  it('is the anchor it leaves, the via points in order, and the anchor it lands on', () => {
+    expect(edgePath(EDGE, BY_ID)).toEqual(IDEAL);
+  });
+
+  it('is just the two anchors when no corners are given', () => {
+    expect(edgePath({ from: ['a', 'r'], to: ['b', 't'] }, BY_ID)).toEqual([
+      [200, 80],
+      [350, 200],
+    ]);
+  });
+
+  it('says nothing about an edge naming a node that does not exist', () => {
+    expect(
+      edgePath({ from: ['a', 'r'], to: ['ghost', 'l'] }, BY_ID),
+    ).toBeNull();
+    expect(
+      edgePath({ from: ['ghost', 'r'], to: ['b', 'l'] }, BY_ID),
+    ).toBeNull();
+  });
+
+  // The anti-drift test. The checker measures a line it computes itself; if
+  // `draw` ever assembled a different one - a routing point, a changed anchor
+  // - every clearance the checker reports would be about a line nobody draws.
+  //
+  // The pen jitters x and y independently by up to AMP / 2 each, so a point
+  // can land AMP / 2 * sqrt(2) away and no further. Leg ends are damped to
+  // 40% of that. The bound is under 2px against a drift that would be tens.
+  it('names the same points the renderer draws through', () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    draw(svg, { nodes: NODES, edges: [EDGE] });
+
+    const d = svg.querySelector('path')?.getAttribute('d') ?? '';
+    const numbers = (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+    const drawn: Point[] = [];
+    for (let i = 0; i < numbers.length; i += 2)
+      drawn.push([numbers[i] as number, numbers[i + 1] as number]);
+    expect(drawn.length).toBeGreaterThan(IDEAL.length);
+
+    for (const [x, y] of IDEAL) {
+      const nearest = Math.min(
+        ...drawn.map(([dx, dy]) => Math.hypot(dx - x, dy - y)),
+      );
+      expect(nearest).toBeLessThanOrEqual((AMP / 2) * Math.SQRT2);
+    }
   });
 });
 

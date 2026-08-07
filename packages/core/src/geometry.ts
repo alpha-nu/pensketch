@@ -1,5 +1,6 @@
 import { LINE_H } from './constants';
-import type { Point } from './types';
+import { anchor } from './draw';
+import type { DiagramEdge, DiagramNode, Point } from './types';
 
 // The geometry the checker reasons with. Internal: no entry point re-exports
 // any of it, so the published `./check` surface stays exactly the one D1
@@ -52,6 +53,27 @@ export function intersects(a: Box, b: Box): boolean {
   return (
     a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
   );
+}
+
+/**
+ * The line an edge would be drawn along: the anchor it leaves, its `via`
+ * corners in the order given, and the anchor it lands on. `draw` assembles
+ * exactly this list before handing it to the pen — through the same exported
+ * `anchor` — so the checker measures the line the renderer will draw, give or
+ * take the wobble.
+ *
+ * `null` when either end names a node the diagram does not define. `draw`
+ * throws on that by name, so there is nothing the checker can usefully add.
+ */
+export function edgePath(
+  e: DiagramEdge,
+  byId: Map<string, DiagramNode>,
+): Point[] | null {
+  const from = byId.get(e.from[0]);
+  const to = byId.get(e.to[0]);
+  return from && to
+    ? [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])]
+    : null;
 }
 
 /**
