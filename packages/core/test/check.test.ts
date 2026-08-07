@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { check } from '../src/check';
-import type { Diagram, DiagramNode } from '../src/index';
+import type { Diagram, DiagramEdge, DiagramNode } from '../src/index';
 
 const box = (id: string, x: number, y: number): DiagramNode => ({
   id,
@@ -158,6 +158,93 @@ describe('group-escape', () => {
 
   it('counts a node flush against the inside as contained', () => {
     expect(check(inLane(box('flush', 100, 100)))).toEqual([]);
+  });
+});
+
+describe('out-of-bounds', () => {
+  const VIEW_BOX = [0, 0, 500, 300] as const;
+  const wired = (nodes: DiagramNode[], edges: DiagramEdge[]): Diagram => ({
+    nodes,
+    edges,
+  });
+
+  it('reports a node reaching past the frame', () => {
+    const findings = check(
+      wired(
+        [box('a', 0, 0), box('over', 450, 100)],
+        [{ from: ['a', 'r'], to: ['over', 'l'] }],
+      ),
+      { viewBox: VIEW_BOX },
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'out-of-bounds',
+      severity: 'error',
+      at: [450, 100],
+      subjects: ['node "over"'],
+    });
+  });
+
+  it('reports a waypoint the arrow turns at outside the frame', () => {
+    const findings = check(
+      wired(
+        [box('a', 0, 0), box('b', 300, 200)],
+        [{ from: ['a', 'r'], to: ['b', 'l'], via: [[600, 20]] }],
+      ),
+      { viewBox: VIEW_BOX },
+    );
+    expect(rules(findings)).toEqual(['out-of-bounds']);
+    expect(findings[0]).toMatchObject({ at: [600, 20], subjects: ['edge 0'] });
+  });
+
+  it('reports a label and a note placed where nobody will see them', () => {
+    const findings = check(
+      {
+        nodes: [box('a', 0, 0), box('b', 300, 200)],
+        edges: [
+          { from: ['a', 'r'], to: ['b', 'l'], label: 'gone', lx: 900, ly: 40 },
+        ],
+        notes: [{ x: 20, y: 900, lines: ['also gone'] }],
+      },
+      { viewBox: VIEW_BOX },
+    );
+    expect(rules(findings)).toEqual(['out-of-bounds', 'out-of-bounds']);
+    expect(findings.map((f) => f.subjects)).toEqual([['edge 0'], ['note 0']]);
+  });
+
+  it('counts everything inside the frame, including a box ending exactly on it', () => {
+    const findings = check(
+      {
+        nodes: [box('a', 0, 0), box('edge', 400, 260)],
+        edges: [
+          {
+            from: ['a', 'r'],
+            to: ['edge', 'l'],
+            via: [[250, 20]],
+            label: 'fine',
+            lx: 250,
+            ly: 12,
+          },
+        ],
+        notes: [{ x: 20, y: 200, lines: ['inside'] }],
+      },
+      { viewBox: VIEW_BOX },
+    );
+    expect(findings).toEqual([]);
+  });
+
+  // The documented behaviour, and the reason it is documented: the frame is
+  // the one thing not decidable from the diagram, so without it the rule has
+  // nothing to measure against and stays silent rather than inventing one.
+  it('does not run at all without a viewBox', () => {
+    const escaping = wired(
+      [box('a', 0, 0), box('over', 9000, 9000)],
+      [{ from: ['a', 'r'], to: ['over', 'l'] }],
+    );
+    expect(check(escaping)).toEqual([]);
+    expect(rules(check(escaping, { viewBox: VIEW_BOX }))).toEqual([
+      'out-of-bounds',
+    ]);
   });
 });
 

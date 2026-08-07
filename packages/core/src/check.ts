@@ -90,9 +90,10 @@ const DEFAULTS: Record<RuleId, Severity> = {
  * ```
  */
 export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
-  const { rules = {} } = options;
+  const { viewBox, rules = {} } = options;
   const nodes = diagram.nodes || [];
   const edges = diagram.edges || [];
+  const notes = diagram.notes || [];
   const findings: Finding[] = [];
 
   const add = (
@@ -169,6 +170,56 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
           [n.x, n.y],
           [`node "${n.id}"`, `node "${g.id}"`],
         );
+
+  // Only when the caller says what the picture is cropped to. Everything else
+  // here is decidable from the diagram alone; this is not, and inventing a
+  // frame would report a diagram nobody is drawing.
+  if (viewBox) {
+    const [vx, vy, vw, vh] = viewBox;
+    const outside = (x: number, y: number) =>
+      x < vx || y < vy || x > vx + vw || y > vy + vh;
+
+    for (const n of nodes)
+      if (outside(n.x, n.y) || outside(n.x + n.w, n.y + n.h))
+        add(
+          'out-of-bounds',
+          `node "${n.id}" reaches outside the viewBox, so part of it is clipped away`,
+          [n.x, n.y],
+          [`node "${n.id}"`],
+        );
+
+    edges.forEach((e, i) => {
+      for (const [x, y] of e.via || [])
+        if (outside(x, y))
+          add(
+            'out-of-bounds',
+            `edge ${i} turns at (${x}, ${y}), outside the viewBox, so the arrow leaves the picture`,
+            [x, y],
+            [`edge ${i}`],
+          );
+      if (
+        typeof e.lx === 'number' &&
+        typeof e.ly === 'number' &&
+        outside(e.lx, e.ly)
+      )
+        add(
+          'out-of-bounds',
+          `the label on edge ${i} sits outside the viewBox and will not be seen`,
+          [e.lx, e.ly],
+          [`edge ${i}`],
+        );
+    });
+
+    notes.forEach((nt, i) => {
+      if (outside(nt.x, nt.y))
+        add(
+          'out-of-bounds',
+          `note ${i} sits outside the viewBox and will not be seen`,
+          [nt.x, nt.y],
+          [`note ${i}`],
+        );
+    });
+  }
 
   return findings;
 }
