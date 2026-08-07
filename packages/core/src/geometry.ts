@@ -64,6 +64,19 @@ export function intersects(a: Box, b: Box): boolean {
 }
 
 /**
+ * Whether `inner` lies wholly within `outer`, edges included. A box flush
+ * against the inside of another is contained: it is a layout, not an escape.
+ */
+export function contains(outer: Box, inner: Box): boolean {
+  return (
+    inner.x >= outer.x &&
+    inner.y >= outer.y &&
+    inner.x + inner.w <= outer.x + outer.w &&
+    inner.y + inner.h <= outer.y + outer.h
+  );
+}
+
+/**
  * The line an edge would be drawn along: the anchor it leaves, its `via`
  * corners in the order given, and the anchor it lands on. `draw` assembles
  * exactly this list before handing it to the pen — through the same exported

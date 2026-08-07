@@ -1,3 +1,4 @@
+import { contains, intersects } from './geometry';
 import type { Diagram, DiagramNode, Point } from './types';
 
 /**
@@ -140,6 +141,34 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
         [n.x, n.y],
         [`node "${n.id}"`],
       );
+
+  // Groups are regions, so they overlap everything by design; only the drawn
+  // shapes are compared against each other.
+  const shapes = nodes.filter((n) => n.shape !== 'group');
+  shapes.forEach((a, i) => {
+    for (const b of shapes.slice(i + 1))
+      if (intersects(a, b))
+        add(
+          'node-overlap',
+          `nodes "${a.id}" and "${b.id}" overlap; one is drawn over the other`,
+          [Math.max(a.x, b.x), Math.max(a.y, b.y)],
+          [`node "${a.id}"`, `node "${b.id}"`],
+        );
+  });
+
+  // Partial intersection only. A node wholly outside a group is in another
+  // lane and a node wholly inside is where it belongs; the half-in case is
+  // the only one that is unambiguously a mistake, so it is the whole rule -
+  // no guessing about which group a node was meant to be in.
+  for (const g of nodes.filter((n) => n.shape === 'group'))
+    for (const n of shapes)
+      if (intersects(g, n) && !contains(g, n))
+        add(
+          'group-escape',
+          `node "${n.id}" is half inside group "${g.id}"; move it wholly in or wholly out`,
+          [n.x, n.y],
+          [`node "${n.id}"`, `node "${g.id}"`],
+        );
 
   return findings;
 }

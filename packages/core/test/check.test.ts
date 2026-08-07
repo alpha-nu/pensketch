@@ -67,6 +67,100 @@ describe('duplicate-id', () => {
   });
 });
 
+describe('node-overlap', () => {
+  // Every diagram below wires its nodes together, so orphan-node stays quiet
+  // and the assertions are about the rule under test.
+  const wired = (nodes: DiagramNode[]): Diagram => ({
+    nodes,
+    edges: [{ from: [nodes[0]?.id ?? '', 'r'], to: [nodes[1]?.id ?? '', 'l'] }],
+  });
+
+  it('reports a pair whose boxes share area, at the corner of the overlap', () => {
+    const findings = check(wired([box('a', 0, 0), box('b', 60, 20)]));
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'node-overlap',
+      severity: 'error',
+      at: [60, 20],
+      subjects: ['node "a"', 'node "b"'],
+    });
+  });
+
+  it('says nothing about boxes laid flush against each other', () => {
+    expect(check(wired([box('a', 0, 0), box('b', 100, 0)]))).toEqual([]);
+  });
+
+  // Groups are regions: every node inside a lane intersects it, so comparing
+  // them would report the whole diagram.
+  it('does not compare a group with the nodes it contains', () => {
+    const findings = check({
+      nodes: [
+        {
+          id: 'lane',
+          shape: 'group',
+          x: 0,
+          y: 0,
+          w: 300,
+          h: 300,
+          lines: ['l'],
+        },
+        box('a', 20, 20),
+        box('b', 20, 120),
+      ],
+      edges: [{ from: ['a', 'b'], to: ['b', 't'] }],
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it('reports each pair once, not twice', () => {
+    expect(rules(check(wired([box('a', 0, 0), box('b', 10, 10)])))).toEqual([
+      'node-overlap',
+    ]);
+  });
+});
+
+describe('group-escape', () => {
+  const LANE: DiagramNode = {
+    id: 'lane',
+    shape: 'group',
+    x: 100,
+    y: 100,
+    w: 200,
+    h: 200,
+    lines: ['lane'],
+  };
+  const inLane = (n: DiagramNode): Diagram => ({
+    nodes: [LANE, n, box('far', 700, 700)],
+    edges: [{ from: [n.id, 'r'], to: ['far', 'l'] }],
+  });
+
+  it('reports a node hanging over the edge of its group', () => {
+    const findings = check(inLane(box('half', 250, 150)));
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'group-escape',
+      severity: 'warning',
+      at: [250, 150],
+      subjects: ['node "half"', 'node "lane"'],
+    });
+  });
+
+  it('says nothing about a node wholly inside', () => {
+    expect(check(inLane(box('inside', 120, 150)))).toEqual([]);
+  });
+
+  // The case the rule must not fire on: a node in a different lane is not
+  // escaping anything, and treating "outside" as a defect would report every
+  // node of every other lane.
+  it('says nothing about a node wholly outside', () => {
+    expect(check(inLane(box('elsewhere', 400, 150)))).toEqual([]);
+  });
+
+  it('counts a node flush against the inside as contained', () => {
+    expect(check(inLane(box('flush', 100, 100)))).toEqual([]);
+  });
+});
+
 describe('orphan-node', () => {
   const NODES = [box('a', 0, 0), box('b', 200, 0), box('island', 400, 0)];
 
