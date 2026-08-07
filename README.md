@@ -14,8 +14,8 @@
 - **Determinism is the contract.** Same data, same seed, same package version,
   same engine, same bytes - so a diagram can be snapshot-tested like anything
   else.
-- **Tiny and dependency-free.** The core is a shade over 2 KB minified and
-  gzipped, and adds nothing else to your lockfile.
+- **Tiny and dependency-free.** The core is under 3 KB minified and gzipped,
+  and adds nothing else to your lockfile.
 - **Themed with CSS variables.** Colors are `var(--ps-*)` references, so dark
   mode is a variable the page redefines rather than a diagram it redraws.
 
@@ -320,7 +320,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **2308 B** | 8919 B |
+| Size, min+gzip | **2562 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |
@@ -331,7 +331,7 @@ measured at 4.6.6.
 
 **Reach for pensketch** when the picture is boxes and arrows that belong in
 version control: one plain object your reviewers can read, rendering to the
-same bytes on every run, for 2 KB and no new entries in your lockfile.
+same bytes on every run, for under 3 KB and no new entries in your lockfile.
 
 **Reach for rough.js** when the picture is arbitrary - a sketchy chart, a game,
 a texture, anything worth composing stroke by stroke, on canvas or SVG.

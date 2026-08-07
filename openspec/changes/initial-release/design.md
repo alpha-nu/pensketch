@@ -191,8 +191,13 @@ through `svg.ownerDocument.createElementNS`, never the global `document`; no
 source.
 
 Validation fails fast with `Error` naming the offender (unknown edge node id,
-unknown shape, edge label without numeric `lx`/`ly`); nothing else is checked
-— no defensive guards for states hand-authored data cannot reach.
+two nodes sharing an id, unknown shape, edge label without numeric `lx`/`ly`);
+nothing else is checked — no defensive guards for states hand-authored data
+cannot reach. Each message also carries the fix: the ids that do exist (capped
+at eight, since a large diagram's list would bury the message it is attached
+to), the shapes that are accepted, or why a label needs coordinates. Data is
+increasingly written by programs that never see the picture, and to them an
+error message is the whole diagnostic.
 
 ## D4 — Theming
 
@@ -266,6 +271,7 @@ The port must reproduce the reference byte-for-byte for both fixtures in
 | Types | `tsc --noEmit` in CI (tsup does not typecheck) |
 | Versioning | changesets, independent versions, internal dep ranges auto-bumped |
 | Size budgets | core ≤ 5120 B, react ≤ 2048 B (dist ESM, min+gzip) via `tools/check-size.mjs` |
+| Schema | generated from the types by `tools/generate-schema.mjs` into `packages/core/schema/`, published as `@pensketch/core/schema.json` — npm packs nothing from outside a package directory, so it cannot live at the root and ship |
 | Publish | `release.yml` on `workflow_dispatch` only, changesets publish with npm provenance, `NPM_TOKEN` secret; owner triggers |
 | Release actions | pinned by commit; the job then asserts it either published or opened the version pull request |
 
@@ -281,6 +287,7 @@ these scripts (CI and `CONTRIBUTING.md` call them by name):
     "test": "vitest run --coverage",
     "build": "npm run build --workspaces",
     "goldens": "node tools/generate-goldens.mjs",
+    "schema": "node tools/generate-schema.mjs",
     "size": "node tools/check-size.mjs"
   }
 }
@@ -300,12 +307,14 @@ Package `package.json` (core shown; fields may be appended, never dropped):
     ".": {
       "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
       "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
-    }
+    },
+    "./schema.json": "./schema/diagram.schema.json",
+    "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": ["dist", "schema", "CHANGELOG.md"],
   "sideEffects": false,
   "publishConfig": { "access": "public" },
   "engines": { "node": ">=22" },
@@ -348,15 +357,25 @@ organize-imports. changesets config: `"access": "public"`,
 `"baseBranch": "main"`. vitest: coverage excludes `examples/**`, `tools/**`,
 `**/dist/**`.
 
-CI (`ci.yml`): push/PR to `main`; matrix node 22 + 24; steps in order —
-checkout → setup-node (npm cache) → `npm ci` → `npm run lint` →
-`npm run typecheck` → `npm test` → `npm run build` → `npm run goldens` then an
-assertion that the whole working tree is unchanged (`git status --porcelain`
-empty — a diff scoped to tracked files under the goldens directory would miss
-a newly emitted golden and would pass silently if the path were mistyped) →
-`npm run size`. A second job installs React 18 over the workspace install and
-runs the type gate and the React suite against it: the peer range admits that
-major, and nothing else in the matrix exercises it.
+CI (`ci.yml`): push/PR to `main`, plus `workflow_dispatch` — a run belongs to
+a commit, and without a manual trigger a run lost to an outage can only be
+retried by inventing another commit. One job, one install: the whole chain
+takes about ten seconds, so what costs real time is `npm ci` and provisioning
+a runner, and spreading the work over jobs pays for both again. `concurrency`
+with `cancel-in-progress`, since there is nothing to learn from finishing a
+run against a commit that is already history. Steps in order — checkout →
+setup-node 24 (npm cache) → `npm ci` → `npm run lint` → `npm run typecheck` →
+`npm test` → `npm run build` → `npm run size` → `npm run goldens` and
+`npm run schema` followed by an assertion that the whole working tree is
+unchanged (`git status --porcelain` empty — a diff scoped to tracked files
+under the goldens directory would miss a newly emitted golden and would pass
+silently if the path were mistyped) → setup-node 22 and the suite again, the
+oldest runtime the manifests admit → back to 24, install React 18 over the
+workspace install, then the type gate and the React suite against it: the peer
+range admits that major and nothing else exercises it. Only the suite is
+repeated on the older Node — Biome, tsc and esbuild are the same binaries
+whichever Node invokes them. The React 18 install goes last because it is the
+only step that mutates `node_modules`.
 
 Repository layout:
 
@@ -365,9 +384,11 @@ pensketch/
 ├── package.json / LICENSE / README.md / CONTRIBUTING.md
 ├── openspec/                  # this change
 ├── reference/renderer.html    # normative reference (READ-ONLY)
-├── packages/core/             # @pensketch/core  (src, test incl. goldens, README)
+├── packages/core/             # @pensketch/core  (src, test incl. goldens, schema/, README)
 ├── packages/react/            # @pensketch/react (src, test, README)
-├── tools/                     # generate-goldens.mjs, render-assets.mjs, check-size.mjs
+├── tools/                     # generate-goldens.mjs, generate-schema.mjs, schema-type.ts,
+│                              # render-assets.mjs, check-size.mjs
+├── docs/agents.md             # reference for callers generating diagrams by program
 ├── docs/assets/               # committed README images (hero-light/dark.png)
 ├── examples/                  # vanilla/, custom-pen/, react/  (runnable, never published)
 └── .github/workflows/         # ci.yml, release.yml
@@ -407,8 +428,12 @@ field, type, default, meaning — + anchor glossary `t/b/l/r` + one sentence on
 `via`); 7 The pen (A3 + one-row-per-method `Pen` table); 8 Theming
 (CSS-variable table with D4 defaults + A4 + font paragraph); 9 Determinism &
 testing your diagrams (seed story, two-sentence version policy, A5);
-10 Examples table (folder, description, run command); 11 pensketch vs
-rough.js (one honest paragraph, respectful link); 12 License.
+10 Examples table (folder, description, run command); 11 Generating diagrams
+programmatically (`docs/agents.md` and the published schema, with the reason
+the two exist: the mistakes that matter here are invisible to the type system,
+and the caller may not be looking at the result); 12 pensketch vs rough.js
+(what you hand each one, a side-by-side table with measured sizes, and when to
+reach for the other); 13 License.
 
 **Package READMEs** (npm-facing): core = tagline, install, A1, `Pen` method
 table, CSS-variable table, repo link; react = tagline, install + peer note,
@@ -444,28 +469,35 @@ fixture means any fixture edit silently changes the README image.
 coverage/size/publish; all fixture strings ASCII with `\uXXXX` escapes):
 
 - `vanilla/index.html` — self-contained (`<!DOCTYPE html>`, charset, A4 CSS,
-  one `<svg>`, module script = A1 verbatim except the import line becomes
+  one `<svg>`, module script), drawing a CI pipeline: groups as stages, a gate
+  diamond, three jobs fanning out of one push, a dotted edge back to the
+  start. `draw` from data and nothing else, which is the folder's whole point.
+  The import line becomes
   `import { draw } from '../../packages/core/dist/index.js';`, commented as
-  the only divergence — bare specifiers need a bundler). Header comment: run
+  the only divergence — bare specifiers need a bundler. Header comment: run
   `npm run build` at the root first.
-- `custom-pen/index.html` — same skeleton running A3 (same import
-  adaptation), plus one short `draw()` whose diagram includes a `raw`
-  callback, showing the escape hatch receives the same `Pen`.
-- `react/` — minimal Vite app: `package.json` (private; deps
-  `@pensketch/core` and `@pensketch/react` as `file:../../packages/core` and
+- `custom-pen/index.html` — same skeleton, drawing an order lifecycle: states
+  as pills, terminal states hatched, and the self-transition through a `raw`
+  callback, because an edge connects two different nodes and the data model
+  has no word for staying put. Plus one `pen()` used directly, showing the
+  escape hatch receives that same `Pen`.
+- `react/` — minimal Vite app drawing the OAuth 2.0 authorization code flow
+  in four lanes: `package.json` (private; deps `@pensketch/core` and
+  `@pensketch/react` as `file:../../packages/core` and
   `file:../../packages/react` specifiers — the example sits outside the
   `packages/*` workspaces glob, so `file:` links are what make it installable
   before the first publish and keep it exercising local code afterwards; plus
   react, react-dom; devDeps vite, `@vitejs/plugin-react`, typescript),
-  `vite.config.ts` (react plugin only, no aliases — the `file:` links
-  resolve), `index.html`, `src/main.tsx`
-  (createRoot, deliberately wraps in `<React.StrictMode>` as the
-  double-effect smoke test), `src/App.tsx`
-  (`<PenSketch diagram={BUDGETS} seed={11} viewBox="0 0 900 470"
-  aria-label="Nested time budgets" />` + `<CustomSketch/>`), `src/budgets.ts`
-  (the BUDGETS fixture as typed `Diagram`), `src/CustomSketch.tsx`
-  (`useSketch` running the A3 drawing). Run: root `npm run build` once, then
-  `npm install && npm run dev` inside the example.
+  `vite.config.ts` (react plugin, `resolve.dedupe` for react/react-dom — the
+  `file:` link resolves react through its realpath and a build can otherwise
+  bundle two copies), `index.html`, `src/main.tsx` (createRoot, deliberately
+  wraps in `<React.StrictMode>` as the double-effect smoke test),
+  `src/App.tsx` (`<PenSketch>` over the flow with a radio control over four
+  seeds — same data, a different drawing of it, on demand — plus
+  `<Caption/>`), `src/oauth.ts` (the diagram as a typed `Diagram`, formatter
+  off: it is a coordinate table, not authored logic), `src/Caption.tsx`
+  (`useSketch`, with no diagram in front of it). Run: root `npm run build`
+  once, then `npm install && npm run dev` inside the example.
 
 Every example is screenshot-verified with headless Chrome at implementation
 time and after any API change (diagrams render, labels legible, dark mode
@@ -474,7 +506,21 @@ covers the packages.
 
 **API docs**: JSDoc on every exported symbol; `@example` on `draw`, `pen`,
 `PenSketch`, `useSketch` (short forms of Appendix A). The d.ts files are the
-API reference; no docs site. No other documents.
+API reference; no docs site.
+
+**For callers that are programs** (`docs/agents.md`): the same surface written
+for something generating diagrams without looking at the result — the type
+surface, the constants table, every error `draw` throws, and the traps the
+types cannot express, each stated as a measured number rather than advice.
+It sits under `docs/` and says in its first line that it is documentation for
+callers, not instructions for working on this repository: at the root, and
+under the name `AGENTS.md`, it would read as the latter, which the owner
+removed on purpose. Beside it, `packages/core/schema/diagram.schema.json` is
+generated from the types by `tools/generate-schema.mjs` and published as
+`@pensketch/core/schema.json`, so a caller writing JSON gets the rejections a
+TypeScript caller gets from the compiler — a misspelled key most of all. It
+describes the JSON-serialisable half only: `raw` holds functions, and the
+generator asserts it never reached the output. No other documents.
 
 ---
 

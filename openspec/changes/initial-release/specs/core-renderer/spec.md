@@ -102,13 +102,21 @@ no CSS and no fonts.
 
 ### Requirement: Invalid diagram data fails fast and specific
 `draw()` SHALL throw an `Error` naming the offending item for: an edge
-referencing an unknown node id, a node with an unknown shape, and an edge
-`label` without numeric `lx`/`ly`. There SHALL be no other validation, no
-console warnings, and no silent fallbacks in library code.
+referencing an unknown node id, two nodes sharing an id, a node with an
+unknown shape, and an edge `label` without numeric `lx`/`ly`. Each message
+SHALL carry what the caller needs to fix it without reading the source — the
+ids that do exist, the shapes that are accepted, or why a label needs
+coordinates — since the caller may be a program with no view of the result.
+There SHALL be no other validation, no console warnings, and no silent
+fallbacks in library code.
 
 #### Scenario: Unknown node id
 - **WHEN** an edge references node id `"ghost"` that no node declares
-- **THEN** `draw()` throws an `Error` whose message contains the edge index and `"ghost"`
+- **THEN** `draw()` throws an `Error` whose message contains the edge index, `"ghost"`, and the ids the diagram does declare
+
+#### Scenario: A repeated id is not resolved silently
+- **WHEN** two nodes declare the same `id`
+- **THEN** `draw()` throws rather than keeping one of them, since every edge naming that id would otherwise point at a node the author did not mean
 
 ### Requirement: Core is DOM-implementation independent
 Element creation SHALL go through `svg.ownerDocument.createElementNS`; the

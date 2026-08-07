@@ -31,7 +31,8 @@ together, so run every command from the root unless told otherwise.
 
 All seven must pass before a change is complete. CI runs the same seven on
 every pull request and every push to `main`, so a local failure is a CI
-failure.
+failure. It can also be dispatched by hand from the Actions tab, for a commit
+whose run was lost to something other than the commit.
 
 ## Golden files
 

@@ -87,7 +87,16 @@ changesets with npm provenance and an `NPM_TOKEN` secret. Version semantics
 pre-1.0: **patch** guarantees byte-identical rendered output; **minor** may
 change rendered output or add API, and its changeset SHALL say so and
 describe what shifts; every user-visible change SHALL carry a changeset; the
-implementing agent SHALL never publish, tag, or push.
+implementing agent SHALL never publish, tag, or push. The release job SHALL
+assert its own outcome and fail when a dispatch neither published nor opened a
+version pull request: the changesets action is pinned by commit, renames every
+input in its next major, and Actions only warns about an input a workflow
+declares that the action does not — so a bad upgrade of that pin does nothing
+and exits zero.
+
+#### Scenario: A dispatch that released nothing goes red
+- **WHEN** a dispatch neither publishes nor opens a version pull request
+- **THEN** the job fails, so releasing nothing cannot pass for a quiet success
 
 #### Scenario: Visual change is classified
 - **WHEN** a commit alters any aesthetic constant or PRNG consumption order

@@ -136,7 +136,7 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
 - [x] 6.2 Copy `LICENSE` into each package directory (a real file, never a
       symlink — npm anchors its automatic licence inclusion to the package
       root and never follows symlinks), then `npm pack --dry-run` per
-      package: dist + README + license only
+      package: dist + README + license, and core's generated schema
 - [x] 6.3 Fresh-clone dry run: `npm ci && npm test && npm run build`, plus a
       smoke over the built artifact: nothing else in the project consumes
       `dist/` (typecheck and tests both resolve core from source), so a broken

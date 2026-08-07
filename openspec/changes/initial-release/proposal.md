@@ -24,9 +24,10 @@ packages live under one npm scope.
   `reference/renderer.html` itself).
 - Build `@pensketch/react` bindings (`<PenSketch>` component + `useSketch`
   hook), SSR- and StrictMode-safe.
-- Ship documentation (root README with canonical examples, npm-facing package
-  READMEs, CONTRIBUTING) and a runnable `examples/` folder that mirrors the
-  README snippets verbatim.
+- Ship documentation (root README with canonical snippets, npm-facing package
+  READMEs, CONTRIBUTING, and a reference for callers that are programs) plus a
+  runnable `examples/` folder, each folder carrying its own diagram rather
+  than a copy of a README snippet.
 - Establish the release machinery: changesets, owner-triggered publish with
   npm provenance, semver with an explicit visual clause.
 
@@ -41,7 +42,8 @@ packages live under one npm scope.
 - `repo-tooling`: workspace layout, build outputs, test/coverage gates, size
   budgets, CI pipeline, release + versioning policy
 - `documentation-and-examples`: README structure with single-source snippets,
-  package READMEs, CONTRIBUTING, the `examples/` folder, README asset pipeline
+  package READMEs, CONTRIBUTING, `docs/agents.md` for machine callers, the
+  `examples/` folder, README asset pipeline
 
 ### Modified Capabilities
 
