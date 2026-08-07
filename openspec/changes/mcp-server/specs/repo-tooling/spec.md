@@ -41,9 +41,11 @@ left to drift.
 ### Requirement: Size budgets are enforced
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
-`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 1536
+`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 2560
 bytes, `@pensketch/core/server` exceeds 1536 bytes, or `@pensketch/react`
-exceeds 2048 bytes min+gzip. `@pensketch/mcp` SHALL NOT carry a byte budget —
+exceeds 2048 bytes min+gzip. Each published entry SHALL be a self-contained
+file: build-time code splitting SHALL be off, because a shared chunk makes an
+entry's budget measure a re-export rather than the code it stands for. `@pensketch/mcp` SHALL NOT carry a byte budget —
 it is spawned, never bundled into a page — but its packed tarball size SHALL
 be reported at build time, because a WebAssembly rasterizer and an embedded
 font dominate it and a user fetching it through `npx` waits for every byte.

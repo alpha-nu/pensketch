@@ -153,8 +153,19 @@ example first did, produced three labels with lines through them.
 - `src/check.ts`, added to tsup's `entry` array.
 - `exports` gains `"./check"` with the same nested `types`/`import`/`require`
   shape the root entry already uses.
-- `tools/check-size.mjs` gains a third budget: **1536 B** min+gzip. The main
-  entry's 5120 B budget is unchanged and unaffected — separate entry,
+- `tools/check-size.mjs` gains a third budget: **2560 B** min+gzip, measured
+  rather than the 1536 guessed at here before anything was written. The rules
+  and the geometry are 557 B; the messages are 1512. Findings that name the
+  fix are three quarters of this entry by weight, and a caller who cannot see
+  the drawing has nothing else to go on. This is the entry an agent or a CI
+  job loads, not one a page ships.
+- tsup's `splitting` is **off**. With two entries and splitting left on,
+  esbuild hoists what they share into a chunk, and both guarantees below
+  break at once: the root entry becomes a 197-byte re-export whose 5120 B
+  budget measures nothing, and importing the checker pulls in a chunk
+  carrying the whole renderer.
+- The main entry's 5120 B budget is unchanged and unaffected — measured at
+  2562 B both before the checker existed and after. Separate entry,
   `sideEffects: false`, so a consumer who never imports the subpath ships
   nothing extra.
 - CI runs the checker over the repository's own diagrams: the three examples

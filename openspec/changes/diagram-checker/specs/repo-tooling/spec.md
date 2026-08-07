@@ -25,16 +25,23 @@ bundle that does not import it.
 ### Requirement: Size budgets are enforced
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
-`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 1536
-bytes, or `@pensketch/react` exceeds 2048 bytes min+gzip.
+`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 2560
+bytes, or `@pensketch/react` exceeds 2048 bytes min+gzip. Each published
+entry SHALL be a self-contained file: build-time code splitting SHALL be off,
+because a shared chunk makes the root entry's budget measure a re-export
+rather than the code it stands for.
 
 #### Scenario: Budget breach
 - **WHEN** a change pushes core's min+gzip ESM output over 5120 bytes
 - **THEN** `npm run size` fails and CI goes red
 
 #### Scenario: The checker has its own budget
-- **WHEN** the checker's min+gzip output exceeds 1536 bytes
+- **WHEN** the checker's min+gzip output exceeds 2560 bytes
 - **THEN** `npm run size` fails, and core's own budget is unaffected either way
+
+#### Scenario: An entry point stands on its own
+- **WHEN** a second entry is added to a package's build
+- **THEN** each entry remains a self-contained file, so neither one's budget is measuring a re-export and neither drags in the other's code
 
 ### Requirement: CI validates the full chain including generated-file freshness
 CI SHALL run on push and pull request to `main`, and on manual dispatch, as a

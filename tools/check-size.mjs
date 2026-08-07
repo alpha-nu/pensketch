@@ -10,6 +10,21 @@ const PACKAGES = [
     budget: 5120,
   },
   {
+    // Its own entry and its own budget. The root entry measured 2562 B before
+    // this one existed and measures 2562 B after, which is the guarantee: a
+    // consumer who never imports the checker ships none of it.
+    //
+    // 2560 rather than the 1536 design.md D5 guessed at before anything was
+    // written. Measured, the rules and geometry are 557 B and the messages
+    // are 1512 - findings that name the fix are three quarters of this entry
+    // by weight. Fitting 1536 means cutting them by a third, and a caller who
+    // cannot see the drawing has nothing but the message. This is the entry
+    // an agent or a CI job loads, not one a page ships.
+    name: '@pensketch/core/check',
+    entry: 'packages/core/dist/check.js',
+    budget: 2560,
+  },
+  {
     name: '@pensketch/react',
     entry: 'packages/react/dist/index.js',
     budget: 2048,

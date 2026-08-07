@@ -20,6 +20,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./check": {
+      "import": {
+        "types": "./dist/check.d.ts",
+        "default": "./dist/check.js"
+      },
+      "require": {
+        "types": "./dist/check.d.cts",
+        "default": "./dist/check.cjs"
+      }
+    },
     "./schema.json": "./schema/diagram.schema.json",
     "./package.json": "./package.json"
   },

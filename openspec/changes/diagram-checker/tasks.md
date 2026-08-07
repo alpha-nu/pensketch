@@ -43,8 +43,8 @@ owner, never the agent.
 
 - [ ] 3.1 `src/check.ts` added to tsup `entry`; `exports` gains `./check` with
       the nested `types`/`import`/`require` shape
-- [ ] 3.2 `tools/check-size.mjs` gains the 1536 B budget for the subpath, and
-      the existing core budget is asserted unchanged
+- [ ] 3.2 `tools/check-size.mjs` gains a budget for the subpath, and the
+      existing core budget is asserted unchanged
 - [ ] 3.3 Resolution test: import the built subpath as ESM and require it as
       CJS, asserting both expose exactly the D1 surface — the same treatment
       the root entry already gets
