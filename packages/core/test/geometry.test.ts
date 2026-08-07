@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AMP, WIDTH } from '../src/constants';
 import { draw } from '../src/draw';
 import {
+  boxToSegment,
   edgePath,
   INFLATE,
   intersects,
@@ -152,6 +153,36 @@ describe('edgePath', () => {
       );
       expect(nearest).toBeLessThanOrEqual((AMP / 2) * Math.SQRT2);
     }
+  });
+});
+
+describe('boxToSegment', () => {
+  const BOX = { x: 0, y: 0, w: 10, h: 10 };
+
+  it('is zero for a segment straight through the box', () => {
+    expect(boxToSegment(BOX, [-5, 5], [15, 5])).toBe(0);
+  });
+
+  it('is zero for a segment that ends inside the box', () => {
+    expect(boxToSegment(BOX, [5, 5], [50, 50])).toBe(0);
+  });
+
+  it('measures a parallel run to the nearest side', () => {
+    expect(boxToSegment(BOX, [0, -4], [10, -4])).toBe(4);
+    expect(boxToSegment(BOX, [15, 0], [15, 10])).toBe(5);
+  });
+
+  // Both ends past the corner: the nearest pair is the box's corner against
+  // the segment, which neither endpoint-to-box distance would find.
+  it('measures from a corner when the segment passes beyond one', () => {
+    expect(boxToSegment(BOX, [14, 0], [24, 0])).toBe(4);
+    expect(boxToSegment(BOX, [13, -4], [13, 14])).toBe(3);
+  });
+
+  // A vertical segment that never reaches the box's rows: the answer is to
+  // the segment's own end, not to the infinite line.
+  it('measures to the end of a segment stopping short', () => {
+    expect(boxToSegment(BOX, [0, -8], [0, -4])).toBe(4);
   });
 });
 

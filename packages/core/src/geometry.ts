@@ -97,6 +97,58 @@ export function edgePath(
     : null;
 }
 
+/** Distance from a point to a box, and zero anywhere inside it. */
+function pointToBox(b: Box, [x, y]: Point): number {
+  return Math.hypot(
+    Math.max(b.x - x, 0, x - (b.x + b.w)),
+    Math.max(b.y - y, 0, y - (b.y + b.h)),
+  );
+}
+
+/**
+ * Whether a segment touches a box at all. Liang–Barsky: trim the segment's
+ * own `0..1` parameter range against each axis in turn, and if anything is
+ * left of it, some part of the segment is inside.
+ */
+function hitsBox(b: Box, [px, py]: Point, [qx, qy]: Point): boolean {
+  let t0 = 0;
+  let t1 = 1;
+  const axes = [
+    [qx - px, b.x - px, b.x + b.w - px],
+    [qy - py, b.y - py, b.y + b.h - py],
+  ] as const;
+  for (const [d, near, far] of axes) {
+    // No movement along this axis: either the segment already lies within
+    // the slab or it never will.
+    if (!d) {
+      if (near > 0 || far < 0) return false;
+      continue;
+    }
+    const a = near / d;
+    const z = far / d;
+    t0 = Math.max(t0, Math.min(a, z));
+    t1 = Math.min(t1, Math.max(a, z));
+  }
+  return t0 <= t1;
+}
+
+/**
+ * Distance from a box to a line segment, and zero when they touch. Between
+ * two shapes that do not, the nearest pair is always a corner of the box
+ * against the segment, or an end of the segment against the box.
+ */
+export function boxToSegment(b: Box, p: Point, q: Point): number {
+  if (hitsBox(b, p, q)) return 0;
+  return Math.min(
+    pointToSegment([b.x, b.y], p, q),
+    pointToSegment([b.x + b.w, b.y], p, q),
+    pointToSegment([b.x + b.w, b.y + b.h], p, q),
+    pointToSegment([b.x, b.y + b.h], p, q),
+    pointToBox(b, p),
+    pointToBox(b, q),
+  );
+}
+
 /**
  * Distance from a point to a line segment — to the nearer end when the
  * perpendicular falls outside it. A segment whose ends coincide is treated as

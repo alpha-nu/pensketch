@@ -29,6 +29,18 @@ describe('check', () => {
     check(diagram);
     expect(JSON.stringify(diagram)).toBe(before);
   });
+
+  // A caller runs `check` before `draw`, so it meets the diagrams `draw`
+  // rejects. It has nothing to say about an edge naming a node that is not
+  // there - `draw` throws on that by name - but it must still report
+  // everything else rather than falling over on the way.
+  it('survives an edge naming a node the diagram does not define', () => {
+    const findings = check({
+      nodes: [box('a', 0, 0), box('b', 10, 10)],
+      edges: [{ from: ['a', 'r'], to: ['ghost', 'l'] }],
+    });
+    expect(rules(findings)).toContain('node-overlap');
+  });
 });
 
 describe('duplicate-id', () => {
@@ -259,6 +271,165 @@ describe('text-overflow', () => {
   });
 });
 
+describe('label-collision', () => {
+  // Two boxes 300 apart with a straight horizontal line between them at
+  // y = 20. An edge label is 12.5px tall, so its box reaches 6.25px each side
+  // of ly, and the margin is clearance 4 + inflation 2.1 = 6.1. The label
+  // therefore needs its centre 12.35px from the line.
+  const withLabel = (ly: number): Diagram => ({
+    nodes: [
+      { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 40 },
+      { id: 'b', shape: 'box', x: 400, y: 0, w: 100, h: 40 },
+    ],
+    edges: [{ from: ['a', 'r'], to: ['b', 'l'], label: 'yes', lx: 250, ly }],
+  });
+
+  it('reports a label lying on the line it labels', () => {
+    const findings = check(withLabel(20));
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'label-collision',
+      severity: 'warning',
+      estimated: true,
+      at: [250, 20],
+      subjects: ['edge 0', 'edge 0'],
+    });
+    expect(findings[0]?.message).toContain('lies on the line it labels');
+  });
+
+  it('goes quiet once the label is clear of it', () => {
+    expect(rules(check(withLabel(9)))).toEqual(['label-collision']);
+    expect(check(withLabel(4))).toEqual([]);
+  });
+
+  // The reason the ideal path is not what gets measured. At 8px the label is
+  // clear of the line the data describes and not of the line the pen draws.
+  it('accounts for the wobble, not just the geometry', () => {
+    const gap = 20 - 8 - 12.5 / 2;
+    expect(gap).toBeGreaterThan(4);
+    expect(gap).toBeLessThan(4 + 2.1);
+    expect(rules(check(withLabel(8)))).toEqual(['label-collision']);
+  });
+
+  it('reports a note the same way, naming the edge that crosses it', () => {
+    const findings = check({
+      nodes: [
+        { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 40 },
+        { id: 'b', shape: 'box', x: 400, y: 0, w: 100, h: 40 },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+      notes: [{ x: 200, y: 22, lines: ['under the wire'] }],
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'label-collision',
+      subjects: ['note 0', 'edge 0'],
+    });
+  });
+
+  it('names the other edge when a label is struck by one it does not belong to', () => {
+    const findings = check({
+      nodes: [
+        { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 40 },
+        { id: 'b', shape: 'box', x: 400, y: 0, w: 100, h: 40 },
+        { id: 'c', shape: 'box', x: 0, y: 200, w: 100, h: 40 },
+        { id: 'd', shape: 'box', x: 400, y: 200, w: 100, h: 40 },
+      ],
+      edges: [
+        { from: ['a', 'r'], to: ['b', 'l'], label: 'far', lx: 250, ly: 220 },
+        { from: ['c', 'r'], to: ['d', 'l'] },
+      ],
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.subjects).toEqual(['edge 0', 'edge 1']);
+    expect(findings[0]?.message).toContain('lies under edge 1');
+  });
+
+  // The regression this rule exists for. The OAuth example shipped with its
+  // step labels 9px above the cross-lane connectors, and all three were drawn
+  // through - found by rendering it to a PNG and looking, which is exactly
+  // what a caller generating diagrams cannot do. The coordinates below are
+  // that layout: the connectors are the ones the example still has, with the
+  // labels back where they were before they were moved into the boxes.
+  it('finds all three struck labels the OAuth example shipped with', () => {
+    const lane = (id: string, x: number) => ({
+      id,
+      shape: 'group' as const,
+      x,
+      y: 20,
+      w: 185,
+      h: 350,
+      lines: [id],
+    });
+    const step = (id: string, x: number, y: number) => ({
+      id,
+      shape: 'box' as const,
+      x,
+      y,
+      w: 155,
+      h: 46,
+      size: 12,
+    });
+
+    const findings = check({
+      nodes: [
+        lane('browser', 20),
+        lane('app', 235),
+        lane('server', 440),
+        step('s2', 250, 60),
+        step('s3', 455, 140),
+        step('s4', 40, 220),
+        step('s5', 250, 220),
+        step('s6', 455, 300),
+      ],
+      edges: [
+        {
+          from: ['s2', 'b'],
+          to: ['s3', 't'],
+          via: [
+            [327, 123],
+            [532, 123],
+          ],
+          label: 'redirect',
+          lx: 430,
+          ly: 114,
+        },
+        {
+          from: ['s3', 'b'],
+          to: ['s4', 't'],
+          via: [
+            [532, 203],
+            [117, 203],
+          ],
+          label: 'code',
+          lx: 325,
+          ly: 194,
+        },
+        {
+          from: ['s5', 'b'],
+          to: ['s6', 't'],
+          via: [
+            [327, 283],
+            [532, 283],
+          ],
+          label: 'token',
+          lx: 430,
+          ly: 274,
+        },
+      ],
+      // The label rule is the one under test; the lanes make the rest noisy.
+    });
+
+    const struck = findings.filter((f) => f.rule === 'label-collision');
+    expect(struck).toHaveLength(3);
+    expect(struck.map((f) => f.at)).toEqual([
+      [430, 114],
+      [325, 194],
+      [430, 274],
+    ]);
+  });
+});
+
 describe('out-of-bounds', () => {
   const VIEW_BOX = [0, 0, 500, 300] as const;
   const wired = (nodes: DiagramNode[], edges: DiagramEdge[]): Diagram => ({
@@ -320,8 +491,10 @@ describe('out-of-bounds', () => {
             to: ['edge', 'l'],
             via: [[250, 20]],
             label: 'fine',
-            lx: 250,
-            ly: 12,
+            lx: 150,
+            // Clear of its own line: 15px up, and the text is 12.5px tall, so
+            // the gap is 8.75px against a 6.1px margin.
+            ly: 5,
           },
         ],
         notes: [{ x: 20, y: 200, lines: ['inside'] }],

@@ -1,5 +1,13 @@
-import { SIZE, TITLE_DX, TITLE_SIZE } from './constants';
-import { contains, intersects } from './geometry';
+import { EDGE_SIZE, NOTE_SIZE, SIZE, TITLE_DX, TITLE_SIZE } from './constants';
+import {
+  type Box,
+  boxToSegment,
+  contains,
+  edgePath,
+  INFLATE,
+  intersects,
+  labelBox,
+} from './geometry';
 import type { Diagram, DiagramNode, Point } from './types';
 
 /**
@@ -93,6 +101,7 @@ const DEFAULTS: Record<RuleId, Severity> = {
 export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   const {
     viewBox,
+    clearance = 4,
     glyphWidth = 0.55,
     padding = 8,
     rules = {},
@@ -206,6 +215,71 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
         true,
       );
   }
+
+  // The drawn line is not the ideal one: it wanders by up to half the jitter
+  // amplitude and the stroke is half its width to each side. So the clearance
+  // a caller asks for is measured from the ink, not from the arithmetic.
+  const margin = clearance + INFLATE;
+  const paths: { i: number; path: Point[] }[] = [];
+  edges.forEach((e, i) => {
+    const path = edgePath(e, byId);
+    if (path) paths.push({ i, path });
+  });
+
+  // The first path this box is too close to, if any. An edge label sitting on
+  // its own line counts: that is exactly the defect this rule exists for.
+  const struckBy = (box: Box) =>
+    paths.find(({ path }) =>
+      path
+        .slice(1)
+        .some((p, k) => boxToSegment(box, path[k] as Point, p) < margin),
+    );
+
+  edges.forEach((e, i) => {
+    if (!e.label || typeof e.lx !== 'number' || typeof e.ly !== 'number')
+      return;
+    const hit = struckBy(
+      labelBox(
+        e.lx,
+        e.ly,
+        [e.label],
+        EDGE_SIZE,
+        e.anchor || 'middle',
+        glyphWidth,
+      ),
+    );
+    if (hit)
+      add(
+        'label-collision',
+        hit.i === i
+          ? `the label on edge ${i} lies on the line it labels; move it clear or put the text in a box instead`
+          : `the label on edge ${i} lies under edge ${hit.i}, which will be drawn through it`,
+        [e.lx, e.ly],
+        [`edge ${i}`, `edge ${hit.i}`],
+        true,
+      );
+  });
+
+  notes.forEach((nt, i) => {
+    const hit = struckBy(
+      labelBox(
+        nt.x,
+        nt.y,
+        nt.lines,
+        NOTE_SIZE,
+        nt.anchor || 'start',
+        glyphWidth,
+      ),
+    );
+    if (hit)
+      add(
+        'label-collision',
+        `note ${i} lies under edge ${hit.i}, which will be drawn through it`,
+        [nt.x, nt.y],
+        [`note ${i}`, `edge ${hit.i}`],
+        true,
+      );
+  });
 
   // Only when the caller says what the picture is cropped to. Everything else
   // here is decidable from the diagram alone; this is not, and inventing a
