@@ -1,4 +1,4 @@
-import { LINE_H } from './constants';
+import { AMP, LINE_H, WIDTH } from './constants';
 import { anchor } from './draw';
 import type { DiagramEdge, DiagramNode, Point } from './types';
 
@@ -6,6 +6,14 @@ import type { DiagramEdge, DiagramNode, Point } from './types';
 // any of it, so the published `./check` surface stays exactly the one D1
 // names. Kept apart from the rules so each piece can be tested against a
 // number worked out by hand rather than against the checker's own opinion.
+
+/**
+ * How far the drawn line can sit from the ideal one, on either side of it.
+ * A point is jittered by up to half the amplitude, and the stroke is drawn
+ * half its width to each side of where it lands. Derived from the constants
+ * rather than written as 2.1, so that moving either one moves this too.
+ */
+export const INFLATE = AMP / 2 + WIDTH / 2;
 
 /**
  * A rectangle in the diagram's own coordinate space. A `DiagramNode` already

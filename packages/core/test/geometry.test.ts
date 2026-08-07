@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { AMP } from '../src/constants';
+import { AMP, WIDTH } from '../src/constants';
 import { draw } from '../src/draw';
 import {
   edgePath,
+  INFLATE,
   intersects,
   labelBox,
   pointToSegment,
@@ -69,6 +70,18 @@ describe('intersects', () => {
   it('separates on either axis alone', () => {
     expect(intersects(BOX, { x: 20, y: 0, w: 5, h: 5 })).toBe(false);
     expect(intersects(BOX, { x: 0, y: 20, w: 5, h: 5 })).toBe(false);
+  });
+});
+
+describe('INFLATE', () => {
+  // Two assertions on purpose. The first fails if the checker ever stops
+  // tracking the constants - a hard-coded 2.1 left behind by a change to
+  // either one. The second fails if the constants move at all, which is what
+  // forces a look at the documentation quoting this number, and at whether
+  // every clearance in this repository's own diagrams still holds.
+  it('tracks the constants it comes from, and is 2.1 with the current ones', () => {
+    expect(INFLATE).toBe(AMP / 2 + WIDTH / 2);
+    expect(INFLATE).toBeCloseTo(2.1);
   });
 });
 
