@@ -7,7 +7,7 @@ root. The repository is an npm workspace: the two published packages live in
 `packages/core` and `packages/react`, and a single root install wires them
 together, so run every command from the root unless told otherwise.
 
-## The nine verification commands
+## The ten verification commands
 
 - `npm run lint` - Biome check across the repository. Proves formatting and
   lint rules hold everywhere; Biome is the only formatter and the only linter.
@@ -26,19 +26,24 @@ together, so run every command from the root unless told otherwise.
   the schema a caller validates against still describes the types the package
   ships. It lives inside the package because it is published with it, as
   `@pensketch/core/schema.json`.
+- `npm run resources` - regenerates the resources `@pensketch/mcp` serves
+  from the files they mirror: the machine-caller reference, the JSON Schema,
+  and the diagrams this repository ships. `git diff` must be clean
+  afterwards, which is what stops a resource telling an agent something the
+  repository stopped doing.
 - `npm run exports` - loads every published entry point, as ESM and as CJS,
   and asserts each exposes exactly its documented surface. Nothing else in the
   project loads `dist/`, so this is the only thing that would notice an
   exports map pointing at a file that is not there.
 - `npm run size` - gzipped size budgets. Proves each minified, gzipped ESM
-  entry point stays within budget: 5120 bytes for core, 2560 bytes for its
-  checker subpath, 2048 bytes for react.
+  entry point stays within budget: 5120 bytes for core, 2560 for its checker
+  subpath, 3072 for its DOM-free renderer, 2048 for react.
 - `npm run diagrams` - runs the published checker over every diagram this
   repository ships: both HTML examples, the React example, and the README
   hero. Errors fail; warnings are printed. The project that writes the rules
   is the first thing held to them.
 
-All nine must pass before a change is complete. CI runs the same nine on
+All ten must pass before a change is complete. CI runs the same ten on
 every pull request and every push to `main`, so a local failure is a CI
 failure. It can also be dispatched by hand from the Actions tab, for a commit
 whose run was lost to something other than the commit.

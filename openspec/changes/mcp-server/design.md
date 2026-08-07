@@ -44,7 +44,7 @@ grow to fit its label**.
 
 | uri | content | source |
 |---|---|---|
-| `pensketch://spec` | the agent-facing spec: type surface, hard rules, the constants that matter | `AGENTS.md` |
+| `pensketch://spec` | the reference for machine callers: type surface, hard rules, the constants that matter | `docs/agents.md` |
 | `pensketch://schema` | JSON Schema for `Diagram` | the generated schema |
 | `pensketch://example/{pipeline,lifecycle,oauth}` | the three shipped diagrams, as data | `examples/` |
 | `pensketch://constants` | the frozen constants and their values | `@pensketch/core` |

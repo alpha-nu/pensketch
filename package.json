@@ -18,7 +18,8 @@
     "schema": "node tools/generate-schema.mjs",
     "size": "node tools/check-size.mjs",
     "exports": "node tools/check-exports.mjs",
-    "diagrams": "node tools/check-diagrams.mjs"
+    "diagrams": "node tools/check-diagrams.mjs",
+    "resources": "node tools/generate-resources.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.7",

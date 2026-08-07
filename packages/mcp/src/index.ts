@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/server';
 
+import { registerResources } from './resources';
 import { registerTools } from './tools';
 
 /**
@@ -16,5 +17,6 @@ export function createServer(): McpServer {
     version: __MCP_VERSION__,
   });
   registerTools(server);
+  registerResources(server);
   return server;
 }

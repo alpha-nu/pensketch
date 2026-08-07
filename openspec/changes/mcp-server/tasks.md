@@ -70,9 +70,9 @@ rasterizes.
 
 ## 4. Resources
 
-- [ ] 4.1 Spec, JSON Schema, the three examples, constants — each read from
+- [x] 4.1 Spec, JSON Schema, the three examples, constants — each read from
       its existing single source at build time
-- [ ] 4.2 A test per resource asserting served bytes equal source bytes, so a
+- [x] 4.2 A test per resource asserting served bytes equal source bytes, so a
       resource cannot drift from the file it mirrors
 
 ## 5. Transport
