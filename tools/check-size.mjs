@@ -25,6 +25,14 @@ const PACKAGES = [
     budget: 2560,
   },
   {
+    // The renderer again, plus a DOM the size of what it touches. It carries
+    // its own copy of `draw` and `pen` rather than importing the root entry,
+    // which is the point: a server installs this and nothing else.
+    name: '@pensketch/core/server',
+    entry: 'packages/core/dist/server.js',
+    budget: 3072,
+  },
+  {
     name: '@pensketch/react',
     entry: 'packages/react/dist/index.js',
     budget: 2048,

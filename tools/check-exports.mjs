@@ -38,6 +38,11 @@ const ENTRIES = [
     surface: ['check'],
   },
   {
+    name: '@pensketch/core/server',
+    base: 'packages/core/dist/server',
+    surface: ['renderToString'],
+  },
+  {
     name: '@pensketch/react',
     base: 'packages/react/dist/index',
     surface: ['PenSketch', 'useSketch'],

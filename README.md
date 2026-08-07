@@ -343,6 +343,24 @@ This repository runs the checker over its own examples and its README image
 on every push, because rules the author's own diagrams break are rules nobody
 else will keep.
 
+### Rendering where there is no DOM
+
+`draw` needs an `<svg>` element to fill. A build step, a CI job or a server
+has none, so `renderToString` draws through a DOM shim instead - the same
+renderer, the same seeded sequence, the same bytes:
+
+```js
+import { renderToString } from '@pensketch/core/server';
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150"
+  role="img" aria-label="Request flow">${renderToString(diagram, { seed: 7 })}</svg>`;
+```
+
+What comes back is the contents of an `<svg>`, not the element - you supply
+the wrapper, as `draw` requires one. A test asserts its output against a real
+DOM rendering the same diagram, because a second renderer that quietly
+disagreed would break the byte-parity promise in silence.
+
 ## In case you wonder about pensketch vs. rough.js
 
 Both draw hand-sketched graphics. They differ in what you hand them, and every

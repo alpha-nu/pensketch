@@ -30,6 +30,16 @@
         "default": "./dist/check.cjs"
       }
     },
+    "./server": {
+      "import": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.js"
+      },
+      "require": {
+        "types": "./dist/server.d.cts",
+        "default": "./dist/server.cjs"
+      }
+    },
     "./schema.json": "./schema/diagram.schema.json",
     "./package.json": "./package.json"
   },

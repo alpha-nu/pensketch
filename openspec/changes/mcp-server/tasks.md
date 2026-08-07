@@ -13,18 +13,20 @@ rasterizes.
 
 ## 1. `@pensketch/core/server`
 
-- [ ] 1.1 `packages/core/src/server.ts`: the DOM shim covering the seven
+- [x] 1.1 `packages/core/src/server.ts`: the DOM shim covering the seven
       members core touches, plus serialization matching the golden
       serializer's attribute ordering and escaping
-- [ ] 1.2 `renderToString(diagram, options)` over that shim, with the same
+- [x] 1.2 `renderToString(diagram, options)` over that shim, with the same
       options `draw` takes
-- [ ] 1.3 Parity test against a checked-in golden, and a second asserting
+- [x] 1.3 Parity test against a checked-in golden, and a second asserting
       `renderToString` equals `draw` into a jsdom `<svg>` for the same inputs.
       Byte parity is the contract; a second renderer that drifts would break
       it in silence
-- [ ] 1.4 Packaging: tsup `entry`, `exports` gains `./server`, size budget
-      1536 B, resolution test as ESM and CJS, coverage thresholds extended
-- [ ] 1.5 README and `packages/core/README.md` sections; a **minor** changeset
+- [x] 1.4 Packaging: tsup `entry`, `exports` gains `./server`, its own size
+      budget — measured, not the 1536 B guessed at here: each entry stands
+      alone, so this one carries its own copy of the renderer it draws
+      through — resolution test as ESM and CJS, coverage thresholds extended
+- [x] 1.5 README and `packages/core/README.md` sections; a **minor** changeset
       on `@pensketch/core`
 
 ## 2. The package

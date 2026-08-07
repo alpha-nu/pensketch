@@ -118,6 +118,24 @@ Text is never measured, so `text-overflow` and `label-collision` rest on an
 estimate of `length × fontSize × 0.55`. It over-states on purpose, and any
 finding depending on it carries `estimated: true`.
 
+## Rendering without a browser
+
+`draw` needs an `<svg>` element. Where there is no DOM at all - a build step,
+a CI job, a server - `renderToString` returns the same markup, drawn by the
+same renderer through a DOM shim the size of what it actually touches. No
+jsdom, no browser, still no dependencies.
+
+```js
+import { renderToString } from '@pensketch/core/server';
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150"
+  role="img" aria-label="Request flow">${renderToString(diagram, { seed: 7 })}</svg>`;
+```
+
+You supply the wrapper, exactly as `draw` needs one supplied: what comes back
+is its contents. Byte-for-byte what a browser produces for the same diagram
+and seed, and a test asserts it against a real DOM on every run.
+
 ## Repository
 
 Full documentation, runnable examples and the React bindings live at

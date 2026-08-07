@@ -19,7 +19,9 @@ const root = new URL('../', import.meta.url);
 
 const CHECKER = new URL('packages/core/dist/check.js', root);
 if (!existsSync(CHECKER)) {
-  console.error('FAIL packages/core/dist/check.js is missing - run `npm run build`');
+  console.error(
+    'FAIL packages/core/dist/check.js is missing - run `npm run build`',
+  );
   process.exit(1);
 }
 const { check } = await import(CHECKER.href);
@@ -61,7 +63,9 @@ const fromHtml = async (file) => {
     await run(PRELUDE + code.replace(/^\s*import\s[^;]*;.*$/gm, ''));
   }
   if (!globalThis.__shots.length)
-    throw new Error(`${file} drew nothing - has its script tag or import changed?`);
+    throw new Error(
+      `${file} drew nothing - has its script tag or import changed?`,
+    );
   return globalThis.__shots.map(({ id, diagram }) => ({
     name: `${file} #${id}`,
     diagram,
@@ -116,7 +120,9 @@ for (const { name, diagram, viewBox } of shipped) {
     );
 }
 
-console.log(`\n${errors} errors, ${warnings} warnings across ${shipped.length} diagrams`);
+console.log(
+  `\n${errors} errors, ${warnings} warnings across ${shipped.length} diagrams`,
+);
 
 // Warnings are reported and do not fail: `orphan-node` fires on a legend and
 // `text-overflow` is an estimate, and a gate that cries wolf gets removed.
