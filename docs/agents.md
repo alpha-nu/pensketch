@@ -161,6 +161,13 @@ steps live *in* the boxes: a cross-lane connector sits in the 34 px gap
 between one row and the next, which leaves 17 px above it — not enough for a
 13.5 px label plus the clearance rule 3 asks for.
 
+**`size` here is not a habit to copy.** The full diagram this is taken from
+has a seventh step labelled `7. call with bearer`, which at the default 13.5
+estimates 141 px inside 139 px of box — `check` reports it as `text-overflow`.
+The rest carry `size: 12` only so one row of boxes does not draw its labels at
+two different sizes. Leave `size` alone until the checker names a node, then
+set it on what it named.
+
 ```js
 const OAUTH = {
   nodes: [
@@ -168,6 +175,8 @@ const OAUTH = {
     { id: 'la', shape: 'group', x: 235, y: 20, w: 185, h: 350, lines: ['your app'] },
     { id: 'ls', shape: 'group', x: 440, y: 20, w: 185, h: 350, lines: ['auth server'] },
 
+    // size: 12 — see above. None of these four needs it; consistency with a
+    // step not shown here is the whole reason it is on them.
     { id: 's1', shape: 'box', x: 40,  y: 60,  w: 155, h: 46, lines: ['1. click sign in'],   size: 12 },
     { id: 's2', shape: 'box', x: 250, y: 60,  w: 155, h: 46, lines: ['2. redirect + PKCE'], size: 12 },
     { id: 's3', shape: 'box', x: 455, y: 140, w: 155, h: 46, lines: ['3. login + consent'], size: 12 },

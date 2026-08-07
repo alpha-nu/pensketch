@@ -20,6 +20,12 @@ export const OAUTH: Diagram = {
     { id: 'ls', shape: 'group', x: 440, y: 20, w: 185, h: 350, lines: ['auth server'] },
     { id: 'lr', shape: 'group', x: 645, y: 20, w: 195, h: 350, lines: ['resource API'] },
 
+    // One of these seven needs `size`, and it is s7: at the default 13.5 its
+    // label estimates 141px inside 139px of box, which `check` reports as
+    // text-overflow. The other six carry it so the row does not draw its
+    // labels at two different sizes — a deliberate choice about this diagram,
+    // not a rule about diagrams. Leave `size` at its default until the
+    // checker names a node.
     { id: 's1', shape: 'box', x: 40,  y: 60,  w: 155, h: 46, lines: ['1. click sign in'],    size: 12 },
     { id: 's2', shape: 'box', x: 250, y: 60,  w: 155, h: 46, lines: ['2. redirect + PKCE'],  size: 12 },
     { id: 's3', shape: 'box', x: 455, y: 140, w: 155, h: 46, lines: ['3. login + consent'],  size: 12 },
