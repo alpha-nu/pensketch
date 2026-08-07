@@ -31,15 +31,15 @@ rasterizes.
 
 ## 2. The package
 
-- [ ] 2.1 `packages/mcp` manifest: name, `bin`, `exports`, `files`,
+- [x] 2.1 `packages/mcp` manifest: name, `bin`, `exports`, `files`,
       `publishConfig.access`, engines. Extend the manifest test so the
       zero-dependency assertion names the rendering packages rather than
       applying to every workspace, and so `@pensketch/mcp` may not appear in
       either rendering package's dependencies
-- [ ] 2.2 Reword the dependency invariant in `CONTRIBUTING.md` to name
+- [x] 2.2 Reword the dependency invariant in `CONTRIBUTING.md` to name
       `@pensketch/core` and `@pensketch/react`, so the rule keeps meaning what
       it meant
-- [ ] 2.3 Pin the SDK deliberately. Its published layout has moved to scoped
+- [x] 2.3 Pin the SDK deliberately. Its published layout has moved to scoped
       packages (`@modelcontextprotocol/server`, `serveStdio`) and much of the
       material still in circulation shows the older single-package one, so
       establish which applies at the version chosen and record it rather than

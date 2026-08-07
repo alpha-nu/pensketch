@@ -93,10 +93,17 @@ operations is such a change.
 
 These hold regardless of what a change is trying to do.
 
-**Neither package takes a runtime dependency.** Development tooling lives at
-the repository root; `@pensketch/react` reaches for `@pensketch/core` and the
-host's React and nothing else. A new entry under `dependencies` in either
-published package is a design decision, not an implementation detail.
+**Neither rendering package takes a runtime dependency.** `@pensketch/core`
+and `@pensketch/react` are what a page loads, and they add nothing to a
+consumer's lockfile: development tooling lives at the repository root, and
+the bindings reach for core and the host's React and nothing else. A new
+entry under `dependencies` in either is a design decision, not an
+implementation detail, and a test enforces it.
+
+`@pensketch/mcp` is deliberately outside that rule. It is a tool an agent
+spawns, not code that ships inside a page, so it may carry dependencies — and
+it may never appear in the dependencies of either rendering package, which
+the same test enforces.
 
 **The look is fixed.** The jitter, the double stroke, the corner overshoot and
 every constant behind them are the product rather than a set of knobs. They do

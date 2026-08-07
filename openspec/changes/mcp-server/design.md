@@ -150,6 +150,38 @@ transport entry**, which is the layout the SDK's own examples use. That costs
 nothing now and is what makes an HTTP transport additive later rather than a
 rewrite — see the Non-goals in the proposal for why it is not being built.
 
+### The SDK, established rather than assumed
+
+Both layouts are published and current, so the choice is real:
+
+| | `@modelcontextprotocol/sdk` **1.30.0** | `@modelcontextprotocol/server` **2.0.0** |
+|---|---|---|
+| runtime dependencies | 17 — express, hono, cors, jose, ajv, express-rate-limit, pkce-challenge, eventsource… | 2 — `@modelcontextprotocol/core`, `zod` |
+| shape | one package, deep subpath imports | split packages |
+
+**`@modelcontextprotocol/server` at `^2.0.0`.** Owner decision, 2026-08-07,
+caret rather than exact. Publishing stdio-only makes the monolith's HTTP
+stack — two web servers, CORS, JWT, rate limiting — weight an `npx` user
+downloads and no code here ever calls.
+
+Read off the installed package rather than off an example, because most
+material still in circulation shows the 1.x layout and would have compiled
+into something subtly different:
+
+- `@modelcontextprotocol/server` → `McpServer`, `Server`, `InMemoryTransport`,
+  the HTTP transports, the protocol constants.
+- `@modelcontextprotocol/server/stdio` → `serveStdio`, `StdioServerTransport`.
+- `serveStdio(factory: McpServerFactory, options?)` takes a **factory**,
+  `(ctx) => McpServer | Server | Promise<…>` — the split this design already
+  wanted, handed over by the SDK rather than imposed on it.
+- `registerTool(name, { inputSchema: z.object({…}) }, handler)`. Note the
+  shape: 2.x wants a zod **object**, where 1.x took a bare map of field
+  schemas. An example written against 1.x compiles here and validates
+  nothing.
+- The low-level `Server` accepts raw JSON Schema, which is the door to
+  reusing the schema this project already generates rather than restating a
+  diagram's shape in zod.
+
 Every tool stays a pure function of its arguments — no network, no filesystem,
 no state. With nothing to host that is not a security argument, it is a
 correctness one: it is what makes the tools deterministic, testable without

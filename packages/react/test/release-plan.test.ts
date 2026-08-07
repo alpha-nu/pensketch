@@ -41,9 +41,14 @@ describe('what a core release does to the bindings', () => {
     expect(planFor('minor')).toEqual(['@pensketch/core:minor']);
   });
 
+  // The server is dragged along too, and differently: core is a plain
+  // dependency there rather than a peer, so a major that puts core outside
+  // its range rewrites the range and patches the server. Only the bindings
+  // take a major, because only they ask a consumer to resolve core.
   it('majors them when core breaks its API, because the peer range stops matching', () => {
     expect(planFor('major')).toEqual([
       '@pensketch/core:major',
+      '@pensketch/mcp:patch',
       '@pensketch/react:major',
     ]);
   });
