@@ -58,7 +58,8 @@ packages live under one npm scope.
 - **Owner-reserved actions** (never the agent's): create the npm org
   `@pensketch` (this alone reserves the namespace; if a user named `pensketch`
   already exists, creation fails — stop and re-decide naming), create the
-  GitHub repository, any `git push`, any `npm publish`, `NPM_TOKEN` setup,
-  triggering the release workflow.
+  GitHub repository, any `git push`, any `npm publish`, registering the
+  registry's trust in this repository's release workflow, triggering the
+  release workflow.
 - **Depends on**: nothing. **Blocks**: any future binding change
   (`@pensketch/vue`, CLI, ...).

@@ -31,6 +31,18 @@ jobs:
           # publishes from the registry, not from a restored directory.
           package-manager-cache: false
 
+      # Trusted publishing needs npm 11.5.1 or newer; older npm has no idea
+      # what to do with the OIDC token and fails at the registry with a plain
+      # authentication error, which reads like a misconfigured secret rather
+      # than an out-of-date runner. Asserted rather than installed over: the
+      # release job should not fetch an unpinned global npm.
+      - name: The runner's npm can exchange an OIDC token
+        run: |
+          need=11.5.1
+          have=$(npm -v)
+          echo "npm $have, and trusted publishing needs >= $need"
+          [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | head -1)" = "$need" ]
+
       - name: Install dependencies
         run: npm ci
 
@@ -63,14 +75,21 @@ jobs:
       # node_modules and fail rather than fetch a same-named package.
       - name: Version packages or publish to npm
         id: changesets
-        # Pinned by commit, not by tag: this is the one step that holds both
-        # the registry token and an OIDC signing identity, and a tag can be
+        # Pinned by commit, not by tag: this is the step that carries the
+        # signing identity this workflow publishes under, and a tag can be
         # moved. The comment records which release the commit is.
+        #
+        # No NPM_TOKEN. The registry is configured to trust this repository
+        # and this workflow file, so npm exchanges the OIDC token minted by
+        # `id-token: write` for a short-lived credential of its own. At this
+        # pin the action says which path it took: "No NPM_TOKEN found, but
+        # OIDC is available - using npm trusted publishing". If it instead
+        # logs "assuming npm is already authenticated", the permission block
+        # above is not reaching it and the publish will fail unauthenticated.
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           publish: npx --no changeset publish
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           # Read by the npm publish that the changesets CLI shells out to.
           NPM_CONFIG_PROVENANCE: 'true'
 

@@ -62,7 +62,14 @@ font dominate it and a user fetching it through `npx` waits for every byte.
 
 ### Requirement: Releases are owner-triggered with a visual semver clause
 Publishing SHALL happen only via a `workflow_dispatch` release workflow using
-changesets with npm provenance and an `NPM_TOKEN` secret. Version semantics
+changesets with npm provenance, authenticated by trusted publishing: the
+registry trusts this repository and this workflow file, and npm exchanges the
+OIDC token minted by `id-token: write` for a short-lived credential. No
+long-lived registry token SHALL be stored as a secret, since a secret that
+exists can be exfiltrated and one that does not cannot. The workflow SHALL
+assert the runner's npm can perform that exchange, because an npm too old to
+try fails at the registry with a plain authentication error that reads like a
+misconfigured secret. Version semantics
 pre-1.0: **patch** guarantees byte-identical rendered output; **minor** may
 change rendered output or add API, and its changeset SHALL say so and describe
 what shifts; every user-visible change SHALL carry a changeset; the

@@ -28,7 +28,11 @@ does not depend on them.
       account with 2FA; create npm org `@pensketch` (reserves the namespace;
       if taken by an existing user, stop and re-decide naming); optional
       `0.0.1` placeholder publishes and/or unscoped `pensketch` pointer
-      package; add `NPM_TOKEN` secret; enable Settings → Actions → General →
+      package; register the registry's trust in this repository's
+      `release.yml` for each package (`npm trust github @pensketch/core
+      --allow-publish`, and the same for `@pensketch/react`) — no `NPM_TOKEN`
+      secret is stored, so this is what authenticates the release; enable
+      Settings → Actions → General →
       "Allow GitHub Actions to create and approve pull requests", which is off
       by default for organizations and without which the first release
       dispatch cannot open its version pull request

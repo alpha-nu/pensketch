@@ -272,7 +272,7 @@ The port must reproduce the reference byte-for-byte for both fixtures in
 | Versioning | changesets, independent versions, internal dep ranges auto-bumped |
 | Size budgets | core ≤ 5120 B, react ≤ 2048 B (dist ESM, min+gzip) via `tools/check-size.mjs` |
 | Schema | generated from the types by `tools/generate-schema.mjs` into `packages/core/schema/`, published as `@pensketch/core/schema.json` — npm packs nothing from outside a package directory, so it cannot live at the root and ship |
-| Publish | `release.yml` on `workflow_dispatch` only, changesets publish with npm provenance, `NPM_TOKEN` secret; owner triggers |
+| Publish | `release.yml` on `workflow_dispatch` only, changesets publish with npm provenance; trusted publishing, so no stored registry token — npm trades the `id-token: write` OIDC token for a short-lived credential (needs npm ≥ 11.5.1, asserted in the job); owner triggers |
 | Release actions | pinned by commit; the job then asserts it either published or opened the version pull request |
 
 Root `package.json`: `"private": true`, `"type": "module"`,
