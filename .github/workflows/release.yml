@@ -85,30 +85,27 @@ jobs:
         # available - using npm trusted publishing"; with neither reaching it,
         # "assuming npm is already authenticated", and the publish fails
         # unauthenticated.
+        #
+        # No NPM_TOKEN, deliberately: each package carries a trusted publisher
+        # naming this repository and this file, so npm exchanges the OIDC
+        # token minted by `id-token: write` above for a short-lived credential
+        # of its own. That relationship could only be created once the
+        # packages existed - `npm trust` refuses a name the registry has never
+        # seen - so 0.1.0 went out with a token and nothing since has needed
+        # one.
+        #
+        # An ENEEDAUTH here means npm found no trust relationship and declined
+        # to mention it: every failure branch in its `lib/utils/oidc.js` logs
+        # at verbose or below, because OIDC is optional there and the function
+        # is written never to throw. It reads exactly like a broken secret.
+        # Re-run the publish with `--loglevel verbose` for the registry's own
+        # reason before touching anything else.
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           publish: npx --no changeset publish
         env:
           # Read by the npm publish that the changesets CLI shells out to.
           NPM_CONFIG_PROVENANCE: 'true'
-          # TEMPORARY — for the first publish of these package names, and to
-          # be removed once it has happened.
-          #
-          # Trusted publishing is configured per package, and `npm trust`
-          # requires the package to already exist on the registry, so it
-          # cannot be set up for a name that has never shipped. Tokenless, npm
-          # posts its OIDC token to
-          # `/-/npm/v1/oidc/token/exchange/package/<name>`, finds no trust
-          # relationship for a package the registry has never heard of, and
-          # gives up without saying so: every failure branch in npm's
-          # `lib/utils/oidc.js` logs at verbose or below, because OIDC is
-          # optional there and the code is written never to throw. The publish
-          # then runs with no credential at all and reports ENEEDAUTH, which
-          # reads exactly like a broken secret and is not one.
-          #
-          # Provenance is unaffected — `id-token: write` above still mints the
-          # attestation, token or not.
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # The step above exits zero even when it does nothing — which is what a
       # bump of that pin looks like, since the action renames every input and

@@ -24,14 +24,22 @@ does not depend on them.
       diff) and `.github/workflows/release.yml` (workflow_dispatch, changesets
       publish with provenance)
 - [x] 1.7 changesets init (`access: public`, `baseBranch: main`)
-- [ ] 1.8 **OWNER**: push to the existing `alpha-nu/pensketch` repo; npm
+- [x] 1.8 **OWNER**: push to the existing `alpha-nu/pensketch` repo; npm
       account with 2FA; create npm org `@pensketch` (reserves the namespace;
       if taken by an existing user, stop and re-decide naming); optional
       `0.0.1` placeholder publishes and/or unscoped `pensketch` pointer
       package; register the registry's trust in this repository's
       `release.yml` for each package (`npm trust github @pensketch/core
-      --allow-publish`, and the same for `@pensketch/react`) — no `NPM_TOKEN`
-      secret is stored, so this is what authenticates the release; enable
+      --file release.yml --repo alpha-nu/pensketch --allow-publish`, and the
+      same for `@pensketch/react` and `@pensketch/mcp`) — this is what
+      authenticates every release after the first. It cannot authenticate the
+      first: trust is registered per package and `npm trust` refuses a name
+      the registry has never seen, so `0.1.0` published with a temporary
+      `NPM_TOKEN` and the secret was removed from `release.yml` afterwards.
+      `npm trust` also rejects a granular token with the bypass-2FA option and
+      needs account-level 2FA, so register it from a browser session or a
+      login — and never with `npm logout` in between, which revokes the token
+      server-side and would take the release secret with it. Also enable
       Settings → Actions → General →
       "Allow GitHub Actions to create and approve pull requests", which is off
       by default for organizations and without which the first release
@@ -149,12 +157,15 @@ Gate: examples render correctly; README snippet diff vs Appendix A clean.
       surface
 - [x] 6.4 Confirm no `TODO(owner)` markers or unresolved URLs remain in either
       package README
-- [ ] 6.5 **OWNER**: publishing `0.1.0` takes two dispatches of `release.yml`
+- [x] 6.5 **OWNER**: publishing `0.1.0` takes two dispatches of `release.yml`
       — the first opens the "Version Packages" pull request (no publish), and
       after merging it the second publishes the bumped versions. Note a
       dispatch made when no changeset files exist skips straight to
       publishing whatever versions the manifests currently carry — and that a
       dispatch which neither publishes nor opens the pull request fails on
-      purpose, so a third, idle dispatch is expected to go red
+      purpose, so a third, idle dispatch is expected to go red. The publishing
+      dispatch needs a credential the first time, per 1.8; tokenless it fails
+      with `ENEEDAUTH` and no explanation, npm having logged its reason at
+      verbose and below
 
 Gate: dry runs green; publish left to owner.
