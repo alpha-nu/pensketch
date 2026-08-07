@@ -89,13 +89,13 @@ svg text {
       { from: ['test', 'r'],    to: ['gate', 'l'] },
       { from: ['build', 'r'],   to: ['gate', 'l'] },
 
-      { from: ['gate', 'r'],    to: ['staging', 'l'], label: 'green', lx: 522, ly: 108 },
+      { from: ['gate', 'r'],    to: ['staging', 'l'], label: 'green', lx: 500, ly: 100 },
       { from: ['staging', 'b'], to: ['prod', 't'],    label: 'smoke passed', lx: 652, ly: 156, anchor: 'start' },
 
       // The way back. `via` walks the legs exactly as given - under both
       // groups, then up into the pill it started from.
       { from: ['gate', 'b'],    to: ['push', 'b'], via: [[415, 300], [110, 300]],
-        dotted: true, label: 'any job red', lx: 262, ly: 292 },
+        dotted: true, label: 'any job red', lx: 262, ly: 286 },
     ],
     notes: [
       { x: 850, y: 292, lines: ['prod only from a tag'], anchor: 'end',

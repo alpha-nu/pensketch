@@ -191,14 +191,40 @@ Two more, complete and runnable, in [`examples/`](../examples/): a CI pipeline
 
 ## Checking your work
 
-You cannot see the result, so do not rely on having looked at it:
+You cannot see the result, so do not rely on having looked at it. Three
+things look for you, in increasing order of what they can tell:
 
 - **`draw` throws** on unknown ids, duplicate ids, unknown shapes, and a label
-  without coordinates.
+  without coordinates. It stops at the first one.
 - **The JSON Schema** rejects malformed data, including misspelled keys.
-- The traps in the list above — collisions, overflow, a node half out of its
-  lane — are **not** caught by either. Read the seven rules and budget the
-  clearance up front rather than hoping.
+- **`check` finds the rest** — every trap in the list above — and reports all
+  of them at once, without drawing anything:
+
+```js
+import { check } from '@pensketch/core/check';
+
+const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
+// [{ rule, severity, message, at: [x, y], subjects, estimated? }, ...]
+```
+
+| rule | fires when | default |
+|---|---|---|
+| `duplicate-id` | two nodes share an `id` | **error** |
+| `node-overlap` | two node boxes share area | **error** |
+| `out-of-bounds` | a box, waypoint or label lies outside the `viewBox` | **error** |
+| `label-collision` | a label sits within `clearance` (default 4) of a connector | warning |
+| `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
+| `group-escape` | a node is half inside a group | warning |
+| `orphan-node` | no edge names a node | warning |
+
+Findings arrive sorted by severity, then rule, then position, so the array is
+stable enough to snapshot. `at` is a point in the diagram's own coordinates —
+the place to look. Anything resting on the width estimate carries
+`estimated: true`.
+
+What it does not know about: group borders and note arrows are not edges, so
+a label lying across one of those is not reported. `raw` is invisible to it.
+And it never moves anything — there is no autolayout here either.
 
 ## Theming
 

@@ -1,10 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { chromium } from 'playwright-core';
+import { HERO } from './hero-diagram.mjs';
 
 // Renders the README hero images with the locally installed Google Chrome.
-// The diagram below is the hero's own: coupling the marketing image to a
-// parity fixture would let a fixture edit silently redraw the README.
+// The diagram is the hero's own rather than a parity fixture: coupling the
+// marketing image to a fixture would let a fixture edit silently redraw the
+// README. It lives in hero-diagram.mjs because the checker reads it too.
 //
 // Run locally, never in CI: `node tools/render-assets.mjs`. The output is
 // deterministic - seeded renderer, fixed viewport - so re-running it on an
@@ -89,99 +91,17 @@ window.__pensketch = pensketch;
 `;
 
 // Runs in the page, so it reaches core through the global the page's module
-// script publishes. Nothing here closes over this file's scope.
-function drawHero() {
+// script publishes. Nothing here closes over this file's scope - the diagram
+// arrives as an argument, which is why only its data half can live in
+// hero-diagram.mjs: page arguments cross as JSON, and `raw` holds functions.
+function drawHero(diagram) {
   const PEN = 'var(--ps-pen, #2B5B8A)';
   const MUTED = 'var(--ps-muted, #5A6572)';
 
   window.__pensketch.draw(
     document.getElementById('hero'),
     {
-      nodes: [
-        {
-          id: 'g',
-          shape: 'group',
-          x: 30,
-          y: 30,
-          w: 620,
-          h: 240,
-          lines: ['a diagram, from plain data'],
-        },
-        {
-          id: 'in',
-          shape: 'pill',
-          x: 60,
-          y: 95,
-          w: 150,
-          h: 52,
-          lines: ['request'],
-        },
-        {
-          id: 'gate',
-          shape: 'diamond',
-          x: 270,
-          y: 85,
-          w: 150,
-          h: 76,
-          lines: ['cached?'],
-          size: 13,
-        },
-        {
-          id: 'work',
-          shape: 'box',
-          x: 480,
-          y: 95,
-          w: 150,
-          h: 52,
-          lines: ['render'],
-          accent: true,
-        },
-        {
-          id: 'store',
-          shape: 'box',
-          x: 270,
-          y: 200,
-          w: 150,
-          h: 52,
-          lines: ['cache'],
-          hatch: true,
-        },
-      ],
-      edges: [
-        { from: ['in', 'r'], to: ['gate', 'l'] },
-        {
-          from: ['gate', 'r'],
-          to: ['work', 'l'],
-          label: 'miss',
-          lx: 450,
-          ly: 110,
-        },
-        {
-          from: ['gate', 'b'],
-          to: ['store', 't'],
-          dotted: true,
-          label: 'hit',
-          lx: 352,
-          ly: 186,
-          anchor: 'start',
-        },
-        {
-          from: ['store', 'l'],
-          to: ['in', 'b'],
-          via: [[135, 226]],
-        },
-      ],
-      notes: [
-        {
-          x: 690,
-          y: 95,
-          lines: ['same seed,', 'same bytes'],
-          anchor: 'start',
-          arrowFrom: [700, 122],
-          via: [[672, 152]],
-          arrowTo: [636, 128],
-        },
-      ],
+      ...diagram,
       raw: [
         (p) => {
           p.stroke(
@@ -359,7 +279,7 @@ for (const { file, colorScheme, background } of SHOTS) {
   });
   await page.goto(`${ORIGIN}/`);
   await page.waitForFunction(() => Boolean(window.__pensketch));
-  await page.evaluate(drawHero);
+  await page.evaluate(drawHero, HERO);
   await page.waitForFunction(
     () => document.getElementById('hero').childElementCount > 0,
   );

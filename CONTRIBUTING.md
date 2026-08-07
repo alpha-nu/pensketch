@@ -7,7 +7,7 @@ root. The repository is an npm workspace: the two published packages live in
 `packages/core` and `packages/react`, and a single root install wires them
 together, so run every command from the root unless told otherwise.
 
-## The eight verification commands
+## The nine verification commands
 
 - `npm run lint` - Biome check across the repository. Proves formatting and
   lint rules hold everywhere; Biome is the only formatter and the only linter.
@@ -33,8 +33,12 @@ together, so run every command from the root unless told otherwise.
 - `npm run size` - gzipped size budgets. Proves each minified, gzipped ESM
   entry point stays within budget: 5120 bytes for core, 2560 bytes for its
   checker subpath, 2048 bytes for react.
+- `npm run diagrams` - runs the published checker over every diagram this
+  repository ships: both HTML examples, the React example, and the README
+  hero. Errors fail; warnings are printed. The project that writes the rules
+  is the first thing held to them.
 
-All eight must pass before a change is complete. CI runs the same eight on
+All nine must pass before a change is complete. CI runs the same nine on
 every pull request and every push to `main`, so a local failure is a CI
 failure. It can also be dispatched by hand from the Actions tab, for a commit
 whose run was lost to something other than the commit.

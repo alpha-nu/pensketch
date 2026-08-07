@@ -90,13 +90,13 @@ draw(document.getElementById('lifecycle'), {
   ],
   edges: [
     { from: ['placed', 'r'],  to: ['pending', 'l'] },
-    { from: ['pending', 'r'], to: ['paid', 'l'],      label: 'authorised', lx: 445, ly: 105 },
-    { from: ['paid', 'r'],    to: ['shipped', 'l'],   label: 'dispatched', lx: 645, ly: 105 },
+    { from: ['pending', 'r'], to: ['paid', 'l'],      label: 'authorised', lx: 445, ly: 100 },
+    { from: ['paid', 'r'],    to: ['shipped', 'l'],   label: 'dispatched', lx: 645, ly: 100 },
     { from: ['shipped', 'b'], to: ['delivered', 't'], label: 'signed for', lx: 765, ly: 172, anchor: 'start' },
 
     // Dotted for the unhappy paths, which also recolors their labels.
     { from: ['pending', 'b'], to: ['cancelled', 't'], dotted: true, label: 'expired',  lx: 345, ly: 172, anchor: 'start' },
-    { from: ['paid', 'b'],    to: ['cancelled', 'r'], dotted: true, label: 'refunded', lx: 478, ly: 216, anchor: 'end',
+    { from: ['paid', 'b'],    to: ['cancelled', 'r'], dotted: true, label: 'refunded', lx: 478, ly: 210, anchor: 'end',
       via: [[545, 225]] },
   ],
   raw: [

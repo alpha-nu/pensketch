@@ -81,6 +81,21 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $rc
 
+      # The project that publishes the rules is the first thing held to them.
+      # Errors fail; warnings are reported, because orphan-node fires on a
+      # legend and text-overflow is an estimate, and a gate that cries wolf
+      # gets removed.
+      - name: The diagrams this repository ships pass its own checker
+        run: |
+          out=$(npm run diagrams --silent) && rc=0 || rc=$?
+          {
+            echo "# Shipped diagrams"
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+
       # Two generated artefacts, one assertion. The goldens step is not a
       # second opinion on the parity tests: those compare the port against the
       # goldens, this compares reference/renderer.html against them. Without

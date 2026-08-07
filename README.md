@@ -300,6 +300,49 @@ version actually installed:
 import schema from '@pensketch/core/schema.json' with { type: 'json' };
 ```
 
+### Checking a diagram before you draw it
+
+The mistakes that matter here are the ones neither the types nor the schema
+can see: a box drawn over another box, a label a connector runs through, text
+wider than the box holding it. `check` finds them in the data, without
+rendering anything.
+
+```js
+import { check } from '@pensketch/core/check';
+
+for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
+  console.log(f.severity, f.rule, f.message, f.at);
+```
+
+| rule | fires when | default |
+|---|---|---|
+| `duplicate-id` | two nodes share an `id` | **error** |
+| `node-overlap` | two node boxes share area | **error** |
+| `out-of-bounds` | a box, waypoint or label lies outside the `viewBox` | **error** |
+| `label-collision` | a label sits within `clearance` of a connector | warning |
+| `text-overflow` | the widest line is wider than its box allows | warning |
+| `group-escape` | a node is half inside a group | warning |
+| `orphan-node` | no edge names a node | warning |
+
+Every rule can be raised, lowered or switched off:
+`check(diagram, { rules: { 'orphan-node': 'off' } })`. Findings come back
+sorted by severity, then rule, then position, so the same diagram always
+produces the same array and it can be snapshot-tested.
+
+`out-of-bounds` runs only when you pass a `viewBox` — it is the one thing not
+decidable from the diagram alone.
+
+**Two rules rest on an estimate.** Text is never measured, so `check`
+approximates width as `length × fontSize × 0.55`, a figure measured against
+the documented handwriting stack and deliberately wider than every real label
+in it. It over-states, so it warns early rather than missing an overflow, and
+any finding that depends on it carries `estimated: true`. All-capitals text
+runs near 0.99 and needs `glyphWidth` raised.
+
+This repository runs the checker over its own examples and its README image
+on every push, because rules the author's own diagrams break are rules nobody
+else will keep.
+
 ## In case you wonder about pensketch vs. rough.js
 
 Both draw hand-sketched graphics. They differ in what you hand them, and every
