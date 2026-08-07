@@ -63,6 +63,7 @@ diagram, and returns before any element exists.
 | `out-of-bounds` | a node box, label anchor or waypoint lies outside the `viewBox` | **error** |
 | `label-collision` | a label's box (D4) comes within `clearance` of any edge's inflated path (D4) | warning |
 | `text-overflow` | the widest estimated line exceeds `w - 2 * padding` | warning |
+| | *for a group title, `w - TITLE_DX - padding`: the title starts inset from the corner and runs right, so applying the centred formula to it would under-report* | |
 | `group-escape` | a non-group node box *partially* intersects a group box | warning |
 | `orphan-node` | a non-group node no edge names | warning |
 

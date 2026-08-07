@@ -1,3 +1,4 @@
+import { SIZE, TITLE_DX, TITLE_SIZE } from './constants';
 import { contains, intersects } from './geometry';
 import type { Diagram, DiagramNode, Point } from './types';
 
@@ -90,7 +91,12 @@ const DEFAULTS: Record<RuleId, Severity> = {
  * ```
  */
 export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
-  const { viewBox, rules = {} } = options;
+  const {
+    viewBox,
+    glyphWidth = 0.55,
+    padding = 8,
+    rules = {},
+  } = options;
   const nodes = diagram.nodes || [];
   const edges = diagram.edges || [];
   const notes = diagram.notes || [];
@@ -101,13 +107,21 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     message: string,
     at: Point,
     subjects: string[],
+    estimated?: true,
   ) => {
     const severity = rules[rule] ?? DEFAULTS[rule];
     // `off` is checked here rather than around each rule: a rule that runs
     // and discards costs microseconds, and gating every call site is where a
     // rule ends up silently un-switchable-off.
     if (severity !== 'off')
-      findings.push({ rule, severity, message, at, subjects });
+      findings.push({
+        rule,
+        severity,
+        message,
+        at,
+        subjects,
+        ...(estimated ? { estimated } : {}),
+      });
   };
 
   // An id names a node, so two nodes cannot share one. `draw` throws on this;
@@ -170,6 +184,28 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
           [n.x, n.y],
           [`node "${n.id}"`, `node "${g.id}"`],
         );
+
+  // Nothing here measures text, so this is the estimate and every finding it
+  // produces says so. It over-states width on purpose: a false warning costs
+  // one edit, a missed overflow costs a picture nobody looks at again.
+  for (const n of nodes) {
+    if (!n.lines) continue;
+    const group = n.shape === 'group';
+    const size = group ? TITLE_SIZE : n.size || SIZE;
+    const width =
+      n.lines.reduce((m, l) => Math.max(m, l.length), 0) * size * glyphWidth;
+    // A group's title starts TITLE_DX in from the left corner and runs right,
+    // so it has that much less room than a label centred in its box.
+    const room = group ? n.w - TITLE_DX - padding : n.w - 2 * padding;
+    if (width > room)
+      add(
+        'text-overflow',
+        `the label on node "${n.id}" needs about ${Math.round(width)}px and has ${Math.round(room)}px; widen the box or shorten the text`,
+        [n.x, n.y],
+        [`node "${n.id}"`],
+        true,
+      );
+  }
 
   // Only when the caller says what the picture is cropped to. Everything else
   // here is decidable from the diagram alone; this is not, and inventing a

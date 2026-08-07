@@ -161,6 +161,104 @@ describe('group-escape', () => {
   });
 });
 
+describe('text-overflow', () => {
+  const labelled = (lines: string[], w: number, size?: number): Diagram => ({
+    nodes: [
+      {
+        id: 'a',
+        shape: 'box',
+        x: 0,
+        y: 0,
+        w,
+        h: 40,
+        lines,
+        ...(size ? { size } : {}),
+      },
+      box('b', 500, 0),
+    ],
+    edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+  });
+
+  // Pins the default advance through the number the finding reports: ten
+  // characters at size 10 are 10 * 10 * 0.55 = 55px. Move the default and
+  // this changes.
+  //
+  // Not pinned by a box of exactly 71px, which would give exactly 55px of
+  // room: 100 * 0.55 is 55.00000000000001 in binary, so a label that fits to
+  // the pixel warns anyway. That is the harmless direction of a rule whose
+  // whole premise is that it over-states.
+  it('estimates at the measured 0.55 advance by default', () => {
+    const findings = check(labelled(['0123456789'], 40, 10));
+    expect(findings[0]?.message).toContain('needs about 55px');
+    expect(rules(check(labelled(['0123456789'], 70, 10)))).toEqual([
+      'text-overflow',
+    ]);
+    expect(check(labelled(['0123456789'], 72, 10))).toEqual([]);
+  });
+
+  // 0.55 clears the widest label measured in the documented handwriting
+  // stack - 0.515, for "push" - by about 7%. Text that fits at the real
+  // advance and not at the estimate is warned about rather than missed.
+  it('over-states rather than under-states, so it warns early', () => {
+    const real = 4 * 13.5 * 0.515;
+    const estimated = 4 * 13.5 * 0.55;
+    const w = Math.round(real) + 2 * 8 + 1;
+    expect(estimated).toBeGreaterThan(real);
+    expect(rules(check(labelled(['push'], w)))).toEqual(['text-overflow']);
+  });
+
+  it('marks the finding as estimated, and says what it needs', () => {
+    const findings = check(labelled(['much too long for this'], 60));
+    expect(findings[0]).toMatchObject({
+      rule: 'text-overflow',
+      severity: 'warning',
+      estimated: true,
+      subjects: ['node "a"'],
+    });
+    expect(findings[0]?.message).toContain('44px');
+  });
+
+  it('takes the widest line, and respects a per-node size', () => {
+    expect(check(labelled(['ok', 'x'], 60))).toEqual([]);
+    expect(rules(check(labelled(['ok', 'far too wide here'], 60)))).toEqual([
+      'text-overflow',
+    ]);
+    expect(rules(check(labelled(['nine char'], 60, 30)))).toEqual([
+      'text-overflow',
+    ]);
+  });
+
+  it('says nothing about a node with no label at all', () => {
+    expect(
+      check({
+        nodes: [box('a', 0, 0), box('b', 500, 0)],
+        edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+      }),
+    ).toEqual([]);
+  });
+
+  // A group title starts 14px in from the corner and runs right, so it has
+  // that much less room than a label centred in a box of the same width.
+  it('measures a group title from where it actually starts', () => {
+    const group = (w: number): Diagram => ({
+      nodes: [
+        {
+          id: 'lane',
+          shape: 'group',
+          x: 0,
+          y: 0,
+          w,
+          h: 200,
+          lines: ['tenchars!!'],
+        },
+      ],
+    });
+    // 10 chars at TITLE_SIZE 14 estimate to 77px. Room is w - 14 - 8.
+    expect(check(group(100))).toEqual([]);
+    expect(rules(check(group(98)))).toEqual(['text-overflow']);
+  });
+});
+
 describe('out-of-bounds', () => {
   const VIEW_BOX = [0, 0, 500, 300] as const;
   const wired = (nodes: DiagramNode[], edges: DiagramEdge[]): Diagram => ({
