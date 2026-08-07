@@ -46,10 +46,12 @@ rather than the code it stands for.
 ### Requirement: CI validates the full chain including generated-file freshness
 CI SHALL run on push and pull request to `main`, and on manual dispatch, as a
 single job that installs once and runs, in order: `npm ci`, lint (Biome),
-typecheck (`tsc --noEmit`), tests with coverage, build, the size check,
-regeneration of every generated artefact — goldens and the published schema —
-followed by an assertion that the whole working tree is unchanged, and the
-checker over every diagram this repository ships. It SHALL then repeat the
+typecheck (`tsc --noEmit`), tests with coverage, build, an assertion that
+every published entry point resolves and exposes its documented surface, the
+size check, regeneration of every generated artefact — goldens and the
+published schema — followed by an assertion that the whole working tree is
+unchanged, and the checker over every diagram this repository ships. It SHALL
+then repeat the
 suite on the oldest Node the manifests admit, and finally typecheck and run
 the bindings suite against the older React major the peer range allows. A
 newer run on the same ref SHALL cancel the one in flight. Drift between
@@ -65,6 +67,10 @@ defect in a shipped example.
 #### Scenario: A schema that no longer describes the types
 - **WHEN** a commit changes a diagram type without regenerating the schema
 - **THEN** the same step fails, so no release ships a schema describing types it does not have
+
+#### Scenario: A published entry stops resolving
+- **WHEN** an exports map names a file the build does not produce, or an entry stops exporting a documented name
+- **THEN** CI fails, even though nothing else in the repository loads `dist/`
 
 #### Scenario: A commit can be re-verified without inventing another
 - **WHEN** a run is lost to something outside the commit — an outage, a flake

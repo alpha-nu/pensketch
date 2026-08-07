@@ -16,7 +16,8 @@
     "build": "npm run build --workspaces",
     "goldens": "node tools/generate-goldens.mjs",
     "schema": "node tools/generate-schema.mjs",
-    "size": "node tools/check-size.mjs"
+    "size": "node tools/check-size.mjs",
+    "exports": "node tools/check-exports.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.7",

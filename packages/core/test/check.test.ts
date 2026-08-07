@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as subpath from '../src/check';
 import { check } from '../src/check';
 import type { Diagram, DiagramEdge, DiagramNode } from '../src/index';
 
@@ -14,6 +15,14 @@ const box = (id: string, x: number, y: number): DiagramNode => ({
 const rules = (findings: { rule: string }[]) => findings.map((f) => f.rule);
 
 describe('check', () => {
+  // Equality, not containment, and the same treatment the root entry gets in
+  // api.test.ts: a helper exported by accident is as much a breach as a
+  // missing one, and only the package can take it back once it has shipped.
+  // The built artifact is held to this same list by `npm run exports`.
+  it('exports exactly one runtime name', () => {
+    expect(Object.keys(subpath)).toEqual(['check']);
+  });
+
   it('reports nothing about a diagram with nothing in it', () => {
     expect(check({})).toEqual([]);
   });

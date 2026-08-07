@@ -288,6 +288,7 @@ these scripts (CI and `CONTRIBUTING.md` call them by name):
     "build": "npm run build --workspaces",
     "goldens": "node tools/generate-goldens.mjs",
     "schema": "node tools/generate-schema.mjs",
+    "exports": "node tools/check-exports.mjs",
     "size": "node tools/check-size.mjs"
   }
 }
@@ -365,7 +366,8 @@ a runner, and spreading the work over jobs pays for both again. `concurrency`
 with `cancel-in-progress`, since there is nothing to learn from finishing a
 run against a commit that is already history. Steps in order — checkout →
 setup-node 24 (npm cache) → `npm ci` → `npm run lint` → `npm run typecheck` →
-`npm test` → `npm run build` → `npm run size` → `npm run goldens` and
+`npm test` → `npm run build` → `npm run exports` → `npm run size` →
+`npm run goldens` and
 `npm run schema` followed by an assertion that the whole working tree is
 unchanged (`git status --porcelain` empty — a diff scoped to tracked files
 under the goldens directory would miss a newly emitted golden and would pass
@@ -387,7 +389,7 @@ pensketch/
 ├── packages/core/             # @pensketch/core  (src, test incl. goldens, schema/, README)
 ├── packages/react/            # @pensketch/react (src, test, README)
 ├── tools/                     # generate-goldens.mjs, generate-schema.mjs, schema-type.ts,
-│                              # render-assets.mjs, check-size.mjs
+│                              # render-assets.mjs, check-exports.mjs, check-size.mjs
 ├── docs/agents.md             # reference for callers generating diagrams by program
 ├── docs/assets/               # committed README images (hero-light/dark.png)
 ├── examples/                  # vanilla/, custom-pen/, react/  (runnable, never published)

@@ -7,7 +7,7 @@ root. The repository is an npm workspace: the two published packages live in
 `packages/core` and `packages/react`, and a single root install wires them
 together, so run every command from the root unless told otherwise.
 
-## The seven verification commands
+## The eight verification commands
 
 - `npm run lint` - Biome check across the repository. Proves formatting and
   lint rules hold everywhere; Biome is the only formatter and the only linter.
@@ -26,10 +26,15 @@ together, so run every command from the root unless told otherwise.
   the schema a caller validates against still describes the types the package
   ships. It lives inside the package because it is published with it, as
   `@pensketch/core/schema.json`.
-- `npm run size` - gzipped size budgets. Proves the minified, gzipped ESM
-  entry point stays within budget: 5120 bytes for core, 2048 bytes for react.
+- `npm run exports` - loads every published entry point, as ESM and as CJS,
+  and asserts each exposes exactly its documented surface. Nothing else in the
+  project loads `dist/`, so this is the only thing that would notice an
+  exports map pointing at a file that is not there.
+- `npm run size` - gzipped size budgets. Proves each minified, gzipped ESM
+  entry point stays within budget: 5120 bytes for core, 2560 bytes for its
+  checker subpath, 2048 bytes for react.
 
-All seven must pass before a change is complete. CI runs the same seven on
+All eight must pass before a change is complete. CI runs the same eight on
 every pull request and every push to `main`, so a local failure is a CI
 failure. It can also be dispatched by hand from the Actions tab, for a commit
 whose run was lost to something other than the commit.
@@ -102,10 +107,11 @@ document. A test enforces this by reading the source, because output rendered
 on one machine cannot witness it.
 
 **Code in a README has one source.** The snippets in the root and package
-READMEs are copies of the canonical blocks in the change's design document,
-and the examples are copies of the same blocks with their import line adapted.
+READMEs are copies of the canonical blocks in the change's design document.
 Change the canonical block and propagate, in the same commit; do not edit a
-copy in place.
+copy in place. The examples are not copies: each folder carries its own
+diagram, chosen to exercise what that folder demonstrates, and is free to be
+longer than anything a README can afford to print.
 
 ## ASCII source
 

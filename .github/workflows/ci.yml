@@ -61,6 +61,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Nothing else in the project loads `dist/` - tests and typecheck resolve
+      # core from source on purpose - so without this, an exports map pointing
+      # at a file that is not there would ship.
+      - name: Published entry points resolve
+        run: npm run exports
+
       # Budgets are a published contract, so the numbers belong in the summary
       # rather than only in a log. The status is carried across the write so a
       # breach still fails the step.
