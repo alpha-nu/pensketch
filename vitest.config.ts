@@ -2,13 +2,22 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-// The react package reaches core by its public specifier, which resolves
-// through built output. Pointing it at core's source instead means tests and
-// typecheck need no prior build, cannot silently run against a stale one, and
-// report failures in real source rather than in a minified bundle.
-const CORE_SRC = fileURLToPath(
-  new URL('./packages/core/src/index.ts', import.meta.url),
-);
+// The react and mcp packages reach core by its public specifier, which
+// resolves through built output. Pointing them at core's source instead means
+// tests and typecheck need no prior build, cannot silently run against a
+// stale one, and report failures in real source rather than in a minified
+// bundle.
+const coreSrc = (file: string) =>
+  fileURLToPath(new URL(`./packages/core/src/${file}`, import.meta.url));
+
+// Longest specifier first. A string alias matches what is under it as well as
+// itself, so a bare `@pensketch/core` listed first would rewrite
+// `@pensketch/core/check` to `.../src/index.ts/check` and resolve nothing.
+const CORE = {
+  '@pensketch/core/check': coreSrc('check.ts'),
+  '@pensketch/core/server': coreSrc('server.ts'),
+  '@pensketch/core': coreSrc('index.ts'),
+};
 
 // `@pensketch/mcp` reports its own version to a client. tsup substitutes it
 // from the manifest at build time; the suite runs the source, so it needs the
@@ -29,9 +38,7 @@ export default defineConfig({
         },
       },
       {
-        resolve: {
-          alias: { '@pensketch/core': CORE_SRC },
-        },
+        resolve: { alias: CORE },
         test: {
           name: 'react',
           root: 'packages/react',
@@ -43,8 +50,9 @@ export default defineConfig({
       },
       {
         // Per project, not at the root: a project gets its own Vite config
-        // and does not inherit `define` from the one wrapping it.
+        // and does not inherit `define` or `resolve` from the one wrapping it.
         define: { __MCP_VERSION__: JSON.stringify(MCP_VERSION) },
+        resolve: { alias: CORE },
         test: {
           name: 'mcp',
           root: 'packages/mcp',

@@ -8,8 +8,14 @@
     "moduleResolution": "bundler",
     "lib": ["ES2020", "DOM"],
     "skipLibCheck": true,
+    // Every entry core publishes, mapped to the source behind it. Nothing
+    // here may resolve through `dist`: typecheck runs before build in CI, so
+    // a missing mapping is not a slower path to the same answer - it is
+    // `TS2307`, and locally it is worse, because a stale build answers.
     "paths": {
-      "@pensketch/core": ["./packages/core/src/index.ts"]
+      "@pensketch/core": ["./packages/core/src/index.ts"],
+      "@pensketch/core/check": ["./packages/core/src/check.ts"],
+      "@pensketch/core/server": ["./packages/core/src/server.ts"]
     }
   }
 }
