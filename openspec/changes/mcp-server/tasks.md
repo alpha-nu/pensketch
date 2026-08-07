@@ -47,9 +47,9 @@ rasterizes.
 
 ## 3. Tools
 
-- [ ] 3.1 Server factory and `check_diagram`, including the error/warning
+- [x] 3.1 Server factory and `check_diagram`, including the error/warning
       counts, with input schemas
-- [ ] 3.2 `render_diagram` through `@pensketch/core/server` — no rendering
+- [x] 3.2 `render_diagram` through `@pensketch/core/server` — no rendering
       logic of its own
 - [x] 3.3 Choose the embedded font **by measurement**: render the repository's
       own labels in each open-licence candidate and take the one whose mean
@@ -57,14 +57,14 @@ rasterizes.
       Record the measurements alongside the choice
 - [x] 3.4 Subset that font to the glyphs a diagram can contain, and record the
       before and after sizes
-- [ ] 3.5 `render_png` with `loadSystemFonts: false`, the scale cap, and
+- [x] 3.5 `render_png` with `loadSystemFonts: false`, the scale cap, and
       refusal above it. Tests: identical bytes across two runs, and an
       oversized request refused rather than served
-- [ ] 3.6 Tool descriptions carrying the traps — coordinates are yours, text
+- [x] 3.6 Tool descriptions carrying the traps — coordinates are yours, text
       is never measured, and the PNG's font is a stand-in so `check_diagram`
       owns questions of fit — with a test asserting the phrases are present,
       since a description nobody checks is a description that rots
-- [ ] 3.7 Purity test: no tool reaches the network or a filesystem — a source
+- [x] 3.7 Purity test: no tool reaches the network or a filesystem — a source
       scan in the spirit of core's determinism test, since this is what the
       unauthenticated hosting rests on
 

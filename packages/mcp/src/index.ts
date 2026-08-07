@@ -1,5 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 
+import { registerTools } from './tools';
+
 /**
  * Builds the server, with no transport attached to it.
  *
@@ -7,12 +9,12 @@ import { McpServer } from '@modelcontextprotocol/server';
  * second one is additive rather than a rewrite — and so that the tools and
  * resources can be exercised in a test without a process to talk to.
  *
- * Tools and resources are registered in the commits that add them; this is
- * the shape they hang off.
  */
 export function createServer(): McpServer {
-  return new McpServer({
+  const server = new McpServer({
     name: 'pensketch',
     version: __MCP_VERSION__,
   });
+  registerTools(server);
+  return server;
 }

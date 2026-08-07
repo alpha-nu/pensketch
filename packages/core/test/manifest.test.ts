@@ -36,15 +36,20 @@ describe('the server package', () => {
   // The shape, not the ranges: a release rewrites the core range, and
   // asserting it literally makes every release fail its own tests.
   //
-  // Three, and each one is a decision worth failing a test to revisit: the
-  // SDK speaks the protocol, core does the drawing, and the rasterizer is
-  // what turns an SVG into something a client can actually display. A fourth
-  // arriving quietly is what this asserts against.
-  it('depends on the SDK, core and the rasterizer, and nothing else', () => {
+  // Four, and each is a decision worth failing a test to revisit: the SDK
+  // speaks the protocol, core does the drawing, the rasterizer turns an SVG
+  // into something a client can display, and zod is what the SDK wants a tool
+  // schema written in. A fifth arriving quietly is what this asserts against.
+  //
+  // zod is declared even though the SDK would supply it: a package that
+  // imports something should say so rather than reach through a dependency's
+  // tree for it.
+  it('depends on the SDK, core, the rasterizer and zod, and nothing else', () => {
     expect(Object.keys(mcp.dependencies ?? {}).sort()).toEqual([
       '@modelcontextprotocol/server',
       '@pensketch/core',
       '@resvg/resvg-wasm',
+      'zod',
     ]);
   });
 
