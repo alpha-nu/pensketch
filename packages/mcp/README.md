@@ -46,7 +46,7 @@ Run `check_diagram` before rendering and again after moving anything. It is
 the only one of the three that answers *does this fit* — see the font note
 below for why the picture cannot.
 
-## Five resources
+## Six resources
 
 | uri | what it holds |
 |---|---|
