@@ -17,7 +17,13 @@ capability. `@pensketch/mcp` MAY carry runtime dependencies, because it is a
 tool an agent runs rather than code that ships inside a page, and it SHALL NOT
 be a dependency of either rendering package. The `workspace:*` protocol SHALL
 NOT appear (npm resolves plain semver ranges locally; changesets keeps
-internal ranges current). `@pensketch/core` SHALL also publish the JSON Schema
+internal ranges current). Every internal range SHALL exclude the next major of
+what it names, and any range a release rewrites SHALL be a caret or tilde
+range: changesets replaces a range with its leading operator plus the new
+version, reading that operator from the first two characters, so a compound
+range is flattened — `>=0.0.1 <1.0.0` comes back as `>=0.1.0` and the upper
+bound is gone. A peer range that a release leaves alone MAY stay compound.
+`@pensketch/core` SHALL also publish the JSON Schema
 generated from its types, at the `./schema.json` subpath, so that a caller
 validates against the version they installed rather than a copy taken once and
 left to drift.
@@ -33,6 +39,10 @@ left to drift.
 #### Scenario: The rendering packages stay dependency-free
 - **WHEN** `@pensketch/core` or `@pensketch/react` gains a runtime dependency
 - **THEN** the manifest test fails, regardless of what `@pensketch/mcp` depends on
+
+#### Scenario: A release cannot widen an internal range
+- **WHEN** the version bump rewrites the range `@pensketch/mcp` declares on `@pensketch/core`, or the peer range `@pensketch/react` declares on it
+- **THEN** the rewritten range still excludes the next core major, and the manifest test fails if it does not
 
 #### Scenario: The server never leaks into the browser packages
 - **WHEN** `@pensketch/mcp` appears in the dependencies of either rendering package

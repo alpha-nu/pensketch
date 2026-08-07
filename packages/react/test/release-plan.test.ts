@@ -37,14 +37,22 @@ describe('what a core release does to the bindings', () => {
       undefined,
     ).releases.map((release) => `${release.name}:${release.type}`);
 
-  it('leaves them alone when core keeps its API', () => {
-    expect(planFor('minor')).toEqual(['@pensketch/core:minor']);
+  // The server is in this plan too, and answers differently: core is a plain
+  // dependency there rather than a peer, and its range is a caret one so that
+  // the version bump cannot flatten away the upper bound. On a 0.x version a
+  // caret is left behind by a minor, so the server follows core out of range
+  // and takes a patch with a rewritten range every time core moves at all.
+  // That is the standing cost of a bound that survives a release, and it is
+  // paid automatically. See packages/mcp/test/manifest.test.ts.
+  it('leaves the bindings alone when core keeps its API; the server follows', () => {
+    expect(planFor('minor')).toEqual([
+      '@pensketch/core:minor',
+      '@pensketch/mcp:patch',
+    ]);
   });
 
-  // The server is dragged along too, and differently: core is a plain
-  // dependency there rather than a peer, so a major that puts core outside
-  // its range rewrites the range and patches the server. Only the bindings
-  // take a major, because only they ask a consumer to resolve core.
+  // Only the bindings take a major, because only they ask a consumer to
+  // resolve core. The server is patched here for the same reason as above.
   it('majors them when core breaks its API, because the peer range stops matching', () => {
     expect(planFor('major')).toEqual([
       '@pensketch/core:major',

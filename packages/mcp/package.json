@@ -54,7 +54,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
-    "@pensketch/core": ">=0.0.1 <1.0.0",
+    "@pensketch/core": "^0.0.1",
     "@resvg/resvg-wasm": "2.6.2",
     "zod": "^4.4.3"
   }

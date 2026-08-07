@@ -45,6 +45,20 @@ describe('the dependency shape', () => {
     expect(manifest.peerDependencies?.react).toBe('^18 || ^19');
   });
 
+  // The core peer states API compatibility, so it is deliberately wider than
+  // a caret range: a core minor must not drag these bindings to a new major
+  // for a range rewrite that changes nothing. Wide, but not open-ended.
+  //
+  // `onlyUpdatePeerDependentsWhenOutOfRange` leaves it alone while core stays
+  // inside it, which is why it still reads as written. The day core takes a
+  // major, changesets rewrites it — and it rewrites by leading operator plus
+  // version, so `>=0.0.1 <1.0.0` would come back as `>=1.0.0` and the bindings
+  // would claim to work with every core ever published. This is that alarm.
+  it('bounds the core peer above', () => {
+    const range = manifest.peerDependencies?.['@pensketch/core'] ?? '';
+    expect(range).toMatch(/^[\^~]\d+\.\d+\.\d+$|<\s*\d/);
+  });
+
   // react-dom is a root dev dependency the tests render with; the package
   // itself must never ask a consumer for it.
   it('never mentions react-dom', () => {
