@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { defaultTheme, type Theme } from '@pensketch/core';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 
 // Rasterization, kept away from the tools so that the tools stay a thin layer
@@ -25,6 +26,46 @@ const FONT = new URL('../fonts/ArchitectsDaughter-Subset.ttf', import.meta.url);
 
 /** The name the embedded face answers to, written into the SVG we rasterize. */
 export const EMBEDDED_FAMILY = 'Architects Daughter';
+
+/**
+ * The default palette with its `var()` wrappers taken off.
+ *
+ * Core writes a theme value into the markup verbatim, and its defaults are
+ * `var(--ps-ink, #232B36)` and friends, which a browser resolves. This
+ * rasterizer supports custom properties nowhere - not in a presentation
+ * attribute, not in a `style` declaration - and it does not fall back to the
+ * fallback either. An unparseable paint takes the property's initial value,
+ * and those differ: `stroke` initially draws nothing, `fill` initially draws
+ * black. So every line vanished and every group wash became a solid black
+ * slab, while the labels kept drawing, in black, close enough to the ink to
+ * look deliberate. The image was of a structure it never contained.
+ *
+ * Derived from `defaultTheme` rather than transcribed, so a palette change
+ * reaches the PNG without anyone remembering this file exists. Adding a role
+ * to `Theme` fails to compile here, which is the correct way to find out.
+ */
+const literal = (value: string): string =>
+  value.startsWith('var(')
+    ? value.slice(value.indexOf(',') + 1, -1).trim()
+    : value;
+
+export const RASTER_THEME: Theme = Object.freeze({
+  ink: literal(defaultTheme.ink),
+  pen: literal(defaultTheme.pen),
+  accent: literal(defaultTheme.accent),
+  muted: literal(defaultTheme.muted),
+  wash: literal(defaultTheme.wash),
+});
+
+/**
+ * The sheet the drawing sits on. Transparent would match `render_diagram`,
+ * whose SVG carries no background either - but that one is handed to a page
+ * that has its own, and this one is handed to a client that may composite it
+ * over anything. Dark ink on a dark panel is the failure this whole file is
+ * here to stop happening twice. Warm rather than white because the wash is
+ * five percent blue and needs something to sit on.
+ */
+export const PAPER = '#FCFAF5';
 
 /** The largest scale a caller may ask for. Above this, the answer is no. */
 export const MAX_SCALE = 4;
@@ -61,10 +102,10 @@ export interface RasterOptions {
  * Throws when the result would exceed `MAX_PIXELS` on a side, rather than
  * spending the memory and handing back an image no client will display.
  */
-export async function renderPng(
+export async function rasterize(
   svg: string,
   { width, height, scale }: RasterOptions,
-): Promise<Uint8Array> {
+): Promise<ReturnType<InstanceType<typeof Resvg>['render']>> {
   if (scale < 1 || scale > MAX_SCALE)
     throw new Error(
       `scale must be between 1 and ${MAX_SCALE}; ${scale} was asked for`,
@@ -78,6 +119,7 @@ export async function renderPng(
 
   await load();
   return new Resvg(svg, {
+    background: PAPER,
     fitTo: { mode: 'width', value: Math.round(width * scale) },
     font: {
       // `load` has just resolved, so the font is here. Asserted rather than
@@ -87,7 +129,17 @@ export async function renderPng(
       loadSystemFonts: false,
       defaultFontFamily: EMBEDDED_FAMILY,
     },
-  })
-    .render()
-    .asPng();
+  }).render();
+}
+
+/**
+ * The same image encoded, which is what a client is handed. Split from
+ * `rasterize` so a test can read the pixels: asserting a PNG signature only
+ * proves something was encoded, and a picture of nothing encodes perfectly.
+ */
+export async function renderPng(
+  svg: string,
+  options: RasterOptions,
+): Promise<Uint8Array> {
+  return (await rasterize(svg, options)).asPng();
 }

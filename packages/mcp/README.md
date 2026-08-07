@@ -85,6 +85,21 @@ What that means in practice:
 
 The font ships with its licence in `fonts/OFL.txt`.
 
+## The PNG resolves its own colours, and comes on paper
+
+`render_diagram` paints with `var(--ps-ink, …)` and friends, so a page
+restyles the drawing — dark mode included — purely by redefining those
+variables. The rasterizer resolves custom properties nowhere, and does not
+honour the fallback either: an unparseable paint takes the property's initial
+value, which draws nothing for `stroke` and black for `fill`. Handed that
+markup it produced labels floating on a black slab, which is what `0.1.0`
+shipped.
+
+So `render_png` resolves the palette before rasterizing, and draws on warm
+paper (`#FCFAF5`) rather than transparency — a transparent PNG of near-black
+ink is invisible in a client with a dark panel, which is the same failure
+wearing a different hat. `render_diagram` is unchanged and still themable.
+
 ## Every tool is a pure function of its arguments
 
 No network, no filesystem, no state between calls. A test reads the source and

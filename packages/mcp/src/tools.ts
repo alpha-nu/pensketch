@@ -3,7 +3,7 @@ import { check } from '@pensketch/core/check';
 import { renderToString } from '@pensketch/core/server';
 import { z } from 'zod';
 
-import { EMBEDDED_FAMILY, MAX_SCALE, renderPng } from './render';
+import { EMBEDDED_FAMILY, MAX_SCALE, RASTER_THEME, renderPng } from './render';
 
 // The three tools. Each is a thin layer over `@pensketch/core`: no rendering
 // logic, no rules, no geometry lives here. If a tool needs to know something
@@ -191,17 +191,20 @@ export function registerTools(server: McpServer): void {
  * stack: the rasterizer has only the one font, and naming a face it does not
  * hold draws nothing at all.
  */
-function svgFor(
+export function svgFor(
   d: unknown,
   [minX, minY, width, height]: readonly [number, number, number, number],
   seed?: number,
   label?: string,
   forRaster = false,
 ): string {
-  const inner = renderToString(
-    d as Parameters<typeof renderToString>[0],
-    seed === undefined ? {} : { seed },
-  );
+  // The rasterizer resolves no CSS custom properties, so it is given the
+  // palette already resolved. `render_diagram` keeps the `var()` defaults,
+  // because its SVG goes to a page that restyles it by redefining them.
+  const inner = renderToString(d as Parameters<typeof renderToString>[0], {
+    ...(seed === undefined ? {} : { seed }),
+    ...(forRaster ? { theme: RASTER_THEME } : {}),
+  });
   const font = forRaster
     ? ` style="font-family:'${EMBEDDED_FAMILY}'"`
     : ` style="font-family:'Chalkboard SE','Bradley Hand','Segoe Print','Comic Sans MS',cursive"`;

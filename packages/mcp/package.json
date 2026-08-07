@@ -10,7 +10,7 @@
   },
   "type": "module",
   "bin": {
-    "pensketch-mcp": "./dist/stdio.js"
+    "pensketch-mcp": "dist/stdio.js"
   },
   "exports": {
     ".": {

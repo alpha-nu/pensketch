@@ -74,7 +74,12 @@ describe('the server package', () => {
     });
   });
 
+  // No leading `./`: npm normalises the path on publish and then reports it
+  // as `"bin[pensketch-mcp]" script name dist/stdio.js was invalid and
+  // removed`, which is alarming and wrong - the entry is kept, one line later,
+  // under the normalised value. Writing what npm would write leaves the
+  // published manifest identical and the publish log quiet.
   it('is runnable by name', () => {
-    expect(mcp.bin).toEqual({ 'pensketch-mcp': './dist/stdio.js' });
+    expect(mcp.bin).toEqual({ 'pensketch-mcp': 'dist/stdio.js' });
   });
 });

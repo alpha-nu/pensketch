@@ -2,8 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createServer } from '../src/index';
-import { MAX_SCALE, renderPng } from '../src/render';
-import { TRAPS } from '../src/tools';
+import { MAX_SCALE, rasterize, renderPng } from '../src/render';
+import { svgFor, TRAPS } from '../src/tools';
 
 const FLOW = {
   nodes: [
@@ -202,6 +202,57 @@ describe('render_png', () => {
     expect(result.content[0]?.type).toBe('image');
     // The PNG signature, so this is an image rather than a hopeful string.
     expect([...png.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+  });
+
+  // 0.1.0 shipped a PNG that drew no line at all. The markup core writes
+  // paints with `var(--ps-ink, …)`, the rasterizer resolves custom properties
+  // nowhere, and an unparseable paint falls to the property's initial value -
+  // which draws nothing for `stroke` and black for `fill`. Every stroke
+  // disappeared and every group wash turned into a black slab, and the only
+  // assertions here were a PNG signature and a byte count, both of which a
+  // picture of nothing satisfies perfectly.
+  //
+  // So: read the pixels, and demand the drawn colours specifically.
+  it('draws the strokes, in the palette, on the paper', async () => {
+    // One box: strokes and nothing else. A wash or a label could carry this
+    // on its own, and both did while every line was missing.
+    const box = {
+      nodes: [{ id: 'a', shape: 'box', x: 10, y: 10, w: 160, h: 40 }],
+    };
+    // Through `svgFor` with `forRaster`, because that is where the fix is.
+    const image = await rasterize(
+      svgFor(box, [0, 0, 200, 60], undefined, undefined, true),
+      { width: 200, height: 60, scale: 2 },
+    );
+
+    const px = image.pixels;
+    let drawn = 0;
+    let opaque = 0;
+    let darkest = { r: 255, g: 255, b: 255 };
+    for (let i = 0; i < px.length; i += 4) {
+      const [r, g, b, a] = [px[i], px[i + 1], px[i + 2], px[i + 3]] as [
+        number,
+        number,
+        number,
+        number,
+      ];
+      if (a === 255) opaque++;
+      if (r !== 0xfc || g !== 0xfa || b !== 0xf5) drawn++;
+      if (r + g + b < darkest.r + darkest.g + darkest.b) darkest = { r, g, b };
+    }
+
+    // Every pixel opaque: the background is a colour, not an absence. A client
+    // compositing this over its own dark panel cannot lose the drawing in it.
+    expect(opaque).toBe(px.length / 4);
+    // Ink reached the canvas at all. With the defect this was zero - the
+    // whole image was paper, and a PNG of blank paper is a valid PNG.
+    expect(drawn).toBeGreaterThan(500);
+    // And it is ink rather than black. Composited at the 0.92 the pen strokes
+    // with, the exact value shifts by a unit, so the assertion is on hue: the
+    // ink is blue-grey and runs `b - r` of 19, while black over this paper
+    // runs about -1. Nothing between the two is reachable by accident.
+    expect(darkest.b - darkest.r).toBeGreaterThanOrEqual(15);
+    expect(darkest.r + darkest.g + darkest.b).toBeLessThan(200);
   });
 
   it('rasterizes the same bytes twice', async () => {
