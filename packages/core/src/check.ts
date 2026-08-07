@@ -1,4 +1,4 @@
-import type { Diagram, Point } from './types';
+import type { Diagram, DiagramNode, Point } from './types';
 
 /**
  * How much a finding matters. An `error` is a defect in the picture — two
@@ -58,6 +58,19 @@ export interface CheckOptions {
   rules?: Partial<Record<RuleId, Severity | 'off'>>;
 }
 
+// What each rule is worth when the caller says nothing. Errors are defects in
+// the picture; warnings are things that are usually a mistake and sometimes
+// deliberate.
+const DEFAULTS: Record<RuleId, Severity> = {
+  'duplicate-id': 'error',
+  'node-overlap': 'error',
+  'out-of-bounds': 'error',
+  'label-collision': 'warning',
+  'text-overflow': 'warning',
+  'group-escape': 'warning',
+  'orphan-node': 'warning',
+};
+
 /**
  * Reports the layout defects a type system cannot see: overlaps, labels lying
  * under connectors, text wider than its box. It never renders, never touches
@@ -75,9 +88,58 @@ export interface CheckOptions {
  * for (const f of findings) console.log(f.severity, f.rule, f.message);
  * ```
  */
-export function check(
-  _diagram: Diagram,
-  _options: CheckOptions = {},
-): Finding[] {
-  return [];
+export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
+  const { rules = {} } = options;
+  const nodes = diagram.nodes || [];
+  const edges = diagram.edges || [];
+  const findings: Finding[] = [];
+
+  const add = (
+    rule: RuleId,
+    message: string,
+    at: Point,
+    subjects: string[],
+  ) => {
+    const severity = rules[rule] ?? DEFAULTS[rule];
+    // `off` is checked here rather than around each rule: a rule that runs
+    // and discards costs microseconds, and gating every call site is where a
+    // rule ends up silently un-switchable-off.
+    if (severity !== 'off')
+      findings.push({ rule, severity, message, at, subjects });
+  };
+
+  // An id names a node, so two nodes cannot share one. `draw` throws on this;
+  // the checker reports it alongside everything else, which is the difference
+  // between one round trip and five.
+  const byId = new Map<string, DiagramNode>();
+  for (const n of nodes) {
+    const first = byId.get(n.id);
+    if (first)
+      add(
+        'duplicate-id',
+        `two nodes share the id "${n.id}", at (${first.x}, ${first.y}) and (${n.x}, ${n.y}); ids must be unique and draw throws on a repeat`,
+        [n.x, n.y],
+        [`node "${n.id}"`],
+      );
+    else byId.set(n.id, n);
+  }
+
+  // A node nothing points at is far more often a typo in an edge than a
+  // deliberate island - which is why it is a warning rather than an error,
+  // and why it can be switched off for the diagrams where it is neither.
+  const named = new Set<string>();
+  for (const e of edges) {
+    named.add(e.from[0]);
+    named.add(e.to[0]);
+  }
+  for (const n of nodes)
+    if (n.shape !== 'group' && !named.has(n.id))
+      add(
+        'orphan-node',
+        `no edge names node "${n.id}"; check the from and to of every edge that should reach it`,
+        [n.x, n.y],
+        [`node "${n.id}"`],
+      );
+
+  return findings;
 }
