@@ -145,7 +145,15 @@ interface ShapeNode extends NodeBox {
   shape: 'box' | 'pill' | 'diamond';
   /** Label lines, one `<text>` each. Omit for an unlabelled shape. */
   lines?: string[];
-  /** Label font size in px. Default: `13.5`. */
+  /**
+   * Label font size in px. Default: `13.5`.
+   *
+   * Leave it alone until something says otherwise. It shrinks the text, never
+   * the box, so it is the answer to one question only: a label `check`
+   * reports as `text-overflow` that cannot be shortened or given a wider box.
+   * Setting it across a diagram for consistency is a decision about that
+   * diagram, not a habit.
+   */
   size?: number;
   /** Stroke in `theme.pen` rather than `theme.ink`. Default: `false`. */
   accent?: boolean;
@@ -166,7 +174,13 @@ export interface DiagramEdge {
   from: [string, Side];
   /** The id of the node to reach, and which side the head lands on. */
   to: [string, Side];
-  /** Corner points between the two anchors. */
+  /**
+   * Corner points between the two anchors, walked in order and used exactly
+   * as given. Nothing is inferred and nothing routes around an obstacle: an
+   * orthogonal path is the corners you supply, not a mode. Omit it and the
+   * arrow runs straight from one anchor to the other, through whatever is in
+   * the way.
+   */
   via?: Point[];
   /** Dash the line and recolor it, and its label, to `theme.accent`. */
   dotted?: boolean;

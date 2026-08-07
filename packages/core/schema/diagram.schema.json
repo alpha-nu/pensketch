@@ -118,7 +118,7 @@
             },
             "size": {
               "type": "number",
-              "description": "Label font size in px. Default: `13.5`."
+              "description": "Label font size in px. Default: `13.5`.\n\nLeave it alone until something says otherwise. It shrinks the text, never the box, so it is the answer to one question only: a label `check` reports as `text-overflow` that cannot be shortened or given a wider box. Setting it across a diagram for consistency is a decision about that diagram, not a habit."
             },
             "accent": {
               "type": "boolean",
@@ -179,7 +179,7 @@
           "items": {
             "$ref": "#/definitions/Point"
           },
-          "description": "Corner points between the two anchors."
+          "description": "Corner points between the two anchors, walked in order and used exactly as given. Nothing is inferred and nothing routes around an obstacle: an orthogonal path is the corners you supply, not a mode. Omit it and the arrow runs straight from one anchor to the other, through whatever is in the way."
         },
         "dotted": {
           "type": "boolean",
