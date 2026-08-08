@@ -7,7 +7,7 @@ root. The repository is an npm workspace: the two published packages live in
 `packages/core` and `packages/react`, and a single root install wires them
 together, so run every command from the root unless told otherwise.
 
-## The eleven verification commands
+## The verification commands
 
 - `npm run lint` - Biome check across the repository. Proves formatting and
   lint rules hold everywhere; Biome is the only formatter and the only linter.
@@ -44,14 +44,41 @@ together, so run every command from the root unless told otherwise.
   entry point stays within budget: 5120 bytes for core, 2560 for its checker
   subpath, 3072 for its DOM-free renderer, 2048 for react.
 - `npm run diagrams` - runs the published checker over every diagram this
-  repository ships: both HTML examples, the React example, and the README
+  repository ships: every HTML example, the React example, and the README
   hero. Errors fail; warnings are printed. The project that writes the rules
   is the first thing held to them.
+- `npm run pin` - rewrites the version the READMEs tell a reader to install,
+  from the version `@pensketch/mcp` carries. `git diff` must be clean
+  afterwards. The pin is deliberate, because `npx` without one fetches
+  whatever is latest when a client happens to start; deriving it is what stops
+  the instructions pointing at a release you have already replaced. `npm run
+  bump` runs it straight after `changeset version`, so the correction lands in
+  the same pull request as the bump.
 
-All eleven must pass before a change is complete. CI runs the same eleven on
-every pull request and every push to `main`, so a local failure is a CI
-failure. It can also be dispatched by hand from the Actions tab, for a commit
-whose run was lost to something other than the commit.
+All of them must pass before a change is complete, and the count is not worth
+writing down: it has changed twice. CI runs the same set on every pull request
+and every push to `main`, so a local failure is a CI failure. It can also be
+dispatched by hand from the Actions tab, for a commit whose run was lost to
+something other than the commit.
+
+## Working alongside the release
+
+`main` has two writers: whoever is committing, and the release workflow, which
+lands a "Version Packages" merge of its own. Local work therefore diverges
+from `origin/main` the moment a release goes out, and `git pull` in its
+default configuration answers that with a merge commit — or, with
+`--ff-only`, with a refusal.
+
+Neither is what anyone wants in a linear history, so the repository is worked
+with `pull.rebase` on:
+
+```sh
+git config pull.rebase true
+git config rebase.autoStash true
+```
+
+Fetch and rebase before starting a group of work, not after finishing one. A
+rebase of unpushed commits rewrites nothing anyone else has.
 
 ## Golden files
 

@@ -113,6 +113,7 @@ jobs:
           npm run goldens
           npm run schema
           npm run resources
+          npm run pin
           git status --porcelain
           test -z "$(git status --porcelain)"
 

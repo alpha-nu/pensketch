@@ -102,6 +102,13 @@ jobs:
         # reason before touching anything else.
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
+          # `changeset version` plus the one thing it invalidates: the version
+          # the READMEs tell a reader to install. Running it here rather than
+          # afterwards puts the corrected instructions in the same pull request
+          # as the bump, so no released commit ever points at the version
+          # before it. `bump` rather than `version` as a script name because
+          # npm reserves `version` as a lifecycle hook of its own.
+          version: npm run bump
           publish: npx --no changeset publish
         env:
           # Read by the npm publish that the changesets CLI shells out to.

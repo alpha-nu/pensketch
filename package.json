@@ -20,7 +20,9 @@
     "exports": "node tools/check-exports.mjs",
     "diagrams": "node tools/check-diagrams.mjs",
     "resources": "node tools/generate-resources.mjs",
-    "stdio": "node tools/check-stdio.mjs"
+    "pin": "node tools/pin-version.mjs",
+    "stdio": "node tools/check-stdio.mjs",
+    "bump": "changeset version && npm run pin"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.7",
