@@ -37,6 +37,13 @@ export const PILL_JX = 3;
 export const PILL_JY = 2;
 /** Jitter amplitude in px of a pill outline. */
 export const PILL_AMP = 1.4;
+/**
+ * Segments in a full turn of an arc. A partial sweep takes its share, so a
+ * half circle is cut into half as many and density does not change with the
+ * angle asked for. Equal to `PILL_STEPS` by construction rather than by
+ * accident: a full sweep then traces the ellipse `pill` traces for the box.
+ */
+export const ARC_STEPS = 26;
 /** Distance in px between hatch lines. */
 export const HATCH_GAP = 11;
 /** Stroke width in px of a hatch line. */
@@ -94,6 +101,7 @@ export const constants = Object.freeze({
   PILL_JX,
   PILL_JY,
   PILL_AMP,
+  ARC_STEPS,
   HATCH_GAP,
   HATCH_W,
   HATCH_AMP,
