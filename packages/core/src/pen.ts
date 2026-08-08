@@ -1,5 +1,6 @@
 import {
   AMP,
+  ARC_STEPS,
   DASH,
   END_DAMP,
   HATCH_AMP,
@@ -198,6 +199,35 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     stroke(pts, { ...opts, amplitude: PILL_AMP });
   }
 
+  // A curve here is a denser point list and nothing else, which is what lets
+  // it fall through the same two passes as a straight line. ARC_STEPS counts a
+  // full turn, so a partial sweep takes its share and a short arc is cut no
+  // coarser than a long one.
+  function arc(
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    from: number,
+    to: number,
+    opts: StrokeOptions = {},
+  ) {
+    const sweep = to - from;
+    const steps = Math.max(
+      MIN_STEPS,
+      Math.round((ARC_STEPS * Math.abs(sweep)) / (2 * Math.PI)),
+    );
+    const pts: Point[] = [];
+    for (let i = 0; i <= steps; i++) {
+      // `sweep * (i / steps)`, not `(sweep * i) / steps`: the fraction first
+      // is the association `pill` uses, so a full turn lands on its angles to
+      // the last bit rather than to a tolerance.
+      const a = from + sweep * (i / steps);
+      pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+    }
+    stroke(pts, opts);
+  }
+
   function diamond(
     x: number,
     y: number,
@@ -267,5 +297,5 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     el('rect', { x, y, width: w, height: h, fill, rx: WASH_RX });
   }
 
-  return { stroke, arrow, rect, pill, diamond, hatch, label, wash, rng };
+  return { stroke, arrow, rect, pill, arc, diamond, hatch, label, wash, rng };
 }

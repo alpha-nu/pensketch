@@ -77,6 +77,29 @@ export interface Pen {
   rect(x: number, y: number, w: number, h: number, opts?: StrokeOptions): void;
   /** An ellipse inscribed in the box, traced as one wobbling loop. */
   pill(x: number, y: number, w: number, h: number, opts?: StrokeOptions): void;
+  /**
+   * An elliptical arc around `(cx, cy)` with radii `rx` and `ry`, swept from
+   * angle `from` to angle `to`, for the curved connectors a straight run of
+   * points cannot state: a loop back onto a node's own side, or a bow that
+   * holds two edges of the same pair apart. Both angles are in radians, and
+   * the sign of `to - from` gives the direction the sweep travels. An
+   * increasing angle turns from the +x axis towards +y, which is clockwise on
+   * screen, because SVG's y grows downward. The arc is sampled into a polyline
+   * and drawn through `stroke`, so it wobbles like everything else and no
+   * curve command reaches the markup. A full turn samples the same ellipse
+   * `pill` samples for the same box, at the same angles — the ellipse, not the
+   * drawing: `pill` wobbles its radii per point and strokes lighter, so an arc
+   * around a box is a shakier line on the same path.
+   */
+  arc(
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    from: number,
+    to: number,
+    opts?: StrokeOptions,
+  ): void;
   /** A diamond through the midpoints of the box's four sides. */
   diamond(
     x: number,

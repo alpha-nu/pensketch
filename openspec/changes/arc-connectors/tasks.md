@@ -13,12 +13,12 @@ nothing, and it should not wait behind a feature.
 - [x] 1.0 The delta says which requirements `arc` breaks. Two do, and neither
       was listed: `Pen` is a closed surface of nine names, and every primitive
       is required to reproduce a reference that has no arc
-- [ ] 1.1 `ARC_STEPS` in `constants.ts`, chosen by rendering a half-circle at
+- [x] 1.1 `ARC_STEPS` in `constants.ts`, chosen by rendering a half-circle at
       typical loop sizes and checking it does not read as a polygon. Record
       the number tried and rejected in the commit body
-- [ ] 1.2 `pen.arc(cx, cy, rx, ry, from, to, opts)` — sample and hand to
+- [x] 1.2 `pen.arc(cx, cy, rx, ry, from, to, opts)` — sample and hand to
       `stroke`. No curve command reaches the markup
-- [ ] 1.3 Export it on the `Pen` interface with JSDoc saying what it is for
+- [x] 1.3 Export it on the `Pen` interface with JSDoc saying what it is for
       and that angles are radians
 - [ ] 1.4 Tests: sampled output is a jittered polyline; direction follows the
       sign; a full sweep matches what `pill` draws for the same box
@@ -72,7 +72,9 @@ moves.
       was and that it has moved
 - [ ] 5.2 `raw` described as the hatch for what the data model still has no
       word for, rather than for self-transitions specifically
-- [ ] 5.3 The constants table and the "All 33 are exported" count
+- [ ] 5.3 The count of exported constants, which every group before this one
+      moves, and the "Numbers worth designing around" table if any constant
+      added here earns a place among the numbers a caller designs against
 - [ ] 5.4 The checker rules table, in the reference and in both READMEs
 - [ ] 5.5 `pensketch://spec` regenerates; served bytes still equal the file
 

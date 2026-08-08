@@ -22,6 +22,7 @@ const PEN_MEMBERS = [
   'arrow',
   'rect',
   'pill',
+  'arc',
   'diamond',
   'hatch',
   'label',

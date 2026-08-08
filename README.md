@@ -180,6 +180,7 @@ p.label(395, 65, ['a pill', '(two lines)']);
 | `arrow(pts, opts?)` | The same, plus two barbs at the last point. |
 | `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. |
 | `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
+| `arc(cx, cy, rx, ry, from, to, opts?)` | An elliptical arc swept between two angles in radians. |
 | `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
 | `hatch(x, y, w, h, color?)` | Diagonal shading across the box, clipped to it. |
 | `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |

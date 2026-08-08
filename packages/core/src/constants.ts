@@ -5,7 +5,11 @@
 
 /** Nominal length in px of one jittered polyline segment. */
 export const SEG_LEN = 26;
-/** Fewest segments a polyline leg is ever split into. */
+/**
+ * Fewest segments a polyline leg is ever split into, and the fewest chords an
+ * arc is sampled into: the same floor, one level up. A degenerate arc is two
+ * chords, each of which `pass` then splits into two segments of its own.
+ */
 export const MIN_STEPS = 2;
 /** Jitter multiplier at a leg's final point, so joints stay tight. */
 export const END_DAMP = 0.4;
@@ -41,7 +45,8 @@ export const PILL_AMP = 1.4;
  * Segments in a full turn of an arc. A partial sweep takes its share, so a
  * half circle is cut into half as many and density does not change with the
  * angle asked for. Equal to `PILL_STEPS` by construction rather than by
- * accident: a full sweep then traces the ellipse `pill` traces for the box.
+ * accident: a full sweep then samples the ellipse `pill` samples for the box,
+ * at the same angles, though `pill` jitters its radii on top of that.
  */
 export const ARC_STEPS = 26;
 /** Distance in px between hatch lines. */
