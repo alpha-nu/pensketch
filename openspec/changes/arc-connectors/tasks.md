@@ -10,6 +10,9 @@ nothing, and it should not wait behind a feature.
 
 ## 1. The primitive
 
+- [x] 1.0 The delta says which requirements `arc` breaks. Two do, and neither
+      was listed: `Pen` is a closed surface of nine names, and every primitive
+      is required to reproduce a reference that has no arc
 - [ ] 1.1 `ARC_STEPS` in `constants.ts`, chosen by rendering a half-circle at
       typical loop sizes and checking it does not read as a polygon. Record
       the number tried and rejected in the commit body

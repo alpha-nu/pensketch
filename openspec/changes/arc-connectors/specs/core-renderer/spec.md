@@ -60,6 +60,49 @@ opposite sides. A note pointer SHALL accept `bow` with the same meaning.
 
 ## MODIFIED Requirements
 
+### Requirement: The public API surface is closed
+`@pensketch/core` SHALL export exactly: `mulberry32`, `pen`, `draw`, `anchor`,
+`defaultTheme`, the frozen `constants` object, and the types in design.md D2 —
+and nothing else. `Pen` SHALL expose exactly `stroke`, `arrow`, `rect`,
+`pill`, `arc`, `diamond`, `hatch`, `label`, `wash`, and `rng`. `label` SHALL
+accept a `string` (normalized to a one-element array) or a `string[]`.
+
+#### Scenario: No accidental exports
+- **WHEN** the built module's export names are enumerated
+- **THEN** they match the design.md D2 surface exactly
+
+#### Scenario: The surface opens by exactly one name
+- **WHEN** a pen's own members are enumerated
+- **THEN** they are the names above and no others, `arc` being the only one this change adds
+
+### Requirement: Hand-sketch primitive fidelity
+Every primitive the reference draws SHALL reproduce its behavior exactly:
+double-pass strokes (second pass ×.75 width, opacities .92/.5, round caps),
+~26 px segmentation with ×.4 endpoint damping, dash pattern `2 7` for dotted,
+corner overshoot `4 × rng()` per rect stroke end in the reference's stroke
+order, 26-segment pills with radius jitter 3/2 at amplitude 1.4,
+closed-midpoint diamonds, 11 px-spaced clipped hatching, per-line `<text>`
+labels with `dominant-baseline:middle` and inline fill/size style, and plain
+`rx=6` wash rects. A primitive the port adds where the reference has none —
+`arc` is the first — SHALL be assembled from those same passes rather than
+from a second way of drawing, and `reference/renderer.html` SHALL NOT be
+edited to acquire it: it is the ground truth the port is measured against, and
+a target that moves measures nothing. All aesthetic constants SHALL live as
+named exports in `constants.ts` and SHALL NOT be runtime-configurable in this
+release.
+
+#### Scenario: Double-stroke structure
+- **WHEN** a single `stroke()` call renders
+- **THEN** exactly two `<path>` elements are appended, the second with `stroke-width` equal to ×.75 of the first and opacities .92 and .5 respectively
+
+#### Scenario: Dotted stays dotted only on the shaft
+- **WHEN** `arrow()` renders with `dotted: true`
+- **THEN** the shaft paths carry `stroke-dasharray="2 7"` and the two arrowhead strokes carry none
+
+#### Scenario: A primitive the reference does not have
+- **WHEN** `arc()` renders
+- **THEN** it appends the same two jittered `<path>` elements every other primitive appends, and the goldens generated from the reference are unchanged by its arrival
+
 ### Requirement: Invalid diagram data fails fast and specific
 `draw()` SHALL throw an `Error` naming the offending item for: an edge
 referencing an unknown node id, two nodes sharing an id, a node with an
