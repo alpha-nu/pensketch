@@ -88,8 +88,8 @@ export interface Pen {
    * and drawn through `stroke`, so it wobbles like everything else and no
    * curve command reaches the markup. A full turn samples the same ellipse
    * `pill` samples for the same box, at the same angles — the ellipse, not the
-   * drawing: `pill` wobbles its radii per point and strokes lighter, so an arc
-   * around a box is a shakier line on the same path.
+   * drawing: `pill` wobbles its radii per point and strokes lighter, so the
+   * two wobble differently along one path.
    */
   arc(
     cx: number,

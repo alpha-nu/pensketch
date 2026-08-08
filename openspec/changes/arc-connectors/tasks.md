@@ -20,7 +20,7 @@ nothing, and it should not wait behind a feature.
       `stroke`. No curve command reaches the markup
 - [x] 1.3 Export it on the `Pen` interface with JSDoc saying what it is for
       and that angles are radians
-- [ ] 1.4 Tests: sampled output is a jittered polyline; direction follows the
+- [x] 1.4 Tests: sampled output is a jittered polyline; direction follows the
       sign; a full sweep matches what `pill` draws for the same box
 
 Gate: goldens unchanged — nothing existing calls `arc`, so no seeded sequence

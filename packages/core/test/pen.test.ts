@@ -10,6 +10,7 @@ import { makeSvg, nth, pathsOf, pointsOf, tagsOf, textsOf } from './helpers';
 
 const {
   AMP,
+  ARC_STEPS,
   DASH,
   END_DAMP,
   HATCH_AMP,
@@ -287,6 +288,136 @@ describe('pill()', () => {
         nth(points, i * MIN_STEPS),
         [50 + 50 * Math.cos(a), 50 + 50 * Math.sin(a)],
         within,
+      );
+    }
+  });
+});
+
+describe('arc()', () => {
+  // The strongest claim in this block, and the one the rest of it rests on:
+  // arc draws nothing of its own and takes nothing out of the seeded sequence
+  // beyond what stroke takes, so no diagram rendered before it existed can
+  // have moved by a byte.
+  it('is a stroke of the sampled points and nothing else', () => {
+    const cx = 50;
+    const cy = 50;
+    const rx = 40;
+    const ry = 30;
+    const from = 0.3;
+    const to = 2.4;
+    const sweep = to - from;
+    const steps = Math.max(
+      MIN_STEPS,
+      Math.round((ARC_STEPS * Math.abs(sweep)) / (2 * Math.PI)),
+    );
+    const pts: Point[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = from + sweep * (i / steps);
+      pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+    }
+
+    // Options no default would produce, handed to both: arc's seventh
+    // argument is forwarded or it is not, and nothing else would notice.
+    // Every other primitive is covered there by a golden drawn through
+    // `draw`; arc has no caller yet, so this is the only thing watching.
+    const opts: StrokeOptions = {
+      color: 'red',
+      dotted: true,
+      width: 3,
+      amplitude: 1,
+    };
+    const curved = makeSvg();
+    pen(curved).arc(cx, cy, rx, ry, from, to, opts);
+    const sampled = makeSvg();
+    pen(sampled).stroke(pts, opts);
+
+    // Whole elements, both passes, string for string. Equal to the last digit
+    // is the only form of this assertion that rules out a stray rng() call,
+    // which would shift every jittered coordinate after it without moving any
+    // of them far; whole elements rather than `d` alone is what makes the
+    // colour, the dashes and the widths part of the claim.
+    expect(pathsOf(curved).map((path) => path.outerHTML)).toEqual(
+      pathsOf(sampled).map((path) => path.outerHTML),
+    );
+  });
+
+  it('samples the curve into straight chords and emits no curve command', () => {
+    const svg = makeSvg();
+    pen(svg).arc(50, 50, 40, 40, 0, Math.PI);
+
+    const paths = pathsOf(svg);
+    expect(paths).toHaveLength(2);
+    const first = nth(paths, 0);
+    // Only M and L survive stripping the numbers out of `d`. An A or a C
+    // would hand the shape back to the renderer, which draws it exactly, and
+    // an exact curve is the one thing this pen must never emit.
+    expect((attr(first, 'd') ?? '').replace(/[^A-Za-z]/g, '')).toMatch(/^ML+$/);
+
+    // A half sweep takes half the chords of a full turn, so the density of a
+    // partial arc is the density of a whole one.
+    const chords = ARC_STEPS / 2;
+    const points = pointsOf(first);
+    // Every chord of a half circle of radius 40 is shorter than SEG_LEN, so
+    // each one is the MIN_STEPS floor: the vertices are the even indices.
+    expect(points).toHaveLength(chords * MIN_STEPS + 1);
+
+    for (let i = 0; i <= chords; i++) {
+      const a = (i / chords) * Math.PI;
+      // Vertex 0 is the M point, jittered at the full amplitude; every later
+      // one is a chord's final point and damped. The tighter bound is the
+      // point of the assertion: arc puts the vertex on the true ellipse and
+      // adds no radius jitter of its own the way pill does.
+      expectNear(
+        nth(points, i * MIN_STEPS),
+        [50 + 40 * Math.cos(a), 50 + 40 * Math.sin(a)],
+        i === 0 ? spread(AMP) : damped(AMP),
+      );
+    }
+  });
+
+  it('sweeps clockwise on screen when the sweep is positive', () => {
+    // A quarter turn from the +x axis, once each way. The last sample is the
+    // one the sign decides: it is the only vertex whose angle is exactly the
+    // `to` it was given, so it lands on the circle rather than a chord's worth
+    // inside it, and a plain jitter bound is the whole tolerance.
+    const quarter = (to: number) => {
+      const svg = makeSvg();
+      pen(svg).arc(50, 50, 40, 40, 0, to);
+      const points = pointsOf(nth(pathsOf(svg), 0));
+      return nth(points, points.length - 1);
+    };
+
+    // A positive sweep travels clockwise on screen, because y grows downward
+    // in SVG: a quarter turn from the +x axis is below the centre, not above
+    // it. A reader who assumes otherwise puts the loop on the wrong side of
+    // the node. An implementation that took the magnitude and ignored the
+    // sign would put both of these in the same place.
+    expectNear(quarter(Math.PI / 2), [50, 50 + 40], damped(AMP));
+    expectNear(quarter(-Math.PI / 2), [50, 50 - 40], damped(AMP));
+  });
+
+  it('lands a full sweep on the angles pill walks for the same box', () => {
+    const svg = makeSvg();
+    pen(svg).arc(50, 50, 50, 50, 0, 2 * Math.PI);
+
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    // ARC_STEPS equals PILL_STEPS, so a full turn is chord for chord what
+    // pill walks, each one again under SEG_LEN and cut at the MIN_STEPS floor.
+    expect(points).toHaveLength(PILL_STEPS * MIN_STEPS + 1);
+
+    // The same ellipse at the same angles, not the same drawing: pill jitters
+    // both radii per point and strokes at PILL_AMP, so the two lines wobble
+    // differently along one path.
+    for (let i = 0; i <= PILL_STEPS; i++) {
+      // Deliberately the expression the pill test uses for pill(0, 0, 100,
+      // 100), so a drift in either sampling shows up as the two tests
+      // disagreeing. What holds the angles to the last bit is the first test
+      // in this block; this one holds them to a jitter bound.
+      const a = (i / PILL_STEPS) * 2 * Math.PI;
+      expectNear(
+        nth(points, i * MIN_STEPS),
+        [50 + 50 * Math.cos(a), 50 + 50 * Math.sin(a)],
+        i === 0 ? spread(AMP) : damped(AMP),
       );
     }
   });
