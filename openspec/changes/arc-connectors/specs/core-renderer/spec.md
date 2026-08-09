@@ -108,7 +108,11 @@ release.
 
 #### Scenario: A primitive the reference does not have
 - **WHEN** `arc()` renders
-- **THEN** it appends the same two jittered `<path>` elements every other primitive appends, and the goldens generated from the reference are unchanged by its arrival
+- **THEN** it appends the same two jittered `<path>` elements every other primitive appends
+
+#### Scenario: Adding a primitive moves nothing already drawn
+- **WHEN** a diagram that calls no arc is rendered by a port that has one
+- **THEN** it still serializes byte-identical to the golden generated from the reference, since the new code draws from the seeded sequence only when it is invoked
 
 ### Requirement: Invalid diagram data fails fast and specific
 `draw()` SHALL throw an `Error` naming the offending item for: an edge
