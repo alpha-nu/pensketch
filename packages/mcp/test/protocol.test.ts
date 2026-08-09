@@ -1,6 +1,7 @@
 import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { describe, expect, it } from 'vitest';
 import { createServer } from '../src/index';
+import { svgFor } from '../src/tools';
 
 // The factory with a transport attached, but not a process: the SDK's
 // in-memory pair speaks the same protocol over a pipe in this test. What it
@@ -75,13 +76,31 @@ describe('a client talking to the server', () => {
   it('lists the three tools with their descriptions', async () => {
     const { send } = await connected();
     const { result } = await send('tools/list');
-    const tools = result?.tools as { name: string; description?: string }[];
+    const tools = result?.tools as {
+      name: string;
+      description?: string;
+      inputSchema?: {
+        additionalProperties?: boolean;
+        properties?: { diagram?: { additionalProperties?: boolean } };
+      };
+    }[];
     expect(tools.map((t) => t.name).sort()).toEqual([
       'check_diagram',
       'render_diagram',
       'render_png',
     ]);
-    for (const tool of tools) expect(tool.description).toBeTruthy();
+    for (const tool of tools) {
+      expect(tool.description).toBeTruthy();
+      // The schema a client validates against says what the server does.
+      // These two are the published half of the strict boundary: without
+      // them a caller's own validator waves through a key the server is
+      // about to refuse, and the caller learns about it from an error rather
+      // than from the contract it was handed.
+      expect(tool.inputSchema?.additionalProperties).toBe(false);
+      expect(tool.inputSchema?.properties?.diagram?.additionalProperties).toBe(
+        false,
+      );
+    }
   });
 
   it('lists every resource', async () => {
@@ -126,5 +145,95 @@ describe('a client talking to the server', () => {
     expect(JSON.parse(contents[0]?.text ?? '{}').title).toBe(
       'Pensketch diagram',
     );
+  });
+});
+
+/** A tool call the way a client makes it, answer and all. */
+const called = async (name: string, args: Record<string, unknown>) => {
+  const { send } = await connected();
+  const { result } = await send('tools/call', { name, arguments: args });
+  return (result ?? {}) as { isError?: boolean; content?: { text: string }[] };
+};
+
+/** The text of a refusal, having insisted it was one. */
+const refusal = async (name: string, args: Record<string, unknown>) => {
+  const result = await called(name, args);
+  expect(result.isError).toBe(true);
+  return result.content?.[0]?.text ?? '';
+};
+
+const NODE = { id: 'a', shape: 'box', x: 10, y: 10, w: 100, h: 40 };
+const BOX = [0, 0, 260, 100] as [number, number, number, number];
+
+// These belong here rather than in `tools.test.ts`, and the distinction is
+// the whole point: that file reaches a handler directly, which is past where
+// the input schema is consulted, so a key it sent would arrive whatever the
+// schema said. The SDK validates the arguments of a call that crosses a
+// transport - so only a call that crosses one can prove a key is refused.
+//
+// 0.1.1 stripped these instead. A diagram reached the renderer short a piece,
+// nothing in the reply said so, and a caller who cannot see the picture had
+// no way to find out.
+describe('the tool boundary refuses what it cannot carry', () => {
+  it('names an unrecognised top-level key rather than dropping it', async () => {
+    const text = await refusal('render_diagram', {
+      diagram: { nodes: [NODE], braces: [{ x: 0, y: 0 }] },
+      viewBox: BOX,
+    });
+    expect(text).toContain('"braces"');
+  });
+
+  // The common case, and the one that used to render an empty picture and
+  // report no problem: the key is quoted, so the caller reads back what they
+  // typed rather than what they meant.
+  it('names a misspelled field rather than drawing an empty diagram', async () => {
+    const text = await refusal('check_diagram', { diagram: { node: [NODE] } });
+    expect(text).toContain('"node"');
+  });
+
+  it('refuses `raw`, which the description says it does not accept', async () => {
+    const text = await refusal('render_diagram', {
+      diagram: { nodes: [NODE], raw: {} },
+      viewBox: BOX,
+    });
+    expect(text).toContain('"raw"');
+  });
+
+  // Every tool, not one of them. The arguments beside the diagram are strict
+  // too, or a caller who guessed at an option would be told nothing and get
+  // the default - and a tool left loose is a tool nothing would notice.
+  it.each([
+    ['check_diagram', {}],
+    ['render_diagram', { viewBox: BOX }],
+    ['render_png', { viewBox: BOX }],
+  ])("names an unknown argument beside %s's diagram", async (name, rest) => {
+    const text = await refusal(name, {
+      diagram: { nodes: [NODE] },
+      ...rest,
+      quality: 'high',
+    });
+    expect(text).toContain('"quality"');
+  });
+
+  // The other half of the claim, and the one worth more: nothing that was
+  // reaching the renderer stops reaching it. A diagram using all three
+  // declared keys comes back as exactly the bytes `svgFor` draws for it, so
+  // the boundary is handing the data over rather than sieving it.
+  it('hands every declared key to the renderer unsieved', async () => {
+    const diagram = {
+      nodes: [
+        { id: 'a', shape: 'box', x: 10, y: 10, w: 80, h: 40, lines: ['a'] },
+        { id: 'b', shape: 'box', x: 150, y: 10, w: 80, h: 40, lines: ['b'] },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+      notes: [{ x: 10, y: 80, lines: ['a note'] }],
+    };
+    const result = await called('render_diagram', {
+      diagram,
+      viewBox: BOX,
+      seed: 7,
+    });
+    expect(result.isError).toBeFalsy();
+    expect(result.content?.[0]?.text).toBe(svgFor(diagram, BOX, 7));
   });
 });

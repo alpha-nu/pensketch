@@ -26,14 +26,20 @@ export const TRAPS = {
 // which is generated from the TypeScript types - so restating it here would
 // be a second source of truth for a shape that already has one, and the two
 // would drift the first time a field moved.
+//
+// `strictObject`, so a key this does not name is refused by name rather than
+// stripped: the schema published alongside it forbids one, and a caller who
+// cannot see the picture cannot see a piece of it go missing either. The cost
+// is that the top level is a list to maintain - a new top-level field is
+// refused until it is added here.
 const diagram = z
-  .object({
+  .strictObject({
     nodes: z.array(z.unknown()).optional(),
     edges: z.array(z.unknown()).optional(),
     notes: z.array(z.unknown()).optional(),
   })
   .describe(
-    'A diagram: nodes, edges and notes as plain data. Read the pensketch://schema resource for every field. `raw` is not accepted here, holding functions that JSON cannot carry.',
+    'A diagram: nodes, edges and notes as plain data. Read the pensketch://schema resource for every field. Any other key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry.',
   );
 
 const viewBox = z
@@ -82,7 +88,7 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Check a diagram for layout defects',
       description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} Run this before rendering, and again after moving anything.`,
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         diagram,
         viewBox: viewBox
           .optional()
@@ -120,7 +126,7 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to SVG',
       description: `Returns SVG markup for a diagram. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face.`,
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         diagram,
         viewBox,
         seed: z
@@ -152,7 +158,7 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to a PNG you can look at',
       description: `Rasterizes a diagram so it can be displayed. ${TRAPS.font} ${TRAPS.coordinates} Scale is capped at ${MAX_SCALE}, and an oversized request is refused rather than served.`,
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         diagram,
         viewBox,
         seed: z.number().int().optional(),

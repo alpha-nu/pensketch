@@ -19,11 +19,18 @@ contradicts the schema this same server publishes as `pensketch://schema`,
 which is generated with `additionalProperties: false` and which callers are
 told to validate against.
 
+The schema each tool publishes in its listing SHALL say the same thing, so a
+caller validating locally reaches the same verdict the server will.
+
+#### Scenario: The published schema agrees with the boundary
+- **WHEN** a client lists the tools and reads a tool's input schema
+- **THEN** that schema forbids additional properties, at the top level and on the diagram, rather than admitting a key the server is about to refuse
+
 #### Scenario: An unrecognised field is named, not dropped
 - **WHEN** a diagram carries a top-level key the server does not declare
 - **THEN** the call fails with a message naming that key, rather than returning a rendering of the diagram without it
 
-#### Scenario: A misspelled field is a error, not an empty picture
+#### Scenario: A misspelled field is an error, not an empty picture
 - **WHEN** a caller sends `node` where the schema says `nodes`
 - **THEN** the call fails naming `node`, where before it rendered an empty diagram and reported no problem
 

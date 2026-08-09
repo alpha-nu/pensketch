@@ -18,17 +18,17 @@ an earlier fix for anyone downstream.
 
 ## 1. The boundary
 
-- [ ] 1.1 `z.strictObject` for the diagram argument and for each tool's
+- [x] 1.1 `z.strictObject` for the diagram argument and for each tool's
       argument object. The diagram's own error is the one a caller will meet,
       so check what zod actually says and make sure the key appears in it
-- [ ] 1.2 The description on the diagram argument stops promising something
+- [x] 1.2 The description on the diagram argument stops promising something
       the code did not do. It already says `raw` "is not accepted here"; that
       is now true rather than aspirational
-- [ ] 1.3 Tests: an unknown top-level key, a misspelled `nodes`, and `raw`,
+- [x] 1.3 Tests: an unknown top-level key, a misspelled `nodes`, and `raw`,
       each refused with the offending key named. One test asserts a valid
       diagram still renders byte-identically, because the point is that
       nothing which was reaching the renderer stops reaching it
-- [ ] 1.4 `npm run stdio` — the round trip a client actually makes, over the
+- [x] 1.4 `npm run stdio` — the round trip a client actually makes, over the
       transport, since this is a change to what crosses it
 
 ## 2. Ready to ship
