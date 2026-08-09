@@ -49,7 +49,7 @@ changes.
 ## Impact
 
 - **Affected specs**: `core-renderer`, `diagram-checker`,
-  `documentation-and-examples`
+  `documentation-and-examples`, `repo-tooling`
 - **Affected code**: `packages/core/src/{pen,draw,geometry,check,constants,types}.ts`,
   the generated schema, `docs/agents.md`, the two examples that draw a loop
   through `raw`

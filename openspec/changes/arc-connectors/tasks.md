@@ -22,6 +22,10 @@ nothing, and it should not wait behind a feature.
       and that angles are radians
 - [x] 1.4 Tests: sampled output is a jittered polyline; direction follows the
       sign; a full sweep matches what `pill` draws for the same box
+- [x] 1.5 The size the README prints gets a gate rather than a reminder. It
+      belongs to this group because this group is what made it stale: the
+      figure was exactly right until `arc` landed, and it is the only derived
+      number here that nothing regenerates and nothing asserts
 
 Gate: `npm test`, whose parity tests re-render both fixtures through the port
 and compare them byte for byte against the goldens. Not "goldens unchanged":

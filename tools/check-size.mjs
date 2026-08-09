@@ -46,6 +46,7 @@ const GZIP_LEVEL = 9;
 
 const root = new URL('../', import.meta.url);
 let failed = false;
+const measured = new Map();
 
 // Every package is measured before exiting, so one breach cannot hide another.
 for (const { name, entry, budget } of PACKAGES) {
@@ -56,11 +57,35 @@ for (const { name, entry, budget } of PACKAGES) {
     continue;
   }
   const actual = gzipSync(readFileSync(file), { level: GZIP_LEVEL }).length;
+  measured.set(name, actual);
   const over = actual > budget;
   failed = failed || over;
   console.log(
     `${over ? 'FAIL' : 'PASS'} ${name}: ${actual} B (budget ${budget} B, min+gzip)`,
   );
+}
+
+// The README prints the root entry's size in the table that compares this
+// project to rough.js, and a number a reader is invited to compare had better
+// be the number the build produces. Every other derived thing here is held to
+// its source by regenerating it and asserting the tree is clean; this one has
+// no generator, so it is asserted instead. It went stale the first time an
+// entry grew, which is one growth after it was written.
+const README = 'README.md';
+const CLAIM = /^\| Size, min\+gzip \| \*\*(\d+) B\*\* \|/m;
+const root_size = measured.get('@pensketch/core');
+const claim = CLAIM.exec(readFileSync(new URL(README, root), 'utf8'));
+
+if (!claim) {
+  console.error(
+    `FAIL ${README}: no "Size, min+gzip" row found - if the comparison table moved, this check has to move with it`,
+  );
+  failed = true;
+} else if (root_size !== undefined && Number(claim[1]) !== root_size) {
+  console.error(
+    `FAIL ${README}: the comparison table says ${claim[1]} B, the build measures ${root_size} B`,
+  );
+  failed = true;
 }
 
 // `@pensketch/mcp` carries no byte budget: it is spawned, never bundled into
