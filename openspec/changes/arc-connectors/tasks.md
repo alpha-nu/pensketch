@@ -116,9 +116,11 @@ free and where finding messages are already three quarters of the entry.
       carries its own copy of `draw`, so every error message groups 2 and 3
       add lands in it twice over. Messages are three quarters of the checker
       entry by weight, and this change writes several long ones
-- [ ] 7.2 **OWNER**: dispatch `release.yml` twice. This is the first release
-      to publish tokenless, so the log line to look for is "No NPM_TOKEN
-      found, but OIDC is available"
+- [ ] 7.2 **OWNER**: the dispatch is batched with `strict-tool-input` and
+      `brace-annotations` rather than performed here, so this task is the
+      changeset being ready and nothing more. When it does go out it is the
+      first release to publish tokenless, and the log line to look for is "No
+      NPM_TOKEN found, but OIDC is available"
 - [ ] 7.3 **OWNER**: after publishing, draw a self-transition through the MCP
       server in a real client — the thing that was impossible when this change
       was written

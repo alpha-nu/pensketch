@@ -5,11 +5,18 @@ Execute groups in order. A group is done when the verification commands in
 and every finding is fixed. Items marked **OWNER** are performed by the repo
 owner, never the agent.
 
-Sequenced after `arc-connectors` archives. It needs `arcPoints` from that
-change's group 1, and it extends the render order that change leaves behind.
-It also wants `strict-tool-input` shipped first: without it, a `braces` key
-the server has not been taught is discarded in silence, and this change would
-appear to work while drawing nothing.
+Sequenced after `arc-connectors` is implemented, and after
+`strict-tool-input` — not after either is archived. The release is batched:
+all three changes are implemented before one dispatch goes out, so
+`arc-connectors` is still an open change on disk while this one is built on
+top of it. That is fine and it is worth naming, because the two touch
+`types.ts` and `draw.ts` in the same tree and this one must not quietly
+re-decide anything the other has settled.
+
+It needs `arcPoints` from `arc-connectors` group 1, and it extends the render
+order that change leaves behind. It needs `strict-tool-input` in the tree
+because without it a `braces` key the server has not been taught is discarded
+in silence, and this change would appear to work while drawing nothing.
 
 **Before starting**, close the three questions in design.md D6. They are the
 owner's, and each one changes what ships: whether a brace joins the paths
@@ -48,8 +55,8 @@ is known.
 - [ ] 2.5 `npm run schema` regenerates and gains `DiagramBrace`;
       `generate-schema.mjs`'s required-key assertion learns `braces`
 - [ ] 2.6 The MCP tool's accepted shape gains `braces`. With
-      `strict-tool-input` shipped, forgetting this is a loud failure rather
-      than a silent one — confirm that by trying it before adding it
+      `strict-tool-input` in the tree, forgetting this is a loud failure
+      rather than a silent one — confirm that by trying it before adding it
 - [ ] 2.7 Tests: a round trip through `JSON.parse(JSON.stringify())`, since
       crossing that boundary is the whole point; and a diagram with no
       `braces` rendering byte-identically, asserted against the goldens
@@ -86,7 +93,10 @@ the entry with the least headroom.
 - [ ] 5.2 A changeset: a **minor** for `@pensketch/core` and `@pensketch/mcp`,
       saying that the second thing `raw` could draw and JSON could not is now
       data
-- [ ] 5.3 **OWNER**: dispatch `release.yml` twice
+- [ ] 5.3 **OWNER**: dispatch `release.yml` twice. This is the batched release
+      for all three changes, so the version pull request carries this
+      changeset, `arc-connectors`' and `strict-tool-input`'s together — read
+      all three before merging it
 - [ ] 5.4 **OWNER**: draw a brace through the MCP server in a real client
 
 Gate: all verification commands green, `openspec validate brace-annotations
