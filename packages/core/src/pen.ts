@@ -1,6 +1,5 @@
 import {
   AMP,
-  ARC_STEPS,
   DASH,
   END_DAMP,
   HATCH_AMP,
@@ -26,6 +25,7 @@ import {
   WIDTH,
 } from './constants';
 import { mulberry32 } from './rng';
+import { arcPoints } from './sample';
 import { resolveTheme } from './theme';
 import type {
   LabelOptions,
@@ -200,9 +200,9 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   }
 
   // A curve here is a denser point list and nothing else, which is what lets
-  // it fall through the same two passes as a straight line. ARC_STEPS counts a
-  // full turn, so a partial sweep takes its share and a short arc is cut no
-  // coarser than a long one.
+  // it fall through the same two passes as a straight line. The sampling
+  // itself lives in `sample`, because the checker has to measure the same
+  // points this draws and cannot reach into a pen to get them.
   function arc(
     cx: number,
     cy: number,
@@ -212,20 +212,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     to: number,
     opts: StrokeOptions = {},
   ) {
-    const sweep = to - from;
-    const steps = Math.max(
-      MIN_STEPS,
-      Math.round((ARC_STEPS * Math.abs(sweep)) / (2 * Math.PI)),
-    );
-    const pts: Point[] = [];
-    for (let i = 0; i <= steps; i++) {
-      // `sweep * (i / steps)`, not `(sweep * i) / steps`: the fraction first
-      // is the association `pill` uses, so a full turn lands on its angles to
-      // the last bit rather than to a tolerance.
-      const a = from + sweep * (i / steps);
-      pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
-    }
-    stroke(pts, opts);
+    stroke(arcPoints(cx, cy, rx, ry, from, to), opts);
   }
 
   function diamond(
