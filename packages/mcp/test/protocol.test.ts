@@ -191,6 +191,42 @@ describe('the tool boundary refuses what it cannot carry', () => {
     expect(text).toContain('"node"');
   });
 
+  // Quoting the key back is not a diagnostic - the key came from the caller.
+  // Every assertion above would pass on a message that echoed the arguments
+  // and said nothing, which is what an earlier draft of these tests allowed.
+  // A refusal has to carry the fix, which for this caller means the fields it
+  // should have used and where the rest are written down.
+  it('tells the caller what to send instead, not only what was wrong', async () => {
+    const text = await refusal('check_diagram', { diagram: { node: [NODE] } });
+    expect(text).toContain('It takes nodes, edges and notes');
+    expect(text).toContain('pensketch://schema');
+    // The echo it must not be: an argument dump would carry the node's own
+    // fields along with the offending key.
+    expect(text).not.toContain('"shape"');
+  });
+
+  // Each tool names itself and its own arguments. One shared message would
+  // send a caller who mistyped `scale` off to read about diagrams.
+  it('names the tool and its arguments when the stray key is an argument', async () => {
+    const text = await refusal('render_png', {
+      diagram: { nodes: [NODE] },
+      viewBox: BOX,
+      quality: 'high',
+    });
+    expect(text).toContain('render_png has no argument "quality"');
+    expect(text).toContain('an optional seed and scale');
+  });
+
+  // Plural is a different sentence, and a message assembled by concatenation
+  // reads like one unless somebody looks.
+  it('reads as English when more than one key is refused', async () => {
+    const text = await refusal('render_diagram', {
+      diagram: { nodes: [NODE], raw: [], braces: [] },
+      viewBox: BOX,
+    });
+    expect(text).toContain('A diagram has no fields "raw", "braces".');
+  });
+
   it('refuses `raw`, which the description says it does not accept', async () => {
     const text = await refusal('render_diagram', {
       diagram: { nodes: [NODE], raw: {} },
@@ -213,6 +249,45 @@ describe('the tool boundary refuses what it cannot carry', () => {
       quality: 'high',
     });
     expect(text).toContain('"quality"');
+  });
+
+  // The list in `tools.ts` is hand-maintained, and the schema is generated
+  // from the types. Holding one to the other is what makes a forgotten field
+  // a failing test rather than a field an agent sends and never sees drawn -
+  // which is precisely how the next change adds `braces`.
+  it('declares the same top-level fields the published schema does', async () => {
+    const { send } = await connected();
+    const listed = await send('tools/list');
+    const read = await send('resources/read', {
+      uri: 'pensketch://schema',
+    });
+    const contents = (read.result?.contents ?? []) as { text: string }[];
+    const schema = JSON.parse(contents[0]?.text ?? '{}');
+    const tools = listed.result?.tools as {
+      inputSchema?: {
+        properties?: { diagram?: { properties?: Record<string, unknown> } };
+      };
+    }[];
+    for (const tool of tools) {
+      expect(
+        Object.keys(tool.inputSchema?.properties?.diagram?.properties ?? {}),
+      ).toEqual(Object.keys(schema.properties));
+    }
+  });
+
+  // The boundary is strict at this level and no deeper, and that is a choice
+  // rather than an oversight: the fields inside a member are described by
+  // pensketch://schema, and restating twenty of them here would be the second
+  // source of truth this file was careful not to create. Written down as a
+  // test so that changing it is a decision someone makes on purpose.
+  it('leaves the fields inside a member to the published schema', async () => {
+    const result = await called('render_diagram', {
+      diagram: { nodes: [{ ...NODE, line: ['a typo for lines'] }] },
+      viewBox: BOX,
+    });
+    expect(result.isError).toBeFalsy();
+    // Accepted, drawn, and the label the caller meant is simply absent.
+    expect(result.content?.[0]?.text).not.toContain('a typo for lines');
   });
 
   // The other half of the claim, and the one worth more: nothing that was

@@ -3,14 +3,48 @@
 > A boundary that discards what it does not recognise is worse than one that
 > refuses it, because the caller cannot see the result.
 
+## MODIFIED Requirements
+
+### Requirement: Resources mirror files that already exist
+The server SHALL expose the agent-facing spec, the JSON Schema for `Diagram`,
+the diagrams this repository ships as examples, and the frozen constants. Each
+SHALL be read from its existing single source rather than restated, and a test
+SHALL assert the served bytes match that source.
+
+An example SHALL be served as an envelope carrying the diagram, the frame to
+draw it in, and what a reader needs to know about it — and its description
+SHALL say which of those fields are the tool's arguments. The envelope is not
+itself an argument, and a description that invites it to be passed as one is
+wrong in the direction that costs a caller a wasted call.
+
+#### Scenario: A resource cannot drift from its source
+- **WHEN** the agent-facing spec file changes and the served resource is not updated
+- **THEN** the test comparing them fails
+
+#### Scenario: Examples are served as data
+- **WHEN** an example resource is read
+- **THEN** its `diagram` field is a diagram `render_diagram` accepts unchanged, and its `viewBox` is the frame to pass beside it
+
 ## ADDED Requirements
 
 ### Requirement: The tool boundary refuses what it cannot carry
-Every tool's arguments SHALL be validated strictly: a key the tool does not
-declare SHALL be refused, naming that key, rather than accepted and discarded.
-This SHALL apply to the diagram argument and to the arguments beside it, and
-SHALL include `raw`, which the server does not accept because it holds
-functions that JSON cannot carry.
+Every tool's arguments SHALL be validated strictly **at their top level**: a
+key the tool does not declare SHALL be refused, naming that key, rather than
+accepted and discarded. This SHALL apply to the diagram argument and to the
+arguments beside it, and SHALL include `raw`, which the server does not accept
+because it holds functions that JSON cannot carry.
+
+It SHALL NOT extend to the fields inside a node, an edge or a note. Those are
+described by `pensketch://schema`, which the server publishes and which
+forbids extras at every level, and restating them at the boundary would be a
+second source of truth for a shape that already has one. A caller that
+misspells a member field therefore still gets a drawing missing that field's
+contribution — the same defect this requirement fixes one level up — and the
+schema is what catches it.
+
+A refusal SHALL name what the caller should have sent, not only what was
+wrong: the fields or arguments that are accepted, and where the rest are
+written down. A caller that cannot see the drawing has only the message.
 
 The reason is the audience. A caller that cannot see the rendered result has
 only what the server tells it, and silently dropping part of a diagram gives
@@ -19,12 +53,16 @@ contradicts the schema this same server publishes as `pensketch://schema`,
 which is generated with `additionalProperties: false` and which callers are
 told to validate against.
 
-The schema each tool publishes in its listing SHALL say the same thing, so a
-caller validating locally reaches the same verdict the server will.
+The schema each tool publishes in its listing SHALL declare that same
+restriction — additional properties forbidden, at the top level and on the
+diagram — so that a client reading the contract is not told it may send a key
+the server is about to refuse. This is a claim about those two flags and not
+about the schema agreeing with the boundary in general: a generated schema
+expresses some constraints less precisely than the validator enforces them.
 
-#### Scenario: The published schema agrees with the boundary
+#### Scenario: The published schema declares the restriction it enforces
 - **WHEN** a client lists the tools and reads a tool's input schema
-- **THEN** that schema forbids additional properties, at the top level and on the diagram, rather than admitting a key the server is about to refuse
+- **THEN** additional properties are forbidden at the top level and on the diagram, rather than the schema admitting a key the server is about to refuse
 
 #### Scenario: An unrecognised field is named, not dropped
 - **WHEN** a diagram carries a top-level key the server does not declare

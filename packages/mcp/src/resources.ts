@@ -67,7 +67,7 @@ export function registerResources(server: McpServer): void {
       exampleUri(key),
       {
         title: example.title,
-        description: `${example.title}. The data that drew it, exactly as this repository ships it, ready to hand to render_diagram.`,
+        description: `${example.title}. The data that drew it, exactly as this repository ships it: its \`diagram\` is what render_diagram takes as \`diagram\`, and its \`viewBox\` is the frame to pass beside it. The envelope itself is not the argument.`,
         mimeType: 'application/json',
       },
       async (uri) => ({

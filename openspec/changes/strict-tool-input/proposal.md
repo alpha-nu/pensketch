@@ -33,20 +33,33 @@ addition into a debugging session about why a shape did not appear.
 
 ## What changes
 
-- **`z.strictObject` for every tool input**, so an unrecognised key is refused
-  by name instead of dropped. That covers the diagram argument and the
-  arguments beside it.
+- **`z.strictObject` for every tool input's top level**, so an unrecognised key
+  is refused by name instead of dropped. That covers the diagram argument and
+  the arguments beside it.
 - **`raw` is refused rather than stripped.** It is already documented as not
   accepted; now saying so is the behaviour rather than only the description.
-- **A test that the refusal names the key**, because "invalid input" sends a
-  caller back to a schema it already believed it had followed.
+- **The refusal names the fix**, not only the defect: the fields that are
+  accepted and where the rest are written down. "Invalid input" sends a caller
+  back to a schema it already believed it had followed.
+
+**Not the fields inside a node, an edge or a note.** Those stay as they are —
+`pensketch://schema` describes them, and restating twenty of them at the
+boundary would be the second source of truth this server was careful not to
+create. So a diagram whose node says `line` for `lines` is still accepted and
+still draws an unlabelled box. That is the same defect, one level down, and it
+is left deliberately rather than overlooked: closing it means validating
+against the published schema itself, which needs a validator at runtime and a
+dialect the shipped schema does not yet speak. Worth doing, and not here.
 
 ## Impact
 
 - **Affected specs**: `mcp-server`
 - **Affected code**: `packages/mcp/src/tools.ts`, its tests
 - **Version**: a **minor** for `@pensketch/mcp`. Input that was accepted is now
-  refused. Nothing that was rendered changes, because the discarded keys never
-  reached the renderer — that is the defect.
+  refused. No diagram's rendered bytes change — but some calls that returned a
+  picture now return an error, which is the point and is not the same claim: a
+  call carrying `raw` beside real nodes drew the rest and now does not, and a
+  served example spread wholesale into the arguments drew correctly and now
+  does not.
 - **Not affected**: the rendering packages, the schema (already correct), and
   every diagram that was valid, which stays valid.

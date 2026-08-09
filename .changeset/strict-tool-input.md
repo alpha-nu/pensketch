@@ -11,15 +11,32 @@ stripped anything the schema forbids. A diagram carrying a key the server did
 not know reached the renderer without it: no error, no diagnostic, and a
 caller who cannot see the picture had no way to learn that a piece of it was
 missing. The common case was not an exotic field but a misspelled one —
-`node` for `nodes` rendered an empty diagram and reported no problem.
+`node` for `nodes` rendered an empty diagram, and `check_diagram` then
+reported "No findings." on it, so the one verification step in the product
+certified the loss.
 
-Every tool's arguments are now validated strictly, and the offending key is
-named back to you: `Unrecognized key: "node"`. The schema each tool publishes
-in its listing says the same, so a client validating locally reaches the same
-verdict the server will.
+Every tool's arguments are now validated strictly **at their top level**, and
+the message names what you should have sent:
 
-This is a minor rather than a patch because input that used to be accepted is
-now refused. Nothing that was reaching the renderer stops reaching it — the
-keys this refuses never got there, which was the defect. Diagrams that follow
-the published schema are unaffected, including every example this server
-serves.
+```
+A diagram has no field "node". It takes nodes, edges and notes;
+read pensketch://schema for the fields inside each.
+```
+
+The schema each tool publishes in its listing declares the same restriction,
+so a client validating locally is not told it may send a key the server will
+refuse.
+
+**What this does not cover.** Fields inside a node, an edge or a note are
+unchanged: `{ nodes: [{ …, line: ['hi'] }] }` is still accepted and still
+draws an unlabelled box. Those fields are described by `pensketch://schema`,
+and restating them at the boundary would be a second source of truth. Validate
+against the schema to catch them.
+
+**What may break.** No diagram's rendered bytes change, but some calls that
+returned a picture now return an error. If you send `raw` alongside real nodes,
+you used to get the rest of the diagram and will now get a refusal — `raw`
+holds functions and never crossed this interface anyway. If you spread a
+served `pensketch://example/*` envelope straight into the arguments, its
+`title` and `rawOmitted` are now refused; pass `example.diagram` and
+`example.viewBox` instead, which is what the resource description now says.

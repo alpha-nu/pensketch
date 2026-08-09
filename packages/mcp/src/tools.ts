@@ -21,6 +21,21 @@ export const TRAPS = {
   font: 'The PNG draws text in a stand-in font, not the handwriting stack the SVG names, so it is authoritative about structure and not about fit — use check_diagram for fit.',
 } as const;
 
+// A refusal names the fix, not just the defect. Everything else this project
+// throws does - `known ids are "a", "b"`, `expected group, box, pill or
+// diamond` - and the caller here is the one least able to work it out for
+// itself, since it cannot see what was drawn. zod names the key it rejected;
+// what it cannot know is what should have been written instead, so each
+// schema says that itself.
+const refuses = (subject: string, noun: string, takes: string) => ({
+  error: (issue: { code: string; keys?: PropertyKey[] }) => {
+    if (issue.code !== 'unrecognized_keys') return undefined;
+    const keys = issue.keys ?? [];
+    const named = keys.map((key) => JSON.stringify(key)).join(', ');
+    return `${subject} has no ${noun}${keys.length > 1 ? 's' : ''} ${named}. It takes ${takes}.`;
+  },
+});
+
 // The top-level shape only. Every field of a node, an edge or a note is
 // described by the JSON Schema this server publishes as `pensketch://schema`,
 // which is generated from the TypeScript types - so restating it here would
@@ -29,17 +44,28 @@ export const TRAPS = {
 //
 // `strictObject`, so a key this does not name is refused by name rather than
 // stripped: the schema published alongside it forbids one, and a caller who
-// cannot see the picture cannot see a piece of it go missing either. The cost
-// is that the top level is a list to maintain - a new top-level field is
-// refused until it is added here.
+// cannot see the picture cannot see a piece of it go missing either. That
+// holds at this level and no deeper - a node carrying `line` for `lines` is
+// still accepted here and still draws an unlabelled box, because the fields
+// inside a member are the schema's business rather than this list's. The cost
+// of the list is that a new top-level field is refused until it is added, and
+// a test holds it to the schema's own top level so that is a failure rather
+// than a surprise.
 const diagram = z
-  .strictObject({
-    nodes: z.array(z.unknown()).optional(),
-    edges: z.array(z.unknown()).optional(),
-    notes: z.array(z.unknown()).optional(),
-  })
+  .strictObject(
+    {
+      nodes: z.array(z.unknown()).optional(),
+      edges: z.array(z.unknown()).optional(),
+      notes: z.array(z.unknown()).optional(),
+    },
+    refuses(
+      'A diagram',
+      'field',
+      'nodes, edges and notes; read pensketch://schema for the fields inside each',
+    ),
+  )
   .describe(
-    'A diagram: nodes, edges and notes as plain data. Read the pensketch://schema resource for every field. Any other key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry.',
+    'A diagram: nodes, edges and notes as plain data. Read the pensketch://schema resource for every field. Any other top-level key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry. Fields inside a node, an edge or a note are not checked here - pensketch://schema is what describes those.',
   );
 
 const viewBox = z
@@ -88,14 +114,21 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Check a diagram for layout defects',
       description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} Run this before rendering, and again after moving anything.`,
-      inputSchema: z.strictObject({
-        diagram,
-        viewBox: viewBox
-          .optional()
-          .describe(
-            'Without it the out-of-bounds rule cannot run and does not.',
-          ),
-      }),
+      inputSchema: z.strictObject(
+        {
+          diagram,
+          viewBox: viewBox
+            .optional()
+            .describe(
+              'Without it the out-of-bounds rule cannot run and does not.',
+            ),
+        },
+        refuses(
+          'check_diagram',
+          'argument',
+          'a diagram and an optional viewBox',
+        ),
+      ),
     },
     async ({ diagram: d, viewBox: box }) => {
       try {
@@ -126,19 +159,28 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to SVG',
       description: `Returns SVG markup for a diagram. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face.`,
-      inputSchema: z.strictObject({
-        diagram,
-        viewBox,
-        seed: z
-          .number()
-          .int()
-          .optional()
-          .describe('Picks which drawing of the same data you get. Default 1.'),
-        label: z
-          .string()
-          .optional()
-          .describe('An accessible name, set as aria-label on the <svg>.'),
-      }),
+      inputSchema: z.strictObject(
+        {
+          diagram,
+          viewBox,
+          seed: z
+            .number()
+            .int()
+            .optional()
+            .describe(
+              'Picks which drawing of the same data you get. Default 1.',
+            ),
+          label: z
+            .string()
+            .optional()
+            .describe('An accessible name, set as aria-label on the <svg>.'),
+        },
+        refuses(
+          'render_diagram',
+          'argument',
+          'a diagram, a viewBox, and an optional seed and label',
+        ),
+      ),
     },
     async ({ diagram: d, viewBox: box, seed, label }) => {
       try {
@@ -158,15 +200,22 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to a PNG you can look at',
       description: `Rasterizes a diagram so it can be displayed. ${TRAPS.font} ${TRAPS.coordinates} Scale is capped at ${MAX_SCALE}, and an oversized request is refused rather than served.`,
-      inputSchema: z.strictObject({
-        diagram,
-        viewBox,
-        seed: z.number().int().optional(),
-        scale: z
-          .number()
-          .optional()
-          .describe(`1 to ${MAX_SCALE}. Default 2, for a legible image.`),
-      }),
+      inputSchema: z.strictObject(
+        {
+          diagram,
+          viewBox,
+          seed: z.number().int().optional(),
+          scale: z
+            .number()
+            .optional()
+            .describe(`1 to ${MAX_SCALE}. Default 2, for a legible image.`),
+        },
+        refuses(
+          'render_png',
+          'argument',
+          'a diagram, a viewBox, and an optional seed and scale',
+        ),
+      ),
     },
     async ({ diagram: d, viewBox: box, seed, scale = 2 }) => {
       try {

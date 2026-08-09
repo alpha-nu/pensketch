@@ -74,8 +74,13 @@ describe('a resource cannot drift from its source', () => {
   });
 });
 
+// Every example, from one list. Three of these blocks named their keys
+// inline and the fourth example was served, listed, and covered by none of
+// them - the one an agent is most likely to read, at that.
+const EXAMPLE_KEYS = ['pipeline', 'lifecycle', 'oauth', 'atm'];
+
 describe('the examples are served as data', () => {
-  it.each(['pipeline', 'lifecycle', 'oauth'])(
+  it.each(EXAMPLE_KEYS)(
     '%s is a diagram render_diagram would accept',
     async (key) => {
       const example = JSON.parse(await readResource(exampleUri(key)));
@@ -88,7 +93,7 @@ describe('the examples are served as data', () => {
   // They are the diagrams this repository ships, and CI holds those to the
   // checker. An example that broke the rules it is meant to teach would be
   // the worst thing in here.
-  it.each(['pipeline', 'lifecycle', 'oauth'])(
+  it.each(EXAMPLE_KEYS)(
     '%s passes the checker it is meant to demonstrate',
     async (key) => {
       const { diagram, viewBox } = JSON.parse(
@@ -101,7 +106,7 @@ describe('the examples are served as data', () => {
   // `raw` holds functions, and the lifecycle example uses it for the
   // self-transition. JSON cannot carry that, so it must not appear to.
   it('never claims to carry the raw escape hatch', async () => {
-    for (const key of ['pipeline', 'lifecycle', 'oauth'])
+    for (const key of EXAMPLE_KEYS)
       expect(await readResource(exampleUri(key))).not.toContain('"raw"');
   });
 });
