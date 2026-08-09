@@ -47,6 +47,10 @@ export const PILL_AMP = 1.4;
  * angle asked for. Equal to `PILL_STEPS` by construction rather than by
  * accident: a full sweep then samples the ellipse `pill` samples for the box,
  * at the same angles, though `pill` jitters its radii on top of that.
+ *
+ * It is a floor on density, not a ceiling. Past a radius of about 108 px a
+ * chord this coarse would outrun `SEG_LEN`, and an arc is sampled more
+ * finely so that no leg of a curve is longer than a leg of a straight line.
  */
 export const ARC_STEPS = 26;
 /** Distance in px between hatch lines. */

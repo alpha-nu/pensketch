@@ -86,10 +86,12 @@ export interface Pen {
    * increasing angle turns from the +x axis towards +y, which is clockwise on
    * screen, because SVG's y grows downward. The arc is sampled into a polyline
    * and drawn through `stroke`, so it wobbles like everything else and no
-   * curve command reaches the markup. A full turn samples the same ellipse
-   * `pill` samples for the same box, at the same angles — the ellipse, not the
-   * drawing: `pill` wobbles its radii per point and strokes lighter, so the
-   * two wobble differently along one path.
+   * curve command reaches the markup. Up to a radius of about 108 px a full
+   * turn samples the same ellipse `pill` samples for the same box, at the same
+   * angles — the ellipse, not the drawing: `pill` wobbles its radii per point
+   * and strokes lighter, so the two wobble differently along one path. Beyond
+   * that radius an arc takes more points than `pill` does, so that no leg of a
+   * curve is ever longer than a leg of a straight line.
    */
   arc(
     cx: number,

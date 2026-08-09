@@ -421,6 +421,32 @@ describe('arc()', () => {
       );
     }
   });
+
+  it('samples past the angle rule rather than let a chord outrun SEG_LEN', () => {
+    // Above about 108 px, a chord at ARC_STEPS to the turn would be longer
+    // than the segment a straight leg is cut into, and the arc would be the
+    // coarsest line in the picture. The chord rule takes over there. This is
+    // the case group 3 produces: a connector bowed shallowly across a wide
+    // diagram is a large radius through a small sweep.
+    const r = 200;
+    const svg = makeSvg();
+    pen(svg).arc(50, 90, r, r, 0, 2 * Math.PI);
+
+    const chords = Math.ceil((r * 2 * Math.PI) / SEG_LEN);
+    expect(chords).toBeGreaterThan(PILL_STEPS);
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    expect(points).toHaveLength(chords * MIN_STEPS + 1);
+
+    // The point of the rule, asserted as the rule rather than as its count:
+    // every gap between sampled vertices is within a leg's segment length.
+    for (let i = 1; i <= chords; i++) {
+      const [x0, y0] = nth(points, (i - 1) * MIN_STEPS);
+      const [x1, y1] = nth(points, i * MIN_STEPS);
+      expect(Math.hypot(x1 - x0, y1 - y0)).toBeLessThanOrEqual(
+        SEG_LEN + spread(AMP) * 2,
+      );
+    }
+  });
 });
 
 describe('diamond()', () => {

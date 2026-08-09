@@ -13,6 +13,9 @@ difference giving direction. It SHALL sample the arc into points and draw them
 through the same two-pass `stroke` as every other primitive, so that a curve
 carries the same jitter, the same damped ends and the same pressure as a
 straight line. It SHALL NOT emit a Bézier or any other smooth path command.
+Sampling SHALL be no coarser than the segmentation a straight leg receives: at
+any radius, no chord of a sampled arc SHALL be longer than that segment
+length.
 
 #### Scenario: A curve wobbles like the rest of the picture
 - **WHEN** an arc and a straight line are drawn by the same pen at the same seed
@@ -21,6 +24,10 @@ straight line. It SHALL NOT emit a Bézier or any other smooth path command.
 #### Scenario: Sampling is dense enough to read as a curve
 - **WHEN** a half-circle is drawn at a typical loop size
 - **THEN** its sampled points are close enough together that the result reads as an arc rather than as a polygon
+
+#### Scenario: A curve is never described more coarsely than a straight line
+- **WHEN** an arc is drawn whose radius is large enough that a fixed angle per chord would produce chords longer than the renderer's own segment length — a connector bowed shallowly across a wide diagram is the case that arises
+- **THEN** it is sampled more finely instead, so no leg of a curve is longer than a leg of a straight line beside it
 
 ### Requirement: A self-transition is stated in the data
 An edge whose `from` and `to` name the same node id and the same side SHALL
