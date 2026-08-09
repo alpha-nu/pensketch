@@ -85,7 +85,7 @@ paths consume from the seeded sequence only when invoked, so a diagram that
 uses none of this draws exactly what it drew before — asserted against the
 existing goldens rather than argued.
 
-## D6 — Braces and brackets: deferred, and cheap once this lands
+## D6 — Braces and brackets: their own change, and it is written
 
 Prototyped while specifying this. A curly brace is **four quarter-arcs and two
 runs** — 24 points, exact geometry, drawn by the existing `stroke`:
@@ -100,11 +100,21 @@ So once `arc` exists, a brace is about ten lines of point generation on top of
 it. A square bracket needs no arc at all — four points through `stroke`, which
 a caller can already draw today.
 
-Deferred anyway, for two reasons. It is an **annotation**, not a connector:
-its home is `notes`, its questions are about labels and spans, and it shares
-nothing with this change but the primitive. And this change already carries
-three user-visible features; adding a fourth with a different shape of
-decision behind it is how a change stops being reviewable.
+Not in this change, for three reasons. It is an **annotation**, not a
+connector: its questions are about spans and labels, and it shares nothing
+with this change but the primitive. This change already carries three
+user-visible features, and a fourth with a different shape of decision behind
+it is how a change stops being reviewable. And the third reason was measured
+rather than felt: a prototype of the brace phase costs **+276 B** on
+`@pensketch/core/server`, which has around 320 B left, and groups 2 to 4 spend
+from the same budget before a brace would start. Putting a fourth feature
+ahead of the groups that would discover the breach means discovering it at
+release, where the choice is between cutting error messages the spec requires
+and moving a published budget.
 
-Recorded here so the next change can start from the geometry rather than
-rediscover it.
+The geometry above is the starting point rather than the plan.
+**`openspec/changes/brace-annotations/`** is the plan: a `braces` phase
+between the shapes and the notes, one point list through one `stroke`, and the
+three shapes this rejected written down with what each one costs. It is
+written, it is not deferred, and it waits on this change only because it needs
+`arcPoints` and the render order this leaves behind.
