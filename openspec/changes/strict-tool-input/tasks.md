@@ -33,7 +33,7 @@ an earlier fix for anyone downstream.
 
 ## 2. Ready to ship
 
-- [ ] 2.1 A changeset: a **minor** for `@pensketch/mcp`, saying plainly that
+- [x] 2.1 A changeset: a **minor** for `@pensketch/mcp`, saying plainly that
       input which used to be accepted is now refused, and why that is the fix
       rather than the regression
 - [ ] 2.2 **OWNER**: after the batched release, send a diagram with a
