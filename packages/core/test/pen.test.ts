@@ -342,8 +342,11 @@ describe('arc()', () => {
   });
 
   it('samples the curve into straight chords and emits no curve command', () => {
+    // Off the diagonal on purpose. With cx === cy an implementation that
+    // swapped the two would place every point correctly, and the centre would
+    // be tested by nothing in this file.
     const svg = makeSvg();
-    pen(svg).arc(50, 50, 40, 40, 0, Math.PI);
+    pen(svg).arc(50, 90, 40, 40, 0, Math.PI);
 
     const paths = pathsOf(svg);
     expect(paths).toHaveLength(2);
@@ -369,10 +372,22 @@ describe('arc()', () => {
       // adds no radius jitter of its own the way pill does.
       expectNear(
         nth(points, i * MIN_STEPS),
-        [50 + 40 * Math.cos(a), 50 + 40 * Math.sin(a)],
+        [50 + 40 * Math.cos(a), 90 + 40 * Math.sin(a)],
         i === 0 ? spread(AMP) : damped(AMP),
       );
     }
+  });
+
+  it('falls back on the MIN_STEPS floor for a sweep too small to earn one', () => {
+    // Both density rules round down to nothing here - a fifth of a radian at
+    // radius 40 is a two pixel arc - and the floor is the only thing deciding
+    // the count. Without it the curve is described by a single chord, which
+    // is a straight line with the ends in the right places.
+    const svg = makeSvg();
+    pen(svg).arc(50, 90, 40, 40, 0, 0.1);
+
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    expect(points).toHaveLength(MIN_STEPS * MIN_STEPS + 1);
   });
 
   it('sweeps clockwise on screen when the sweep is positive', () => {
@@ -382,18 +397,34 @@ describe('arc()', () => {
     // inside it, and a plain jitter bound is the whole tolerance.
     const quarter = (to: number) => {
       const svg = makeSvg();
-      pen(svg).arc(50, 50, 40, 40, 0, to);
-      const points = pointsOf(nth(pathsOf(svg), 0));
-      return nth(points, points.length - 1);
+      pen(svg).arc(50, 90, 40, 40, 0, to);
+      return pointsOf(nth(pathsOf(svg), 0));
     };
+    const clockwise = quarter(Math.PI / 2);
+    const widdershins = quarter(-Math.PI / 2);
 
     // A positive sweep travels clockwise on screen, because y grows downward
     // in SVG: a quarter turn from the +x axis is below the centre, not above
     // it. A reader who assumes otherwise puts the loop on the wrong side of
     // the node. An implementation that took the magnitude and ignored the
     // sign would put both of these in the same place.
-    expectNear(quarter(Math.PI / 2), [50, 50 + 40], damped(AMP));
-    expectNear(quarter(-Math.PI / 2), [50, 50 - 40], damped(AMP));
+    expectNear(
+      nth(clockwise, clockwise.length - 1),
+      [50, 90 + 40],
+      damped(AMP),
+    );
+    expectNear(
+      nth(widdershins, widdershins.length - 1),
+      [50, 90 - 40],
+      damped(AMP),
+    );
+
+    // The two are the same arc drawn the other way round, so they are sampled
+    // into the same number of pieces. Only the count says so: an
+    // implementation that dropped the magnitude from the density rule would
+    // still land the last point exactly on `to`, and would collapse every
+    // anticlockwise arc to the floor without moving an endpoint.
+    expect(widdershins).toHaveLength(clockwise.length);
   });
 
   it('lands a full sweep on the angles pill walks for the same box', () => {
@@ -428,13 +459,30 @@ describe('arc()', () => {
     // coarsest line in the picture. The chord rule takes over there. This is
     // the case group 3 produces: a connector bowed shallowly across a wide
     // diagram is a large radius through a small sweep.
-    const r = 200;
-    const svg = makeSvg();
-    pen(svg).arc(50, 90, r, r, 0, 2 * Math.PI);
+    // An ellipse rather than a circle, and the long radius second: the
+    // longest chord sits at the end of the longer radius, so a rule that
+    // reached for either radius in particular would under-sample this.
+    const rx = 60;
+    const ry = 200;
+    const sampled = (a: number, b: number, to: number) => {
+      const svg = makeSvg();
+      pen(svg).arc(50, 90, a, b, 0, to);
+      return pointsOf(nth(pathsOf(svg), 0));
+    };
+    const points = sampled(rx, ry, 2 * Math.PI);
 
-    const chords = Math.ceil((r * 2 * Math.PI) / SEG_LEN);
+    const chords = Math.ceil((Math.max(rx, ry) * 2 * Math.PI) / SEG_LEN);
     expect(chords).toBeGreaterThan(PILL_STEPS);
-    const points = pointsOf(nth(pathsOf(svg), 0));
+    // The same ellipse stood on its side has the same chords, so neither
+    // radius can be the one the rule reaches for.
+    expect(sampled(ry, rx, 2 * Math.PI)).toHaveLength(chords * MIN_STEPS + 1);
+    // Drawn the other way round it is the same arc, so the chord rule has to
+    // reach the same count from a negative sweep. It is the only rule of the
+    // two whose arithmetic could quietly give up on one - a negative count
+    // loses to the angle rule instead of beating it, and every large
+    // anticlockwise arc would fall back to being the coarsest line in the
+    // picture with no endpoint out of place to show for it.
+    expect(sampled(rx, ry, -2 * Math.PI)).toHaveLength(points.length);
     expect(points).toHaveLength(chords * MIN_STEPS + 1);
 
     // The point of the rule, asserted as the rule rather than as its count:
