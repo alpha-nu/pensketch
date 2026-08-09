@@ -57,6 +57,10 @@ sequence is the port being measured against them, not their regeneration.
 - [ ] 3.4 Tests: `A→B` and `B→A` at the same positive `bow` land on opposite
       sides; an edge without `bow` is byte-identical to before
 
+Gate: `npm run size`. `./server` is the tight entry and both this group and
+the last one add to `draw.ts`, so a breach is found by the group that caused
+it rather than at 7.1.
+
 ## 4. The checker catches up
 
 - [ ] 4.1 Sample loops and bows into segments so every existing geometric rule
@@ -67,6 +71,9 @@ sequence is the port being measured against them, not their regeneration.
       renamed, and every table listing rules is updated
 - [ ] 4.4 Tests for both, including the near-parallel case and the crossing
       case that must stay quiet
+
+Gate: `npm run size`. This group's weight lands on `./check`, which has 490 B
+free and where finding messages are already three quarters of the entry.
 
 ## 5. The reference stops being wrong
 
@@ -99,8 +106,12 @@ sequence is the port being measured against them, not their regeneration.
 
 ## 7. Release
 
-- [ ] 7.1 `npm run size` — the root entry grows; confirm the budget still
-      holds and record the new number in the README table
+- [ ] 7.1 `npm run size`, and record the root entry's number in the README
+      comparison table. The root is not the entry at risk: it has around 2400
+      B free where `./server` has 320 and `./check` 490, and `./server`
+      carries its own copy of `draw`, so every error message groups 2 and 3
+      add lands in it twice over. Messages are three quarters of the checker
+      entry by weight, and this change writes several long ones
 - [ ] 7.2 **OWNER**: dispatch `release.yml` twice. This is the first release
       to publish tokenless, so the log line to look for is "No NPM_TOKEN
       found, but OIDC is available"

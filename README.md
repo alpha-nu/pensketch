@@ -180,7 +180,7 @@ p.label(395, 65, ['a pill', '(two lines)']);
 | `arrow(pts, opts?)` | The same, plus two barbs at the last point. |
 | `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. |
 | `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
-| `arc(cx, cy, rx, ry, from, to, opts?)` | An elliptical arc swept between two angles in radians. |
+| `arc(cx, cy, rx, ry, from, to, opts?)` | An elliptical arc around a centre point, swept between two angles in radians. |
 | `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
 | `hatch(x, y, w, h, color?)` | Diagonal shading across the box, clipped to it. |
 | `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |
@@ -398,7 +398,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **2562 B** | 8919 B |
+| Size, min+gzip | **2679 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |
