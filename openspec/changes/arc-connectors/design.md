@@ -16,7 +16,17 @@ falls through the existing machinery unchanged.
 Sampling density is a constant, `ARC_STEPS`, chosen so a full half-circle at
 typical loop sizes is dense enough not to read as a polygon. The example that
 prompted this change learned the same lesson by hand — its comment records
-that seven points read as an arc and four read as a beak.
+that seven points read as an arc and four read as a beak. A second rule caps
+the chord at `SEG_LEN`, because a fixed angle per chord is radius-blind and a
+shallow sweep at a large radius is exactly what a bowed connector across a
+wide diagram is.
+
+The angle parameters are `from` and `to`, which collides with `DiagramEdge`'s
+own `from` and `to` for `[nodeId, side]` in the same file. Raised and kept:
+`startAngle`/`endAngle` is the Canvas convention and carries the unit in the
+name, but the two live at different levels — one is a pen argument, the other
+is diagram data — and the short names read better in a seven-argument
+signature. Decided before release, when a rename was still free.
 
 ## D2 — A self-transition is `from` and `to` naming the same node and side
 
