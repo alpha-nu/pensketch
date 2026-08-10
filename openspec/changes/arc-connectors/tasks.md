@@ -102,8 +102,16 @@ drawn, which is most of the reason it exists.
       finite number is settled here too, since this is where the field's
       refusals are written — today `NaN` reads as falsy and draws the straight
       line while `Infinity` throws, and neither is a decision anyone took
-- [ ] 3.4 Tests: `A→B` and `B→A` at the same positive `bow` land on opposite
-      sides; an edge without `bow` is byte-identical to before
+- [x] 3.4 Tests: `A→B` and `B→A` at the same positive `bow` land on opposite
+      sides; an edge without `bow` is byte-identical to before. Both landed
+      with the tasks that earned them rather than in a pass of their own. The
+      second is held by the parity tests, not by a new assertion: they
+      re-render the reference's fixtures through the port and compare bytes
+      against goldens generated from `reference/renderer.html`, which predates
+      every bow — so "before this change" has an instrument that cannot drift
+      with the change, which no self-comparison could offer. Verified rather
+      than assumed: a duplicated final anchor on the unbowed path fails parity
+      on its own
 
 Gate: `npm run size`. `./server` is the tight entry and both this group and
 the last one add to `draw.ts`, so a breach is found by the group that caused
