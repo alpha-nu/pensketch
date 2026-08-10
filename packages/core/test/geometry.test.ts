@@ -122,6 +122,19 @@ describe('edgePath', () => {
     ]);
   });
 
+  // The loop `draw` would draw turns at no corners, so a `via` on such an edge
+  // is not part of any line. Splicing it in put a corner into the path every
+  // rule measures against, and a label near it was reported as lying on the
+  // line it labels with no ink within 500px of the point.
+  it('leaves a self-transition its two anchors and none of its via', () => {
+    expect(
+      edgePath({ from: ['a', 'r'], to: ['a', 'r'], via: [[600, 600]] }, BY_ID),
+    ).toEqual([
+      [200, 80],
+      [200, 80],
+    ]);
+  });
+
   it('says nothing about an edge naming a node that does not exist', () => {
     expect(
       edgePath({ from: ['a', 'r'], to: ['ghost', 'l'] }, BY_ID),

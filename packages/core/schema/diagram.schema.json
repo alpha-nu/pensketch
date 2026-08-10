@@ -187,11 +187,11 @@
           "items": {
             "$ref": "#/definitions/Point"
           },
-          "description": "Corner points between the two anchors, walked in order and used exactly as given. Nothing is inferred and nothing routes around an obstacle: an orthogonal path is the corners you supply, not a mode. Omit it and the arrow runs straight from one anchor to the other, through whatever is in the way.\n\nA self-transition ignores this. Its path is settled by the side it hangs off and by `out` and `span`, so there are no corners between its anchors to place."
+          "description": "Corner points between the two anchors, walked in order and used exactly as given. Nothing is inferred and nothing routes around an obstacle: an orthogonal path is the corners you supply, not a mode. Omit it and the arrow runs straight from one anchor to the other, through whatever is in the way.\n\n`draw` throws when this is given alongside `bow`, and when a self-transition carries it. Each describes a whole path and a path is described once; a loop's is settled by the side it hangs off and by `out` and `span`, so there are no corners between its anchors to place. An empty array describes no corners and is refused nowhere."
         },
         "bow": {
           "type": "number",
-          "description": "How far the arrow bows off the straight line between its anchors, in px. Default: `0`, which is that straight line.\n\nThe path becomes the circular arc through both anchors whose furthest point sits this far from the middle of that line, measured at a right angle to it. A positive value bows to the right of travel, so an edge and its reverse given the same `bow` bow to opposite sides and stay two readable lines rather than one.\n\nA value deeper than half the distance between the anchors is drawn as asked: the arc simply carries more than half a turn. As with a loop, the curve is sampled into chords no longer than a straight line's, so the points it costs grow with the value."
+          "description": "How far the arrow bows off the straight line between its anchors, in px. Default: `0`, which is that straight line.\n\nThe path becomes the circular arc through both anchors whose furthest point sits this far from the middle of that line, measured at a right angle to it. A positive value bows to the right of travel, so an edge and its reverse given the same `bow` bow to opposite sides and stay two readable lines rather than one.\n\nA value deeper than half the distance between the anchors is drawn as asked: the arc simply carries more than half a turn. As with a loop, the curve is sampled into chords no longer than a straight line's, so the points it costs grow with the value. And as with `out` and `span`, a value that is not a finite number throws rather than sampling.\n\n`draw` throws when this is given alongside `via`, and when a self-transition carries it: each describes a whole path, and a loop's is already settled by the side it hangs off and by `out` and `span`."
         },
         "dotted": {
           "type": "boolean",
@@ -281,11 +281,11 @@
           "items": {
             "$ref": "#/definitions/Point"
           },
-          "description": "Corner points between `arrowFrom` and `arrowTo`."
+          "description": "Corner points between `arrowFrom` and `arrowTo`. `draw` throws when they are given alongside `bow`, as it does on an edge: a path is described once."
         },
         "bow": {
           "type": "number",
-          "description": "How far the pointer bows off the straight line between its two ends, in px, with the meaning `bow` carries on an edge: positive is to the right of travel, and `0` is that straight line. Default: `0`.\n\nA pointer is the case a bow was wanted for first — it starts at text and ends at whatever the text is about, and a straight run between those two often crosses the very thing it points at."
+          "description": "How far the pointer bows off the straight line between its two ends, in px, with the meaning `bow` carries on an edge: positive is to the right of travel, and `0` is that straight line. Default: `0`.\n\nA pointer is the case a bow was wanted for first — it starts at text and ends at whatever the text is about, and a straight run between those two often crosses the very thing it points at.\n\nRefused alongside `via`, and non-finite, exactly as on an edge."
         },
         "arrowTo": {
           "$ref": "#/definitions/Point",

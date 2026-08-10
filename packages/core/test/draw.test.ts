@@ -196,6 +196,125 @@ describe('draw() validation', () => {
       ).toThrow();
   });
 
+  // The four ways one path can be described twice, and one message shape for
+  // all of them. Written out rather than driven from a table: what a caller
+  // with no view of the picture is left holding is the words, and a table
+  // asserts the table.
+  it('refuses an edge that is bowed and cornered at once', () => {
+    rejects(
+      {
+        nodes,
+        edges: [
+          { from: ['a', 'r'], to: ['b', 'l'], bow: 30, via: [[150, 60]] },
+        ],
+      },
+      'edge 0 carries bow; its path is already described by via',
+    );
+  });
+
+  // Two notes, so the index is the note's own rather than the only one there
+  // was. Before this, the pointer drew its bow and dropped the corners.
+  it('refuses a note pointer that is bowed and cornered at once', () => {
+    rejects(
+      {
+        notes: [
+          { x: 10, y: 10, lines: ['fine'] },
+          {
+            x: 10,
+            y: 40,
+            lines: ['both'],
+            arrowFrom: [20, 40],
+            arrowTo: [120, 90],
+            bow: 20,
+            via: [[60, 90]],
+          },
+        ],
+      },
+      'note 1 carries bow; its path is already described by via',
+    );
+  });
+
+  // Both of these drew the loop and discarded the field before this change,
+  // which is the silent ignoring it exists to remove.
+  it('refuses corners on a self-transition, where it used to drop them', () => {
+    rejects(
+      {
+        nodes,
+        edges: [{ from: ['a', 'r'], to: ['a', 'r'], via: [[150, 25]] }],
+      },
+      'edge 0 carries via; its path is already described by the side it hangs off, out and span',
+    );
+  });
+
+  it('refuses a bow on a self-transition, where it used to drop it', () => {
+    rejects(
+      { nodes, edges: [{ from: ['a', 'r'], to: ['a', 'r'], bow: 30 }] },
+      'edge 0 carries bow; its path is already described by the side it hangs off, out and span',
+    );
+  });
+
+  // An empty `via` names no corner, so it contradicts nothing: a program that
+  // writes the field always and fills it sometimes is not describing a path
+  // twice. It is also the one shape of `via` that already draws the straight
+  // line, so refusing it here would refuse what draws there.
+  it('takes an empty via beside a bow, and on a loop', () => {
+    expect(() =>
+      draw(makeSvg(), {
+        nodes,
+        edges: [
+          { from: ['a', 'r'], to: ['b', 'l'], bow: 30, via: [] },
+          { from: ['a', 'r'], to: ['a', 'r'], via: [] },
+        ],
+        notes: [
+          {
+            x: 10,
+            y: 10,
+            lines: ['ok'],
+            arrowFrom: [20, 40],
+            arrowTo: [120, 90],
+            bow: 20,
+            via: [],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  // `bow` is read against 0 rather than for its truth, so a value that is not
+  // a number reaches the sampler instead of falling through to the straight
+  // line. The message is not asserted, for the reason the loop's is not: the
+  // arc samples to nothing and the pen refuses a point list too short to draw.
+  // What is asserted is that NaN no longer draws a straight line in silence,
+  // which is what `out` and `span` have refused since they existed.
+  it('throws for a bow that is not a finite number, rather than drawing straight', () => {
+    for (const bad of [
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+    ]) {
+      expect(() =>
+        draw(makeSvg(), {
+          nodes,
+          edges: [{ from: ['a', 'r'], to: ['b', 'l'], bow: bad }],
+        }),
+      ).toThrow();
+      expect(() =>
+        draw(makeSvg(), {
+          notes: [
+            {
+              x: 10,
+              y: 10,
+              lines: ['n'],
+              arrowFrom: [20, 40],
+              arrowTo: [120, 90],
+              bow: bad,
+            },
+          ],
+        }),
+      ).toThrow();
+    }
+  });
+
   it('names the edge and the id when an edge ends nowhere', () => {
     rejects(
       {

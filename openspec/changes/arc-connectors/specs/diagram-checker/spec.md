@@ -49,6 +49,22 @@ because a pair on one line is sometimes meant.
 - **WHEN** options set a rule to `off`
 - **THEN** no finding with that rule id is returned
 
+### Requirement: Edge geometry accounts for the jitter
+Edge paths SHALL be derived from the exported `anchor` function and the edge's
+`via` points — except on an edge naming one node at both ends, whose `via` SHALL
+be left out entirely, since the loop `draw` would draw turns at no corners and
+the edge is refused rather than drawn. Each segment SHALL be inflated by half
+the jitter amplitude plus half the stroke width before clearance is applied,
+because the drawn line does not follow the ideal path.
+
+#### Scenario: A label just clear of the ideal path still collides
+- **WHEN** a label sits closer to a segment than the inflated width plus clearance
+- **THEN** `label-collision` is reported, even though the label does not touch the ideal path
+
+#### Scenario: A corner no arrow turns at is not a corner
+- **WHEN** an edge names one node at both ends and carries `via`
+- **THEN** those points are absent from the path every rule measures, so neither a corner outside the `viewBox` nor a label near one is reported — there is no ink at either
+
 ## ADDED Requirements
 
 ### Requirement: Curved paths are checked as the shapes they draw
@@ -65,3 +81,21 @@ report a label lying on the curved part of a connector.
 #### Scenario: A label on the curve is reported
 - **WHEN** a label sits within the clearance of a bowed connector's arc but clear of the chord
 - **THEN** `check` reports `label-collision`
+
+### Requirement: A loop's corners are not measured, because none are drawn
+An edge naming one node at both ends SHALL have its `via` left out of the path
+`check` measures. `out-of-bounds` SHALL NOT report such a point as a corner the
+arrow turns at, and it SHALL NOT be spliced into the path `label-collision`
+measures against. `draw` refuses that edge outright, which settles nothing
+here: `check` runs on diagrams that are never drawn, which is most of the
+reason it exists. This is not mirrored as a finding of its own — the house line
+is that `draw`'s refusals go unmirrored, `duplicate-id` excepted, and a rule id
+is a published name in every table that lists them.
+
+#### Scenario: A corner outside the frame that the arrow never turns at
+- **WHEN** a self-transition carries a `via` point outside the `viewBox`
+- **THEN** no `out-of-bounds` finding names it, where before it was reported as a corner the arrow leaves the picture at
+
+#### Scenario: A label beside a corner no loop turns at
+- **WHEN** a label sits on a self-transition's `via` point, far from the side the loop hangs off
+- **THEN** no `label-collision` finding is produced, where before the label was reported as lying on the line it labels with no ink drawn near it

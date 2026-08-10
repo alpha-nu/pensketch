@@ -304,14 +304,20 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
         );
 
     edges.forEach((e, i) => {
-      for (const [x, y] of e.via || [])
-        if (outside(x, y))
-          add(
-            'out-of-bounds',
-            `edge ${i} turns at (${x}, ${y}), outside the viewBox, so the arrow leaves the picture`,
-            [x, y],
-            [`edge ${i}`],
-          );
+      // Not an edge naming one node at both ends: the loop it draws turns at
+      // no corners, so its `via` is a corner nobody reaches and reporting one
+      // outside the frame would be a finding about ink that is not there.
+      // `draw` refuses such an edge outright, which settles nothing here -
+      // most of the reason this exists is diagrams that are never drawn.
+      if (e.from[0] !== e.to[0])
+        for (const [x, y] of e.via || [])
+          if (outside(x, y))
+            add(
+              'out-of-bounds',
+              `edge ${i} turns at (${x}, ${y}), outside the viewBox, so the arrow leaves the picture`,
+              [x, y],
+              [`edge ${i}`],
+            );
       if (
         typeof e.lx === 'number' &&
         typeof e.ly === 'number' &&

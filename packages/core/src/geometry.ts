@@ -86,16 +86,21 @@ export function contains(outer: Box, inner: Box): boolean {
  * `null` when either end names a node the diagram does not define. `draw`
  * throws on that by name, so there is nothing the checker can usefully add.
  *
- * One exception, and it is a gap rather than a decision: a self-transition is
- * drawn as a loop off its side, and this returns the two identical anchors
- * instead - plus any `via` points, which `draw` ignores on a loop and this
- * does not. So the rules do not go blind on such an edge, which would be the
- * safer failure. They measure a line that is only notionally there: a loop
- * that leaves the frame goes unreported, while a label near the side's
- * midpoint can be reported as sitting on the line it labels, and a `via` the
- * renderer never turns at can be reported as a corner outside the viewBox.
- * Closing it is the job of the task that samples loops and bows into segments;
- * until then, do not read this as the line the renderer draws for such an edge.
+ * Two curved paths are the exception, and each is a gap rather than a
+ * decision. A self-transition is drawn as a loop off its side and this
+ * returns the two identical anchors it leaves and lands on; a bowed edge is
+ * drawn as an arc and this returns the chord it bows off. Both sets of points
+ * are ink, so the rules are not blind on such an edge - but the curve between
+ * them is not measured, so a loop or a bow that leaves the frame goes
+ * unreported. Closing that is the job of the task that samples loops and bows
+ * into segments; until then, do not read this as the whole of the line the
+ * renderer draws for either.
+ *
+ * A `via` on an edge naming one node at both ends is left out entirely. `draw`
+ * refuses that edge rather than drawing it, and the loop it would otherwise
+ * draw turns at no corners, so splicing them in would measure ink that is
+ * nowhere - which is a finding about a line the renderer never draws, and
+ * worse than the silence above.
  */
 export function edgePath(
   e: DiagramEdge,
@@ -104,7 +109,11 @@ export function edgePath(
   const from = byId.get(e.from[0]);
   const to = byId.get(e.to[0]);
   return from && to
-    ? [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])]
+    ? [
+        anchor(from, e.from[1]),
+        ...(e.from[0] === e.to[0] ? [] : e.via || []),
+        anchor(to, e.to[1]),
+      ]
     : null;
 }
 

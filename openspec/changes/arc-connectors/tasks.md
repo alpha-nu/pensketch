@@ -91,7 +91,7 @@ drawn, which is most of the reason it exists.
 - [x] 3.1 `bow` on `DiagramEdge`: perpendicular offset from the chord
       midpoint, positive to the right of travel
 - [x] 3.2 `bow` on `DiagramNote` pointers, same meaning
-- [ ] 3.3 `bow` with `via` throws on both, and so do `via` and `bow` on a
+- [x] 3.3 `bow` with `via` throws on both, and so do `via` and `bow` on a
       self-transition — one message shape for all four, saying the path is
       already described. A loop's path is settled by its side, `out` and
       `span`, so a corner to turn at and a bulge to carry both contradict it,
@@ -126,7 +126,7 @@ verbatim into `schema/diagram.schema.json` and into the `SCHEMA` the server
 hands to agents. It becomes true when 4.1 lands and nothing releases before
 then — but narrow 4.1 and all three go false together, and no gate can see it.
 
-Gate: `npm run size`. This group's weight lands on `./check`, which has 492 B
+Gate: `npm run size`. This group's weight lands on `./check`, which has 474 B
 free and where finding messages are already three quarters of the entry.
 
 ## 5. The reference stops being wrong
@@ -139,6 +139,13 @@ free and where finding messages are already three quarters of the entry.
       reader who learned the old one
 - [ ] 5.2 `raw` described as the hatch for what the data model still has no
       word for, rather than for self-transitions specifically
+- [ ] 5.2a "`draw` throws on the first defect and renders nothing" is false and
+      was false before this change: `draw` empties the `<svg>` and then fills
+      it phase by phase, so a throw leaves whatever was drawn before it. Six
+      children after a label throw, measured at 46ad20a. Group 3 makes it more
+      visible — a note refused for `bow` with `via` has already had its text
+      drawn — but did not make it wrong. The same clause is in the shipped
+      `diagram-checker` spec, so both move together
 - [ ] 5.3 The count of exported constants, which every group before this one
       moves, and the "Numbers worth designing around" table if any constant
       added here earns a place among the numbers a caller designs against

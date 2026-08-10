@@ -417,6 +417,28 @@ describe('label-collision', () => {
     });
   });
 
+  // Measured before it was fixed: the label below was reported as lying on
+  // the line it labels, with the nearest ink 280px away. `edgePath` spliced a
+  // self-transition's `via` into the path it returned, so the rule measured a
+  // leg out to the corner and back that the loop never travels.
+  it('says nothing about a label on a corner a loop never turns at', () => {
+    expect(
+      check({
+        nodes: [box('a', 0, 0)],
+        edges: [
+          {
+            from: ['a', 'r'],
+            to: ['a', 'r'],
+            via: [[300, 200]],
+            label: 'retry',
+            lx: 300,
+            ly: 200,
+          },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
   it('names the other edge when a label is struck by one it does not belong to', () => {
     const findings = check({
       nodes: [
@@ -556,6 +578,24 @@ describe('out-of-bounds', () => {
     );
     expect(rules(findings)).toEqual(['out-of-bounds']);
     expect(findings[0]).toMatchObject({ at: [600, 20], subjects: ['edge 0'] });
+  });
+
+  // The other half of the same false finding, and the one that reads worst: a
+  // corner the arrow never turns at, reported as leaving the picture. `draw`
+  // now refuses such an edge outright, which settles nothing here - most of
+  // the reason this exists is diagrams that are never drawn.
+  it('does not report a corner on an edge that turns at none', () => {
+    const findings = check(
+      wired(
+        [box('a', 0, 0), box('b', 300, 200)],
+        [
+          { from: ['a', 'r'], to: ['b', 'l'] },
+          { from: ['b', 'r'], to: ['b', 'r'], via: [[600, 20]] },
+        ],
+      ),
+      { viewBox: VIEW_BOX },
+    );
+    expect(findings).toEqual([]);
   });
 
   it('reports a label and a note placed where nobody will see them', () => {

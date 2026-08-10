@@ -241,9 +241,11 @@ export interface DiagramEdge {
    * arrow runs straight from one anchor to the other, through whatever is in
    * the way.
    *
-   * A self-transition ignores this. Its path is settled by the side it hangs
-   * off and by `out` and `span`, so there are no corners between its anchors
-   * to place.
+   * `draw` throws when this is given alongside `bow`, and when a
+   * self-transition carries it. Each describes a whole path and a path is
+   * described once; a loop's is settled by the side it hangs off and by `out`
+   * and `span`, so there are no corners between its anchors to place. An
+   * empty array describes no corners and is refused nowhere.
    */
   via?: Point[];
   /**
@@ -259,7 +261,12 @@ export interface DiagramEdge {
    * A value deeper than half the distance between the anchors is drawn as
    * asked: the arc simply carries more than half a turn. As with a loop, the
    * curve is sampled into chords no longer than a straight line's, so the
-   * points it costs grow with the value.
+   * points it costs grow with the value. And as with `out` and `span`, a value
+   * that is not a finite number throws rather than sampling.
+   *
+   * `draw` throws when this is given alongside `via`, and when a
+   * self-transition carries it: each describes a whole path, and a loop's is
+   * already settled by the side it hangs off and by `out` and `span`.
    */
   bow?: number;
   /** Dash the line and recolor it, and its label, to `theme.accent`. */
@@ -289,7 +296,11 @@ export interface DiagramNote {
   anchor?: 'start' | 'middle' | 'end';
   /** Where the pointer arrow starts. */
   arrowFrom?: Point;
-  /** Corner points between `arrowFrom` and `arrowTo`. */
+  /**
+   * Corner points between `arrowFrom` and `arrowTo`. `draw` throws when they
+   * are given alongside `bow`, as it does on an edge: a path is described
+   * once.
+   */
   via?: Point[];
   /**
    * How far the pointer bows off the straight line between its two ends, in
@@ -299,6 +310,8 @@ export interface DiagramNote {
    * A pointer is the case a bow was wanted for first — it starts at text and
    * ends at whatever the text is about, and a straight run between those two
    * often crosses the very thing it points at.
+   *
+   * Refused alongside `via`, and non-finite, exactly as on an edge.
    */
   bow?: number;
   /** Where the pointer arrow ends. Drawn only when both ends are given. */

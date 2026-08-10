@@ -14,7 +14,7 @@
 - **Determinism is the contract.** Same data, same seed, same package version,
   same engine, same bytes - so a diagram can be snapshot-tested like anything
   else.
-- **Tiny and dependency-free.** The core is under 3 KB minified and gzipped,
+- **Tiny and dependency-free.** The core is about 3 KB minified and gzipped,
   and adds nothing else to your lockfile.
 - **Themed with CSS variables.** Colors are `var(--ps-*)` references, so dark
   mode is a variable the page redefines rather than a diagram it redraws.
@@ -118,8 +118,8 @@ obstacle.
 | `to` | `[string, Side]` | required | The node to reach, and which side the arrowhead lands on. |
 | `out` | `number` | `60` | Self-transitions only: how far the loop projects beyond its side. |
 | `span` | `number` | `24` | Self-transitions only: how far apart the loop's two anchors sit along that side. |
-| `via` | `Point[]` | none | Corner points between the two anchors. |
-| `bow` | `number` | `0` | Bow the arrow off the straight line between its anchors, in px. Positive is to the right of travel, so an edge and its reverse bow apart rather than overlapping. |
+| `via` | `Point[]` | none | Corner points between the two anchors. `draw` throws when corners are given with `bow`, and on a self-transition, whose path its side, `out` and `span` already settle. An empty array names no corner and is accepted anywhere. |
+| `bow` | `number` | `0` | Bow the arrow off the straight line between its anchors, in px. Positive is to the right of travel, so an edge and its reverse bow apart rather than overlapping. Refused alongside corners in `via`, on a self-transition, and for a value that is not a finite number. |
 | `dotted` | `boolean` | `false` | Dash the line and recolor it, and its label, to `--ps-accent`. |
 | `label` | `string` | none | One line of text. Requires `lx` and `ly`. |
 | `lx`, `ly` | `number` | none | Where the label sits. `draw` throws when `label` is set and these are not numbers. |
@@ -134,9 +134,9 @@ obstacle.
 | `lines` | `string[]` | required | The lines of the note, one `<text>` each, in `--ps-accent`. |
 | `anchor` | `'start' \| 'middle' \| 'end'` | `'start'` | Which end of the text sits on `x`. |
 | `arrowFrom` | `Point` | none | Where the pointer arrow starts. |
-| `via` | `Point[]` | none | Corner points along that arrow. |
+| `via` | `Point[]` | none | Corner points along that arrow. Refused with `bow`, as on an edge, unless the array is empty. |
 | `arrowTo` | `Point` | none | Where the arrow ends. The arrow is drawn only when both ends are given. |
-| `bow` | `number` | `0` | Bow the pointer off the straight line between its two ends, in px, with the meaning `bow` carries on an edge. |
+| `bow` | `number` | `0` | Bow the pointer off the straight line between its two ends, in px, with the meaning `bow` carries on an edge, and refused with `via` the same way. |
 
 ### `Diagram`
 
@@ -323,7 +323,7 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, waypoint or label lies outside the `viewBox` | **error** |
+| `out-of-bounds` | a box, a corner the arrow turns at, or a label lies outside the `viewBox` | **error** |
 | `label-collision` | a label sits within `clearance` of a connector | warning |
 | `text-overflow` | the widest line is wider than its box allows | warning |
 | `group-escape` | a node is half inside a group | warning |
@@ -402,7 +402,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **3065 B** | 8919 B |
+| Size, min+gzip | **3191 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |
@@ -413,7 +413,7 @@ measured at 4.6.6.
 
 **Reach for pensketch** when the picture is boxes and arrows that belong in
 version control: one plain object your reviewers can read, rendering to the
-same bytes on every run, for under 3 KB and no new entries in your lockfile.
+same bytes on every run, for about 3 KB and no new entries in your lockfile.
 
 **Reach for rough.js** when the picture is arbitrary - a sketchy chart, a game,
 a texture, anything worth composing stroke by stroke, on canvas or SVG.

@@ -115,17 +115,23 @@ release.
 referencing an unknown node id, two nodes sharing an id, a node with an
 unknown shape, an edge `label` without numeric `lx`/`ly`, an edge whose `from`
 and `to` name the same node but **different** sides, an edge or note combining
-`bow` with `via`, and a self-transition carrying `via`. Each message SHALL
-carry what the caller needs to fix it without reading the source — the ids that
-do exist, the shapes that are accepted, why a label needs coordinates, that a
-loop attaches to one side, or that a path with corners is already described —
-since the caller may be a program with no view of the result. A field that
-**contradicts** the path actually drawn SHALL throw; a field that merely does
-not **apply** to it SHALL be ignored. That is the line between `via` on a
-loop, which describes corners the loop will not turn at, and `out` or `span` on
-a straight edge, which describe a loop that is not being drawn and whose names
-say so. There SHALL be no other validation, no console warnings, and no silent
-fallbacks in library code.
+`bow` with `via`, and a self-transition carrying `via` or `bow`. Each message
+SHALL carry what the caller needs to fix it without reading the source — the
+ids that do exist, the shapes that are accepted, why a label needs coordinates,
+that a loop attaches to one side, or what already describes the path a second
+field is trying to describe — since the caller may be a program with no view of
+the result. The four ways one path can be described twice SHALL produce one
+message shape, naming the field that is refused and what already describes the
+path. A field that **contradicts** the path actually drawn SHALL throw; a field
+that merely does not **apply** to it SHALL be ignored. That is the line between
+`via` or `bow` on a loop, which describe corners it will not turn at and a
+bulge it will not carry, and `out` or `span` on a straight edge, which describe
+a loop that is not being drawn and whose names say so. An empty `via` describes
+no corners, contradicts nothing, and SHALL be ignored wherever a filled one
+throws. A `bow` that is not a finite number SHALL throw rather than draw, as
+`out` and `span` already do, rather than reading as absent and drawing the
+straight line. There SHALL be no other validation, no console warnings, and no
+silent fallbacks in library code.
 
 #### Scenario: Unknown node id
 - **WHEN** an edge references node id `"ghost"` that no node declares
@@ -146,3 +152,15 @@ fallbacks in library code.
 #### Scenario: A described path is not curved as well
 - **WHEN** an edge or a note carries both `bow` and `via`
 - **THEN** `draw()` throws, because the caller has already described the path and there is no reading of "curve it too" that does not invent geometry on their behalf
+
+#### Scenario: A loop given a bulge to carry is refused
+- **WHEN** an edge names the same node and side at both ends and also carries `bow`
+- **THEN** `draw()` throws, in the same shape of message the other three refusals use — the field that is refused, and what already describes the path — rather than drawing the loop and discarding the bow
+
+#### Scenario: A field that describes nothing is not a second description
+- **WHEN** an edge or a note carries an empty `via` alongside a `bow`, or a self-transition carries an empty `via`
+- **THEN** `draw()` draws it, since no corner has been named and a program that writes the field always and fills it sometimes has described the path once
+
+#### Scenario: A bow that is not a number does not quietly draw a straight line
+- **WHEN** an edge or a note carries a `bow` of `NaN` or `Infinity`
+- **THEN** `draw()` throws, as it already does for `out` and `span`, where reading the field for its truth made `NaN` indistinguishable from a caller who omitted it

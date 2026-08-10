@@ -50,11 +50,16 @@ When space is tight, put the text in the box instead of beside the arrow.
 **4. A self-transition names the same side twice.** An edge whose `from` and
 `to` are both `['s', 'r']` loops off that node's right side; `out` and `span`
 size it. Naming the same node with two *different* sides throws — a loop hangs
-off one side, and a corner loop is a different shape.
+off one side, and a corner loop is a different shape. Those three fields settle
+the whole of its path, so a non-empty `via`, or a `bow`, on one throws as well.
 
 **5. `via` points are used exactly as given, in order.** The arrow walks the
 legs you describe and nothing is inferred. Orthogonal routing is three points
-you supply, not a mode you switch on.
+you supply, not a mode you switch on. A path is described once: `via` together
+with `bow` throws, on an edge and on a note pointer alike, rather than one of
+them being quietly dropped. An empty array names no corner and describes
+nothing, so it is accepted everywhere — write the field always and fill it
+sometimes if that is easier to generate.
 
 **6. Draw order is part of the output.** Phases run `nodes` where
 `shape === 'group'` → `edges` → the remaining `nodes` → `notes` → `raw`, each
@@ -87,7 +92,8 @@ interface DiagramEdge {
   to:   [string, Side];    // same node and same side = a self-transition
   out?: number;            // loop only: how far it projects, default 60
   span?: number;           // loop only: how far apart its anchors sit, default 24
-  via?: Point[];           // corners, used verbatim; a loop ignores them
+  via?: Point[];           // corners, used verbatim; never with bow, never on a
+                           // loop, but [] is accepted anywhere
   bow?: number;            // px off the straight line, right of travel positive
   dotted?: boolean;        // dashes it and recolours it to --ps-accent
   label?: string;          // one line; REQUIRES lx and ly
@@ -100,7 +106,8 @@ interface DiagramNote {    // free-standing annotation, always --ps-accent
   lines: string[];
   anchor?: 'start' | 'middle' | 'end';   // default 'start'
   arrowFrom?: Point; via?: Point[]; arrowTo?: Point;   // arrow needs both ends
-  bow?: number;            // px off the straight line, right of travel positive
+  bow?: number;            // px off the straight line, right of travel positive;
+                           // never with a non-empty via, as on an edge
 }
 
 interface Diagram {
@@ -157,6 +164,8 @@ of clear space at the top of its box.
 | `node "x" has unknown shape "y"` | one of `group`, `box`, `pill`, `diamond` |
 | `edge N has label "…" but lx and ly are not both numbers` | a label is positioned by hand, because text is never measured |
 | `edge N names node "x" at both ends but sides "t" and "r"` | a self-transition attaches to one side; name the same side in `from` and `to` |
+| `edge N carries bow; its path is already described by via` | a path is described once — drop whichever of the two the arrow is not to take. A note pointer carrying both says `note N` and means the same |
+| `edge N carries via; its path is already described by the side it hangs off, out and span` | a self-transition's path is settled by those three, so a corner to turn at contradicts it. `bow` on one is refused the same way and says so |
 
 `draw` throws on the first defect and renders nothing.
 
@@ -210,7 +219,8 @@ You cannot see the result, so do not rely on having looked at it. Three
 things look for you, in increasing order of what they can tell:
 
 - **`draw` throws** on unknown ids, duplicate ids, unknown shapes, a label
-  without coordinates, and a self-transition naming two different sides. It
+  without coordinates, a self-transition naming two different sides, and a
+  path described twice — `bow` with `via`, or either on a self-transition. It
   stops at the first one.
 - **The JSON Schema** rejects malformed data, including misspelled keys.
 - **`check` finds the rest** — every trap in the list above — and reports all
@@ -227,7 +237,7 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, waypoint or label lies outside the `viewBox` | **error** |
+| `out-of-bounds` | a box, a corner the arrow turns at, or a label lies outside the `viewBox` | **error** |
 | `label-collision` | a label sits within `clearance` (default 4) of a connector | warning |
 | `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
 | `group-escape` | a node is half inside a group | warning |

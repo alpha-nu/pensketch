@@ -47,8 +47,10 @@ export function anchor(node: DiagramNode, side: Side): Point {
  *
  * Throws an `Error` naming the offender when an edge references a node the
  * diagram does not define, two nodes share an id, a node carries an unknown
- * shape, an edge has a `label` without numeric `lx` and `ly`, or an edge names
- * one node at both ends but two different sides. Nothing else is validated.
+ * shape, an edge has a `label` without numeric `lx` and `ly`, an edge names
+ * one node at both ends but two different sides, or an edge or note describes
+ * its path twice - `bow` with `via`, or either on a self-transition. Nothing
+ * else is validated.
  *
  * @example
  * ```js
@@ -147,15 +149,39 @@ export function draw(
       throw new Error(
         `edge ${i} names node "${e.from[0]}" at both ends but sides "${e.from[1]}" and "${e.to[1]}"; a self-transition attaches to one side, so name the same side in from and to`,
       );
+    // Nought and absent are one case: nought is not a caller asking for a
+    // flat arc, which has no centre and no radius, but a caller describing
+    // the straight line they would have got by leaving the field out. Read
+    // against 0 rather than for truth, though, because `NaN` is falsy: a bow
+    // that is not a number would otherwise draw the straight line and say
+    // nothing, where `out` and `span` refuse the same value.
+    const bow = e.bow ?? 0;
+    // One defect under four names, so one message: the path has been
+    // described twice, by `bow` and `via` together or by either of them on a
+    // self-transition, whose own path its side, `out` and `span` already
+    // settle. Picking a winner would invent geometry on the caller's behalf,
+    // and discarding the loser in silence is what this change exists to stop.
+    //
+    // An empty `via` describes no corners, so it contradicts nothing, and it
+    // is the one shape of it that draws: `[from, ...[], to]` is the straight
+    // line. Refusing it would refuse a caller who writes the field always and
+    // fills it sometimes.
+    if (loop) {
+      if (e.via?.length)
+        throw new Error(
+          `edge ${i} carries via; its path is already described by the side it hangs off, out and span`,
+        );
+      if (bow !== 0)
+        throw new Error(
+          `edge ${i} carries bow; its path is already described by the side it hangs off, out and span`,
+        );
+    } else if (bow !== 0 && e.via?.length)
+      throw new Error(
+        `edge ${i} carries bow; its path is already described by via`,
+      );
     // A loop is an edge: it differs in its points and in nothing else, so
     // dotted, label, lx, ly and anchor keep working below by not being asked
     // about here.
-    //
-    // `e.bow` for its truth rather than against `undefined`, unlike `out` and
-    // `span` below: nought is not a caller asking for a flat arc, which has
-    // no centre and no radius, but a caller describing the straight line they
-    // would have got by leaving the field out. An absent bow and a bow of
-    // nought take the same branch, and take it without sampling anything.
     const pts: Point[] = loop
       ? loopPoints(
           anchor(from, e.from[1]),
@@ -163,8 +189,8 @@ export function draw(
           e.out ?? LOOP_OUT,
           e.span ?? LOOP_SPAN,
         )
-      : e.bow
-        ? bowPoints(anchor(from, e.from[1]), anchor(to, e.to[1]), e.bow)
+      : bow !== 0
+        ? bowPoints(anchor(from, e.from[1]), anchor(to, e.to[1]), bow)
         : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
     p.arrow(pts, {
       dotted: !!e.dotted,
@@ -220,20 +246,26 @@ export function draw(
         });
     });
 
-  (diagram.notes || []).forEach((nt) => {
+  (diagram.notes || []).forEach((nt, i) => {
     p.label(nt.x, nt.y, nt.lines, {
       size: NOTE_SIZE,
       color: theme.accent,
       anchor: nt.anchor || 'start',
     });
-    // A pointer bows on the same terms an edge does, down to reading `bow` for
-    // its truth. The two ends are given as points rather than found from
+    // A pointer bows on the same terms an edge does, and is refused on the
+    // same ones. The two ends are given as points rather than found from
     // sides, which changes where they come from and nothing about the curve
-    // between them.
-    if (nt.arrowFrom && nt.arrowTo)
+    // between them. Asked only of a pointer that is drawn: with one end
+    // missing there is no path for either field to describe.
+    if (nt.arrowFrom && nt.arrowTo) {
+      const bow = nt.bow ?? 0;
+      if (bow !== 0 && nt.via?.length)
+        throw new Error(
+          `note ${i} carries bow; its path is already described by via`,
+        );
       p.arrow(
-        nt.bow
-          ? bowPoints(nt.arrowFrom, nt.arrowTo, nt.bow)
+        bow !== 0
+          ? bowPoints(nt.arrowFrom, nt.arrowTo, bow)
           : [nt.arrowFrom, ...(nt.via || []), nt.arrowTo],
         {
           dotted: true,
@@ -241,6 +273,7 @@ export function draw(
           amplitude: NOTE_AMP,
         },
       );
+    }
   });
 
   (diagram.raw || []).forEach((fn) => {
