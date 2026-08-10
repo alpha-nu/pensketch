@@ -5,6 +5,23 @@
 
 ## MODIFIED Requirements
 
+### Requirement: Image output is bounded
+`render_png` SHALL default to a scale of 2, SHALL cap the rendered pixel
+dimensions, and SHALL refuse a request that exceeds the cap rather than
+returning it. Images are base64-encoded into the caller's context, so an
+unbounded one costs the caller the very budget the tool exists to serve — but
+a scale of 1 renders a diagram whose labels are the first thing to become
+unreadable, and an image a caller cannot read costs that budget for nothing.
+The default SHALL be the one the tool's own description states.
+
+#### Scenario: An oversized request is refused
+- **WHEN** a caller asks for a scale that would exceed the dimension cap
+- **THEN** the tool returns an error naming the cap, and no image
+
+#### Scenario: The stated default is the real one
+- **WHEN** a caller reads the scale argument's description and omits the argument
+- **THEN** the image is rendered at the scale that description names
+
 ### Requirement: Resources mirror files that already exist
 The server SHALL expose the agent-facing spec, the JSON Schema for `Diagram`,
 the diagrams this repository ships as examples, and the frozen constants. Each

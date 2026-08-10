@@ -117,10 +117,14 @@ export function registerTools(server: McpServer): void {
       inputSchema: z.strictObject(
         {
           diagram,
+          // Both sentences, because the outer `.describe()` replaces the
+          // inner one rather than adding to it - and this is the one tool
+          // where viewBox is optional, so it was the one tool whose schema
+          // never said what the four numbers are.
           viewBox: viewBox
             .optional()
             .describe(
-              'Without it the out-of-bounds rule cannot run and does not.',
+              '[minX, minY, width, height], the four numbers the <svg> carries. Without it the out-of-bounds rule cannot run and does not.',
             ),
         },
         refuses(
