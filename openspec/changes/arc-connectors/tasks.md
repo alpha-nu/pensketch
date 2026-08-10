@@ -47,7 +47,7 @@ sequence is the port being measured against them, not their regeneration.
       old behaviour in its title
 - [ ] 2.5 `label`, `lx`, `ly`, `anchor`, `dotted` behave on a loop exactly as
       on any other edge
-- [ ] 2.6 Types and JSDoc; the schema regenerates and gains `out`/`span`
+- [x] 2.6 Types and JSDoc; the schema regenerates and gains `out`/`span`
 - [ ] 2.7 Tests including a round trip through `JSON.parse(JSON.stringify())`,
       because crossing that boundary is the entire point
 

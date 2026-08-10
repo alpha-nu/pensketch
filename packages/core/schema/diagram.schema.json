@@ -172,7 +172,15 @@
             }
           ],
           "maxItems": 2,
-          "description": "The id of the node to reach, and which side the head lands on."
+          "description": "The id of the node to reach, and which side the head lands on.\n\nNaming the same node and the same side as `from` draws a self-transition: a loop off that side, leaving and returning to it, with the arrowhead on the anchor it returns to. The same node with two *different* sides throws — a loop attaches to one side, and a corner loop is a different shape with its own geometry to get right."
+        },
+        "out": {
+          "type": "number",
+          "description": "How far a self-transition projects beyond its side, in px. Default: `60`.\n\nIgnored unless `from` and `to` name the same node and side. It is a starting point rather than a fitted value: nothing measures the node to decide how far its loop should reach, because that would be layout. On a small or crowded node, choose your own and let `check` tell you where it lands."
+        },
+        "span": {
+          "type": "number",
+          "description": "How far apart a self-transition's two anchors sit along its side, in px, centred on the side's midpoint. Default: `24`.\n\nIgnored unless `from` and `to` name the same node and side. A value wider than the side itself puts the anchors past the corners, which is the caller's to notice rather than the renderer's to correct."
         },
         "via": {
           "type": "array",

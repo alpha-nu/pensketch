@@ -197,8 +197,35 @@ export type DiagramNode = GroupNode | ShapeNode;
 export interface DiagramEdge {
   /** The id of the node to leave, and which side to leave from. */
   from: [string, Side];
-  /** The id of the node to reach, and which side the head lands on. */
+  /**
+   * The id of the node to reach, and which side the head lands on.
+   *
+   * Naming the same node and the same side as `from` draws a self-transition:
+   * a loop off that side, leaving and returning to it, with the arrowhead on
+   * the anchor it returns to. The same node with two *different* sides throws
+   * — a loop attaches to one side, and a corner loop is a different shape with
+   * its own geometry to get right.
+   */
   to: [string, Side];
+  /**
+   * How far a self-transition projects beyond its side, in px. Default: `60`.
+   *
+   * Ignored unless `from` and `to` name the same node and side. It is a
+   * starting point rather than a fitted value: nothing measures the node to
+   * decide how far its loop should reach, because that would be layout. On a
+   * small or crowded node, choose your own and let `check` tell you where it
+   * lands.
+   */
+  out?: number;
+  /**
+   * How far apart a self-transition's two anchors sit along its side, in px,
+   * centred on the side's midpoint. Default: `24`.
+   *
+   * Ignored unless `from` and `to` name the same node and side. A value wider
+   * than the side itself puts the anchors past the corners, which is the
+   * caller's to notice rather than the renderer's to correct.
+   */
+  span?: number;
   /**
    * Corner points between the two anchors, walked in order and used exactly
    * as given. Nothing is inferred and nothing routes around an obstacle: an
