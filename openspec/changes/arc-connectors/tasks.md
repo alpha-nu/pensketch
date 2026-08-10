@@ -129,11 +129,24 @@ it rather than at 7.1.
       it already says so — and reports the first point outside rather than
       every one, since ten of a loop's twelve inner samples leave together.
       "turns at" is gone with the corner-by-corner walk: a curve turns nowhere.
-      The measured cost on `./check` is 377 B of the 474 free, leaving 97; a
-      minimum `edge-overlap` prototype needs 155 more, which is 58 over budget.
-      That arithmetic is 4.2's to act on, not this task's
+      The measured cost on `./check` is 372 B, landing at 2458 — inside the
+      2560 this task was written against, with 102 to spare, once review
+      stopped `at` being rounded and saved 5 of it
 - [ ] 4.2 `edge-overlap`, warning: two paths within a small distance along
-      their whole length. Does not fire on a crossing
+      their whole length. Does not fire on a crossing.
+
+      **The budget was settled before this was written, and it is the same
+      decision `./server` took before group 3: raise it and shorten the
+      messages, both.** `./check` goes to 3072, so this starts with 614 B free.
+      Two independent minimum prototypes — one helper over `pointToSegment`, a
+      `RuleId` member, a `DEFAULTS` row, one pairwise loop, one message — came
+      in at 2597 and 2618, which is 37 to 58 over the old 2560 and comfortably
+      inside the new one. The same measurement showed the rule *logic* fits
+      2560 and a message of this project's quality does not: a stub reading
+      `edges 0 and 1 overlap` lands 2 B under. That is the trade the raise
+      refuses to make, since a caller who cannot see the drawing has nothing
+      but the message. The standard still binds: which item, what is wrong, the
+      one fact the caller cannot derive from those two, then stop
 - [ ] 4.3 Rule count is eight; the requirement heading that counted them is
       renamed, and every table listing rules is updated
 - [ ] 4.4 Tests for both, including the near-parallel case and the crossing

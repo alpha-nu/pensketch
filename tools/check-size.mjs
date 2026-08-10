@@ -21,9 +21,15 @@ const PACKAGES = [
     // by weight. Fitting 1536 means cutting them by a third, and a caller who
     // cannot see the drawing has nothing but the message. This is the entry
     // an agent or a CI job loads, not one a page ships.
+    //
+    // 3072 from 2560 for the curved connectors. Measuring a loop or a bow
+    // means sampling it, so this entry gained `arcPoints`, `bowPoints` and
+    // `loopPoints` - 377 B it had been tree-shaking away, of which the
+    // rewritten rule is 5. Raised once, before the rule that needed the room
+    // was written, rather than a byte at a time at each gate.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 2560,
+    budget: 3072,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries
