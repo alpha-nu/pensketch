@@ -85,6 +85,13 @@ export function contains(outer: Box, inner: Box): boolean {
  *
  * `null` when either end names a node the diagram does not define. `draw`
  * throws on that by name, so there is nothing the checker can usefully add.
+ *
+ * One exception, and it is a gap rather than a decision: a self-transition is
+ * drawn as a loop off its side, and this still returns the degenerate chord
+ * between the two identical anchors. So a loop that leaves the frame is
+ * invisible to every rule that measures this list. Closing it is the job of
+ * the task that samples loops and bows into segments; until then, do not read
+ * this as the line the renderer draws for such an edge.
  */
 export function edgePath(
   e: DiagramEdge,

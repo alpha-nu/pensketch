@@ -3,6 +3,8 @@ import {
   GROUP_AMP,
   GROUP_W,
   HATCH_INSET,
+  LOOP_OUT,
+  LOOP_SPAN,
   NOTE_AMP,
   NOTE_SIZE,
   SIZE,
@@ -11,6 +13,7 @@ import {
   TITLE_SIZE,
 } from './constants';
 import { pen } from './pen';
+import { loopPoints } from './sample';
 import { resolveTheme } from './theme';
 import type {
   Diagram,
@@ -43,8 +46,9 @@ export function anchor(node: DiagramNode, side: Side): Point {
  * is what makes a rendered `<svg>` worth snapshot-testing.
  *
  * Throws an `Error` naming the offender when an edge references a node the
- * diagram does not define, a node carries an unknown shape, or an edge has a
- * `label` without numeric `lx` and `ly`. Nothing else is validated.
+ * diagram does not define, two nodes share an id, a node carries an unknown
+ * shape, an edge has a `label` without numeric `lx` and `ly`, or an edge names
+ * one node at both ends but two different sides. Nothing else is validated.
  *
  * @example
  * ```js
@@ -133,11 +137,27 @@ export function draw(
       throw new Error(
         `edge ${i} names unknown node "${e.to[0]}" in to; ${known()}`,
       );
-    const pts: Point[] = [
-      anchor(from, e.from[1]),
-      ...(e.via || []),
-      anchor(to, e.to[1]),
-    ];
+    // Both ends naming one node is a self-transition, and a loop hangs off a
+    // single side: two sides is a corner loop, which is a different shape with
+    // its own geometry to get right. Refused before anything is drawn, because
+    // this is the data that used to draw a stub across the corner and say
+    // nothing.
+    const loop = e.from[0] === e.to[0];
+    if (loop && e.from[1] !== e.to[1])
+      throw new Error(
+        `edge ${i} names node "${e.from[0]}" at both ends but sides "${e.from[1]}" and "${e.to[1]}"; a self-transition attaches to one side, so name the same side in from and to`,
+      );
+    // A loop is an edge: it differs in its points and in nothing else, so
+    // dotted, label, lx, ly and anchor keep working below by not being asked
+    // about here.
+    const pts: Point[] = loop
+      ? loopPoints(
+          anchor(from, e.from[1]),
+          e.from[1],
+          e.out ?? LOOP_OUT,
+          e.span ?? LOOP_SPAN,
+        )
+      : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
     p.arrow(pts, {
       dotted: !!e.dotted,
       color: e.dotted ? theme.accent : theme.ink,

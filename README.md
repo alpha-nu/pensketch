@@ -398,7 +398,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **2697 B** | 8919 B |
+| Size, min+gzip | **2880 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

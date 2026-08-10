@@ -232,6 +232,10 @@ export interface DiagramEdge {
    * orthogonal path is the corners you supply, not a mode. Omit it and the
    * arrow runs straight from one anchor to the other, through whatever is in
    * the way.
+   *
+   * A self-transition ignores this. Its path is settled by the side it hangs
+   * off and by `out` and `span`, so there are no corners between its anchors
+   * to place.
    */
   via?: Point[];
   /** Dash the line and recolor it, and its label, to `theme.accent`. */

@@ -15,8 +15,11 @@ import { makeSvg, nth, pathsOf, pointsOf, tagsOf, textsOf } from './helpers';
 import { serialize } from './serialize.mjs';
 
 const {
+  ARC_STEPS,
   DASH,
   EDGE_SIZE,
+  LOOP_OUT,
+  LOOP_SPAN,
   GROUP_W,
   HATCH_INSET,
   HATCH_W,
@@ -148,6 +151,30 @@ describe('draw() validation', () => {
     rejects(
       { nodes, edges: [{ from: ['ghost', 'r'], to: ['b', 'l'] }] },
       'edge 0 names unknown node "ghost" in from; known ids are "a", "b"',
+    );
+  });
+
+  // The case this change exists to remove. It did not throw before: it drew a
+  // meaningless stub across the node's corner, with an arrowhead on it, and
+  // said nothing - so a caller who wrote the obvious thing got rubbish and no
+  // reason to doubt it.
+  it('refuses a corner loop, where it used to draw a stub and say nothing', () => {
+    rejects(
+      { nodes, edges: [{ from: ['a', 't'], to: ['a', 'r'] }] },
+      'edge 0 names node "a" at both ends but sides "t" and "r"; a self-transition attaches to one side, so name the same side in from and to',
+    );
+  });
+
+  it('counts the edge that is wrong, not the one before it', () => {
+    rejects(
+      {
+        nodes,
+        edges: [
+          { from: ['a', 'r'], to: ['a', 'r'] },
+          { from: ['b', 'l'], to: ['b', 't'] },
+        ],
+      },
+      'edge 1 names node "b" at both ends but sides "l" and "t"; a self-transition attaches to one side, so name the same side in from and to',
     );
   });
 
@@ -445,6 +472,169 @@ describe('draw() edge phase', () => {
     expect(near(anchor(nth(nodes, 0), 'r'))).toBe(true);
     expect(near([150, 200])).toBe(true);
     expect(near(anchor(nth(nodes, 1), 'l'))).toBe(true);
+  });
+});
+
+describe('draw() self-transitions', () => {
+  const nodes: DiagramNode[] = [
+    { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 50 },
+  ];
+  // The right side of `a`: x = 100, vertical middle y = 25.
+  const MID: Point = [100, 25];
+  const loopOf = (edge: DiagramEdge) => {
+    const svg = makeSvg();
+    draw(svg, { nodes, edges: [edge] });
+    return svg;
+  };
+
+  it('leaves and returns to the side both ends name', () => {
+    const points = pointsOf(
+      nth(pathsOf(loopOf({ from: ['a', 'r'], to: ['a', 'r'] })), 0),
+    );
+    const first = nth(points, 0);
+    const last = nth(points, points.length - 1);
+
+    // Both anchors on the side, half a span either way from its middle. The
+    // tolerance is the pen's own: the M point wanders the full amplitude and
+    // the last point of a leg is damped, which is what every other assertion
+    // in this file allows for too.
+    expect(Math.abs(first[0] - MID[0])).toBeLessThanOrEqual(1.3);
+    expect(Math.abs(first[1] - (MID[1] - LOOP_SPAN / 2))).toBeLessThanOrEqual(
+      1.3,
+    );
+    expect(Math.abs(last[0] - MID[0])).toBeLessThanOrEqual(0.52);
+    expect(Math.abs(last[1] - (MID[1] + LOOP_SPAN / 2))).toBeLessThanOrEqual(
+      0.52,
+    );
+  });
+
+  it('sets the anchors span apart, and span is the caller’s to change', () => {
+    const separation = (edge: DiagramEdge) => {
+      const points = pointsOf(nth(pathsOf(loopOf(edge)), 0));
+      return nth(points, points.length - 1)[1] - nth(points, 0)[1];
+    };
+    // Both endpoints carry jitter, so the gap between them is good to the sum
+    // of their two bounds and no better. Without the second case a renderer
+    // that ignored `span` entirely would pass the first.
+    expect(separation({ from: ['a', 'r'], to: ['a', 'r'] })).toBeGreaterThan(
+      LOOP_SPAN - 1.82,
+    );
+    expect(separation({ from: ['a', 'r'], to: ['a', 'r'] })).toBeLessThan(
+      LOOP_SPAN + 1.82,
+    );
+    expect(
+      separation({ from: ['a', 'r'], to: ['a', 'r'], span: 40 }),
+    ).toBeGreaterThan(40 - 1.82);
+    expect(
+      separation({ from: ['a', 'r'], to: ['a', 'r'], span: 40 }),
+    ).toBeLessThan(40 + 1.82);
+  });
+
+  it("projects LOOP_OUT beyond the side, and out is the caller's to change", () => {
+    const reach = (edge: DiagramEdge) =>
+      Math.max(...pointsOf(nth(pathsOf(loopOf(edge)), 0)).map(([x]) => x)) -
+      MID[0];
+
+    // Two corrections between `out` and the furthest ink, and both have to be
+    // in the bound or this asserts nothing. The sweep is sampled, so the
+    // furthest vertex falls half a chord short of the apex - the same
+    // shortfall pen.test.ts pins for an arc. Then the pen jitters it, which
+    // can push it back out by up to half the amplitude.
+    const apex = (out: number) => out * Math.cos(Math.PI / ARC_STEPS);
+    const reaches = (edge: DiagramEdge, out: number) => {
+      expect(reach(edge)).toBeGreaterThanOrEqual(apex(out) - 1.3);
+      expect(reach(edge)).toBeLessThanOrEqual(apex(out) + 1.3);
+    };
+    reaches({ from: ['a', 'r'], to: ['a', 'r'] }, LOOP_OUT);
+    reaches({ from: ['a', 'r'], to: ['a', 'r'], out: 20 }, 20);
+  });
+
+  it('hangs off whichever side is named', () => {
+    const away = {
+      r: ([x]: Point) => x - 100,
+      l: ([x]: Point) => -x,
+      t: ([, y]: Point) => -y,
+      b: ([, y]: Point) => y - 50,
+    };
+    for (const side of ['r', 'l', 't', 'b'] as const) {
+      const points = pointsOf(
+        nth(pathsOf(loopOf({ from: ['a', side], to: ['a', side] })), 0),
+      );
+      // Every point of the loop is outside the box on the named side, and the
+      // furthest is LOOP_OUT away, within the jitter. A loop drawn on the
+      // wrong side, or inside the node, fails on the first clause rather than
+      // the second - which is the one that would otherwise pass on any side.
+      const apex = LOOP_OUT * Math.cos(Math.PI / ARC_STEPS);
+      expect(Math.min(...points.map(away[side]))).toBeGreaterThanOrEqual(-1.3);
+      expect(Math.max(...points.map(away[side]))).toBeGreaterThanOrEqual(
+        apex - 1.3,
+      );
+      expect(Math.max(...points.map(away[side]))).toBeLessThanOrEqual(
+        apex + 1.3,
+      );
+    }
+  });
+
+  // 2.5: a loop is an edge. None of this is loop-specific code - it works
+  // because `draw` asks nothing about a loop after choosing its points, so
+  // these assertions are here to keep it that way.
+  it('takes dotted, label, lx, ly and anchor exactly as any edge does', () => {
+    const svg = loopOf({
+      from: ['a', 'r'],
+      to: ['a', 'r'],
+      dotted: true,
+      label: 'retry',
+      lx: 170,
+      ly: 25,
+      anchor: 'start',
+    });
+
+    const paths = pathsOf(svg);
+    // Shaft dashed, barbs bare - the arrowhead rule every edge follows.
+    expect(attr(nth(paths, 0), 'stroke-dasharray')).toBe(DASH);
+    expect(attr(nth(paths, 2), 'stroke-dasharray')).toBeNull();
+    expect(attr(nth(paths, 0), 'stroke')).toBe(defaultTheme.accent);
+
+    const label = nth(textsOf(svg), 0);
+    expect(label.textContent).toBe('retry');
+    expect(num(label, 'x')).toBe(170);
+    expect(attr(label, 'text-anchor')).toBe('start');
+    expect(styleOf(label)).toBe(
+      `fill:${defaultTheme.accent};font-size:${EDGE_SIZE}px`,
+    );
+  });
+
+  it('still needs coordinates for its label, like every other edge', () => {
+    expect(() =>
+      draw(makeSvg(), {
+        nodes,
+        edges: [{ from: ['a', 'r'], to: ['a', 'r'], label: 'no home' }],
+      }),
+    ).toThrowError(/lx and ly are not both numbers/);
+  });
+
+  // The entire point of doing this in data rather than through `raw`: a
+  // callback cannot cross this boundary, and a loop has to.
+  it('draws the same bytes after a round trip through JSON', () => {
+    const diagram: Diagram = {
+      nodes,
+      edges: [
+        {
+          from: ['a', 'r'],
+          to: ['a', 'r'],
+          out: 40,
+          span: 18,
+          label: 'again',
+          lx: 150,
+          ly: 25,
+        },
+      ],
+    };
+    const direct = makeSvg();
+    draw(direct, diagram);
+    const crossed = makeSvg();
+    draw(crossed, JSON.parse(JSON.stringify(diagram)) as Diagram);
+    expect(serialize(crossed)).toBe(serialize(direct));
   });
 });
 

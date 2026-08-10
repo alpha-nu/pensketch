@@ -187,7 +187,7 @@
           "items": {
             "$ref": "#/definitions/Point"
           },
-          "description": "Corner points between the two anchors, walked in order and used exactly as given. Nothing is inferred and nothing routes around an obstacle: an orthogonal path is the corners you supply, not a mode. Omit it and the arrow runs straight from one anchor to the other, through whatever is in the way."
+          "description": "Corner points between the two anchors, walked in order and used exactly as given. Nothing is inferred and nothing routes around an obstacle: an orthogonal path is the corners you supply, not a mode. Omit it and the arrow runs straight from one anchor to the other, through whatever is in the way.\n\nA self-transition ignores this. Its path is settled by the side it hangs off and by `out` and `span`, so there are no corners between its anchors to place."
         },
         "dotted": {
           "type": "boolean",
