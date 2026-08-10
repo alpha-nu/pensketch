@@ -226,12 +226,21 @@ export function draw(
       color: theme.accent,
       anchor: nt.anchor || 'start',
     });
+    // A pointer bows on the same terms an edge does, down to reading `bow` for
+    // its truth. The two ends are given as points rather than found from
+    // sides, which changes where they come from and nothing about the curve
+    // between them.
     if (nt.arrowFrom && nt.arrowTo)
-      p.arrow([nt.arrowFrom, ...(nt.via || []), nt.arrowTo], {
-        dotted: true,
-        color: theme.accent,
-        amplitude: NOTE_AMP,
-      });
+      p.arrow(
+        nt.bow
+          ? bowPoints(nt.arrowFrom, nt.arrowTo, nt.bow)
+          : [nt.arrowFrom, ...(nt.via || []), nt.arrowTo],
+        {
+          dotted: true,
+          color: theme.accent,
+          amplitude: NOTE_AMP,
+        },
+      );
   });
 
   (diagram.raw || []).forEach((fn) => {

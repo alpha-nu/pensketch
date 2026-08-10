@@ -100,6 +100,7 @@ interface DiagramNote {    // free-standing annotation, always --ps-accent
   lines: string[];
   anchor?: 'start' | 'middle' | 'end';   // default 'start'
   arrowFrom?: Point; via?: Point[]; arrowTo?: Point;   // arrow needs both ends
+  bow?: number;            // px off the straight line, right of travel positive
 }
 
 interface Diagram {

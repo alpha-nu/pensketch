@@ -136,6 +136,7 @@ obstacle.
 | `arrowFrom` | `Point` | none | Where the pointer arrow starts. |
 | `via` | `Point[]` | none | Corner points along that arrow. |
 | `arrowTo` | `Point` | none | Where the arrow ends. The arrow is drawn only when both ends are given. |
+| `bow` | `number` | `0` | Bow the pointer off the straight line between its two ends, in px, with the meaning `bow` carries on an edge. |
 
 ### `Diagram`
 
@@ -401,7 +402,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **3057 B** | 8919 B |
+| Size, min+gzip | **3065 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

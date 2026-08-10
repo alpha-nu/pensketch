@@ -920,6 +920,38 @@ describe('draw() note phase', () => {
       true,
     );
   });
+
+  // A pointer runs from text to the thing the text is about, which is exactly
+  // where a straight line is most likely to cross what it points at. The
+  // offsets below are signed the same way `bow` is: positive is the right hand
+  // of someone walking from `arrowFrom` to `arrowTo`.
+  it('bows the pointer to the right of travel, and back for a negative', () => {
+    const ends: [Point, Point] = [
+      [400, 100],
+      [300, 100],
+    ];
+    // Spread rather than `bow` directly: under exactOptionalPropertyTypes an
+    // explicit `undefined` is not the same as an absent field, and absent is
+    // the case the last assertion is about.
+    const offsets = (bow?: number) => {
+      const svg = makeSvg();
+      draw(
+        svg,
+        note({
+          arrowFrom: ends[0],
+          arrowTo: ends[1],
+          ...(bow === undefined ? {} : { bow }),
+        }),
+      );
+      // Travel is -x, so the right hand of it points up the screen, and an
+      // offset below the chord is a negative y difference.
+      return pointsOf(nth(pathsOf(svg), 0)).map(([, y]) => 100 - y);
+    };
+    expect(Math.max(...offsets(30))).toBeGreaterThan(28);
+    expect(Math.min(...offsets(-30))).toBeLessThan(-28);
+    // Straight, and straight to within the pen's own wander of 1.3 px.
+    expect(Math.max(...offsets().map(Math.abs))).toBeLessThan(2);
+  });
 });
 
 describe('draw() with nothing to draw', () => {

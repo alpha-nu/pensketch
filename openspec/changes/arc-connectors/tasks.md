@@ -90,7 +90,7 @@ drawn, which is most of the reason it exists.
 
 - [x] 3.1 `bow` on `DiagramEdge`: perpendicular offset from the chord
       midpoint, positive to the right of travel
-- [ ] 3.2 `bow` on `DiagramNote` pointers, same meaning
+- [x] 3.2 `bow` on `DiagramNote` pointers, same meaning
 - [ ] 3.3 `bow` with `via` throws on both, and so do `via` and `bow` on a
       self-transition — one message shape for all four, saying the path is
       already described. A loop's path is settled by its side, `out` and

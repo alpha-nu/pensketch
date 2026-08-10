@@ -291,6 +291,16 @@ export interface DiagramNote {
   arrowFrom?: Point;
   /** Corner points between `arrowFrom` and `arrowTo`. */
   via?: Point[];
+  /**
+   * How far the pointer bows off the straight line between its two ends, in
+   * px, with the meaning `bow` carries on an edge: positive is to the right of
+   * travel, and `0` is that straight line. Default: `0`.
+   *
+   * A pointer is the case a bow was wanted for first — it starts at text and
+   * ends at whatever the text is about, and a straight run between those two
+   * often crosses the very thing it points at.
+   */
+  bow?: number;
   /** Where the pointer arrow ends. Drawn only when both ends are given. */
   arrowTo?: Point;
 }
