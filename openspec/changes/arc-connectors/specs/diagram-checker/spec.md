@@ -50,10 +50,12 @@ because a pair on one line is sometimes meant.
 - **THEN** no finding with that rule id is returned
 
 ### Requirement: Edge geometry accounts for the jitter
-Edge paths SHALL be derived from the exported `anchor` function and the edge's
-`via` points — except on an edge naming one node at both ends, whose `via` SHALL
-be left out entirely, since the loop `draw` would draw turns at no corners and
-the edge is refused rather than drawn. Each segment SHALL be inflated by half
+Edge paths SHALL be derived from the exported `anchor` function and whichever
+of the edge's own fields describes its path: the `via` points on a straight
+run, the sampled arc on an edge carrying `bow`, and the sampled loop on an edge
+naming one node at both ends — whose `via` SHALL be left out entirely, since
+the loop turns at no corners and the edge is refused rather than drawn. Each
+segment SHALL be inflated by half
 the jitter amplitude plus half the stroke width before clearance is applied,
 because the drawn line does not follow the ideal path.
 

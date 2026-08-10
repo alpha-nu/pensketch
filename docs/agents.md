@@ -237,7 +237,7 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, a corner the arrow turns at, or a label lies outside the `viewBox` | **error** |
+| `out-of-bounds` | a box, a point between an edge's anchors, or a label lies outside the `viewBox` | **error** |
 | `label-collision` | a label sits within `clearance` (default 4) of a connector | warning |
 | `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
 | `group-escape` | a node is half inside a group | warning |

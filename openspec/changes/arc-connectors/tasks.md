@@ -119,8 +119,19 @@ it rather than at 7.1.
 
 ## 4. The checker catches up
 
-- [ ] 4.1 Sample loops and bows into segments so every existing geometric rule
-      sees the path actually drawn, not the chord
+- [x] 4.1 Sample loops and bows into segments so every existing geometric rule
+      sees the path actually drawn, not the chord. `edgePath` now repeats
+      `draw`'s four-way branch rather than its own two-way one, and the
+      anti-drift test covers all four shapes plus the fields each branch reads,
+      because a disagreement between two branchings is the failure this
+      creates. `out-of-bounds` walks that path with both ends dropped — an
+      anchor outside the frame is a node outside the frame, and the rule above
+      it already says so — and reports the first point outside rather than
+      every one, since ten of a loop's twelve inner samples leave together.
+      "turns at" is gone with the corner-by-corner walk: a curve turns nowhere.
+      The measured cost on `./check` is 377 B of the 474 free, leaving 97; a
+      minimum `edge-overlap` prototype needs 155 more, which is 58 over budget.
+      That arithmetic is 4.2's to act on, not this task's
 - [ ] 4.2 `edge-overlap`, warning: two paths within a small distance along
       their whole length. Does not fire on a crossing
 - [ ] 4.3 Rule count is eight; the requirement heading that counted them is

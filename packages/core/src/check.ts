@@ -303,21 +303,44 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
           [`node "${n.id}"`],
         );
 
+    // The path as drawn, both ends dropped. On every shape but a loop the ends
+    // are anchors on a node's own side, so an anchor outside the frame is a
+    // node outside the frame and the rule above has it already. A loop is the
+    // exception: its ends sit `span / 2` along the side, and a `span` wider
+    // than the side puts them past the corners of a node that is wholly
+    // inside - which the schema tells the caller is theirs to notice. Dropping
+    // both ends is still right, because keeping them would add a duplicate
+    // finding for every edge attached to a node the rule above already names.
+    //
+    // What is left is exactly the `via` corners on a straight run - a loop's
+    // `via` never reaches the path at all - and the curve on a loop or a bow.
+    // An edge naming a node the diagram does not define has no path here, so
+    // its corners go unwalked; `draw` throws on it before anything is drawn,
+    // and no rule reports the unknown id either.
+    //
+    // The first point outside and not every one, unlike the corner-by-corner
+    // walk this replaces: a curve is sampled into a dozen points or more and a
+    // frame it leaves it leaves along a stretch of them, so reporting each
+    // would bury one defect under ten copies of itself. The cost is that a
+    // second corner outside the frame needs a second run to see, which is the
+    // one place this file trades away its own "all of them at once".
+    for (const { i, path } of paths) {
+      const p = path.slice(1, -1).find(([x, y]) => outside(x, y));
+      // Rounded in the message, because the point is a sample and the true
+      // crossing lies between it and the one before: the digits after the
+      // point are precision the number has not got. `at` keeps them, because
+      // it is a coordinate to go and look at rather than prose, and a rounded
+      // one can land back inside the frame it is reporting an escape from.
+      if (p)
+        add(
+          'out-of-bounds',
+          `edge ${i} reaches outside the viewBox at (${Math.round(p[0])}, ${Math.round(p[1])}), so part of it is clipped away`,
+          p,
+          [`edge ${i}`],
+        );
+    }
+
     edges.forEach((e, i) => {
-      // Not an edge naming one node at both ends: the loop it draws turns at
-      // no corners, so its `via` is a corner nobody reaches and reporting one
-      // outside the frame would be a finding about ink that is not there.
-      // `draw` refuses such an edge outright, which settles nothing here -
-      // most of the reason this exists is diagrams that are never drawn.
-      if (e.from[0] !== e.to[0])
-        for (const [x, y] of e.via || [])
-          if (outside(x, y))
-            add(
-              'out-of-bounds',
-              `edge ${i} turns at (${x}, ${y}), outside the viewBox, so the arrow leaves the picture`,
-              [x, y],
-              [`edge ${i}`],
-            );
       if (
         typeof e.lx === 'number' &&
         typeof e.ly === 'number' &&

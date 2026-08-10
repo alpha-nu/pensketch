@@ -550,6 +550,7 @@ describe('out-of-bounds', () => {
     nodes,
     edges,
   });
+  const selfEdge: DiagramEdge = { from: ['a', 'r'], to: ['a', 'r'] };
 
   it('reports a node reaching past the frame', () => {
     const findings = check(
@@ -578,6 +579,104 @@ describe('out-of-bounds', () => {
     );
     expect(rules(findings)).toEqual(['out-of-bounds']);
     expect(findings[0]).toMatchObject({ at: [600, 20], subjects: ['edge 0'] });
+    // The rule walks the path as drawn, and a corner is one point on it among
+    // the dozens a curve contributes, so the message names neither. A hand
+    // written corner is an integer and survives the rounding a sample needs.
+    expect(findings[0]?.message).toBe(
+      'edge 0 reaches outside the viewBox at (600, 20), so part of it is clipped away',
+    );
+  });
+
+  // The debt this closes. `DiagramEdge.out` promises that `check` reports a
+  // loop leaving the frame, and that sentence ships in the JSON schema and in
+  // the SCHEMA resource the MCP server hands to agents. It was false while
+  // `edgePath` returned a self-transition's two anchors: both sit on the node,
+  // and the node here is wholly inside the frame.
+  //
+  // By hand: `a`'s right anchor is (480, 120), and the loop is the half
+  // ellipse centred there with radii LOOP_OUT 60 across and LOOP_SPAN / 2 = 12
+  // along the side, cut into ARC_STEPS / 2 = 13 chords. Point i sits at
+  // (480 + 60 sin(PI i / 13), 120 - 12 cos(PI i / 13)); the first past x = 500
+  // is i = 2, at 480 + 60 * 0.46472 = 507.88 and 120 - 12 * 0.88546 = 109.37.
+  it('reports a loop that leaves the frame off a node wholly inside it', () => {
+    const findings = check(wired([box('a', 380, 100)], [selfEdge]), {
+      viewBox: VIEW_BOX,
+    });
+    expect(rules(findings)).toEqual(['out-of-bounds']);
+    // The message rounds and `at` does not, on purpose and not by oversight.
+    // `at` is a coordinate to go and look at, and rounding it can move a point
+    // back inside the frame whose escape it is reporting - 500.4 in a 500-wide
+    // frame becomes 500, which `outside` then says is fine.
+    expect(findings[0]).toMatchObject({
+      at: [expect.closeTo(507.8834), expect.closeTo(109.3745)],
+      severity: 'error',
+      subjects: ['edge 0'],
+      message:
+        'edge 0 reaches outside the viewBox at (508, 109), so part of it is clipped away',
+    });
+  });
+
+  // The case that makes rounding `at` wrong rather than merely imprecise: fed
+  // back through the rule's own predicate, a rounded point would not fire.
+  it('gives at a point that is really outside, not one rounded back in', () => {
+    const findings = check(
+      wired(
+        [box('a', 0, 20), box('b', 0, 200)],
+        [{ from: ['a', 'b'], to: ['b', 't'], via: [[500.4, 120]] }],
+      ),
+      { viewBox: VIEW_BOX },
+    );
+    expect(rules(findings)).toEqual(['out-of-bounds']);
+    expect(findings[0]?.at[0]).toBeGreaterThan(500);
+  });
+
+  // Ten of the loop's twelve inner samples are past the frame. Reporting each
+  // would bury one defect under ten copies of itself, which is the difference
+  // between a walk over corners a caller wrote and a walk over a sampled
+  // curve. Asserted here rather than left to the count above so that a change
+  // back to reporting every point fails on the reason rather than on a total.
+  it('reports a curve leaving the frame once, not once per sample', () => {
+    expect(
+      check(wired([box('a', 380, 100)], [selfEdge]), { viewBox: VIEW_BOX }),
+    ).toHaveLength(1);
+  });
+
+  // Both ends of every path are dropped before the walk. An anchor outside the
+  // frame is a node outside the frame, which the rule above already names; the
+  // alternative is one more finding per edge attached to that node, each
+  // saying the same thing about the same defect.
+  it('leaves an anchor outside the frame to the node it sits on', () => {
+    const findings = check(
+      wired(
+        [box('a', 0, 0), box('gone', 600, 600)],
+        [
+          { from: ['a', 'r'], to: ['gone', 'l'] },
+          { from: ['a', 'b'], to: ['gone', 't'] },
+        ],
+      ),
+      { viewBox: VIEW_BOX },
+    );
+    expect(findings.map((f) => f.subjects)).toEqual([['node "gone"']]);
+  });
+
+  // The bow's own case, and the one that needs no numbers: both anchors and
+  // every point of the chord between them are inside the frame, so the same
+  // edge without `bow` is silent. Only the arc leaves - 40px below a chord
+  // 30px above the bottom of the frame.
+  it('reports a bow that leaves a frame its chord stays inside', () => {
+    const bowed = (bow?: number): Diagram =>
+      wired(
+        [box('a', 0, 250), box('b', 300, 250)],
+        [{ from: ['a', 'r'], to: ['b', 'l'], ...(bow ? { bow } : {}) }],
+      );
+    expect(check(bowed(), { viewBox: VIEW_BOX })).toEqual([]);
+
+    const findings = check(bowed(40), { viewBox: VIEW_BOX });
+    expect(rules(findings)).toEqual(['out-of-bounds']);
+    expect(findings[0]?.subjects).toEqual(['edge 0']);
+    // Past the bottom of the frame, which is the only direction this bow goes:
+    // positive is to the right of travel, and travel here is left to right.
+    expect(findings[0]?.at[1]).toBeGreaterThan(300);
   });
 
   // The other half of the same false finding, and the one that reads worst: a

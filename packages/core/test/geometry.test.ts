@@ -126,13 +126,48 @@ describe('edgePath', () => {
   // is not part of any line. Splicing it in put a corner into the path every
   // rule measures against, and a label near it was reported as lying on the
   // line it labels with no ink within 500px of the point.
-  it('leaves a self-transition its two anchors and none of its via', () => {
-    expect(
-      edgePath({ from: ['a', 'r'], to: ['a', 'r'], via: [[600, 600]] }, BY_ID),
-    ).toEqual([
-      [200, 80],
-      [200, 80],
+  //
+  // By hand: `a`'s right anchor is (200, 80), so the loop hangs off there,
+  // LOOP_SPAN 24 along the side and LOOP_OUT 60 out from it.
+  it('samples a self-transition into its loop, and none of its via', () => {
+    const path = edgePath(
+      { from: ['a', 'r'], to: ['a', 'r'], via: [[600, 600]] },
+      BY_ID,
+    ) as Point[];
+    expect(nth(path, 0)).toEqual([200, 68]);
+    expect(nth(path, path.length - 1)).toEqual([200, 92]);
+    expect(Math.max(...path.map(([x]) => x))).toBeGreaterThan(200);
+    expect(path).not.toContainEqual([600, 600]);
+  });
+
+  // By hand: the anchors are (200, 80) and (350, 200), so the chord's midpoint
+  // is (275, 140) and it runs 150 right and 120 down. Right of travel in a
+  // space where y grows downward turns that to (-120, 150), which normalises
+  // to (-0.625, 0.78125); 40 px along it puts the apex at (250, 171.25).
+  it('samples a bow into the arc it is drawn as, not the chord', () => {
+    const path = edgePath(
+      { from: ['a', 'r'], to: ['b', 't'], bow: 40 },
+      BY_ID,
+    ) as Point[];
+    // Close rather than equal: a bow's end angles come back through `atan2`
+    // and the centre it is measured from, where a loop's are exactly +/- a
+    // quarter turn, so the anchors land within an ulp or two rather than on
+    // the nose. A branch that returned the chord would miss by nothing at all
+    // here, which is why the apex below is the assertion that matters.
+    expect(nth(path, 0)).toEqual([expect.closeTo(200), expect.closeTo(80)]);
+    expect(nth(path, path.length - 1)).toEqual([
+      expect.closeTo(350),
+      expect.closeTo(200),
     ]);
+
+    const apex = Math.max(
+      ...path.map(([x, y]) => pointToSegment([x, y], [200, 80], [350, 200])),
+    );
+    // Between two samples rather than on one, so the deepest point sampled is
+    // a little short of the 40 px asked for - and a long way past the 0 a
+    // chord would report.
+    expect(apex).toBeGreaterThan(39);
+    expect(apex).toBeLessThanOrEqual(40);
   });
 
   it('says nothing about an edge naming a node that does not exist', () => {
@@ -145,28 +180,104 @@ describe('edgePath', () => {
   });
 
   // The anti-drift test. The checker measures a line it computes itself; if
-  // `draw` ever assembled a different one - a routing point, a changed anchor
-  // - every clearance the checker reports would be about a line nobody draws.
+  // `draw` ever assembled a different one - a routing point, a changed anchor,
+  // a branch taken on different terms - every clearance the checker reports
+  // would be about a line nobody draws. `draw` chooses between four shapes and
+  // `edgePath` repeats that choice, so the drift this guards against is now a
+  // disagreement between two branchings rather than between two point lists,
+  // and every shape is exercised.
   //
   // The pen jitters x and y independently by up to AMP / 2 each, so a point
   // can land AMP / 2 * sqrt(2) away and no further. Leg ends are damped to
   // 40% of that. The bound is under 2px against a drift that would be tens.
-  it('names the same points the renderer draws through', () => {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    draw(svg, { nodes: NODES, edges: [EDGE] });
+  const BOUND = (AMP / 2) * Math.SQRT2;
 
+  // The first pass of the connector's own stroke. `arrow` draws that before
+  // either barb, so it is the first <path> in the document.
+  const drawnPoints = (e: DiagramEdge): Point[] => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    draw(svg, { nodes: NODES, edges: [e] });
     const d = svg.querySelector('path')?.getAttribute('d') ?? '';
     const numbers = (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
     const drawn: Point[] = [];
     for (let i = 0; i < numbers.length; i += 2)
       drawn.push([numbers[i] as number, numbers[i + 1] as number]);
-    expect(drawn.length).toBeGreaterThan(IDEAL.length);
+    return drawn;
+  };
 
-    for (const [x, y] of IDEAL) {
-      const nearest = Math.min(
-        ...drawn.map(([dx, dy]) => Math.hypot(dx - x, dy - y)),
-      );
-      expect(nearest).toBeLessThanOrEqual((AMP / 2) * Math.SQRT2);
+  // One row per branch, and one row per field the branch reads. Hard-coding
+  // LOOP_OUT and LOOP_SPAN fails the sized-by-hand row.
+  //
+  // What these rows do NOT catch is the pair of spellings `draw` is careful
+  // about: `bow !== 0` rather than truthiness, and `?? ` rather than `||` on
+  // `out` and `span`. Both survive every row here, because -55 is truthy and
+  // 130 and 90 are, so the values a drift would swallow are exactly the ones
+  // no row uses. They are pinned separately below, against `edgePath` alone.
+  const SHAPES: [string, DiagramEdge][] = [
+    ['a straight run', { from: ['a', 'r'], to: ['b', 't'] }],
+    ['a run through via corners', EDGE],
+    [
+      'a bow to the right of travel',
+      { from: ['a', 'r'], to: ['b', 't'], bow: 40 },
+    ],
+    [
+      'a bow to the left of travel',
+      { from: ['a', 'r'], to: ['b', 't'], bow: -55 },
+    ],
+    ['a self-transition', { from: ['a', 'r'], to: ['a', 'r'] }],
+    [
+      'a self-transition sized by hand',
+      { from: ['a', 'r'], to: ['a', 'r'], out: 130, span: 90 },
+    ],
+  ];
+
+  it.each(SHAPES)(
+    'names the same points the renderer draws through, on %s',
+    (_shape, e) => {
+      const drawn = drawnPoints(e);
+      const path = edgePath(e, BY_ID) as Point[];
+      expect(drawn.length).toBeGreaterThan(path.length);
+
+      // Both directions, and the second is the one that carries the weight. That
+      // every point `edgePath` names has ink near it is satisfied by a chord
+      // returned for a curve, because a chord's ends are the anchors the renderer
+      // does draw. That every point the renderer draws lies near the line
+      // `edgePath` names is not: the apex of a loop is LOOP_OUT from its chord.
+      for (const [x, y] of path) {
+        const nearest = Math.min(
+          ...drawn.map(([dx, dy]) => Math.hypot(dx - x, dy - y)),
+        );
+        expect(nearest).toBeLessThanOrEqual(BOUND);
+      }
+      for (const p of drawn) {
+        const nearest = Math.min(
+          ...path.slice(1).map((q, k) => pointToSegment(p, nth(path, k), q)),
+        );
+        expect(nearest).toBeLessThanOrEqual(BOUND);
+      }
+    },
+  );
+
+  // The three values where a drift between `draw` and this one is invisible to
+  // the rows above, because each is a number the other spelling swallows.
+  it('reads the fields the way the renderer reads them, at the values that tell', () => {
+    // `bow !== 0`, not truthiness: NaN is falsy, so a truthy test sends this
+    // down the straight-line branch while `draw` samples an arc it cannot
+    // describe and refuses to draw at all.
+    expect(
+      edgePath({ from: ['a', 'r'], to: ['b', 't'], bow: Number.NaN }, BY_ID),
+    ).toEqual([]);
+
+    // `??`, not `||`: nought is a loop that projects nothing and one whose
+    // anchors coincide, and `||` would draw both of them at their defaults.
+    const flat = edgePath(
+      { from: ['a', 'r'], to: ['a', 'r'], out: 0, span: 0 },
+      BY_ID,
+    ) as Point[];
+    // 'a' right, by hand as everything here is: (40 + 160, 60 + 40 / 2).
+    for (const [x, y] of flat) {
+      expect(x).toBeCloseTo(200);
+      expect(y).toBeCloseTo(80);
     }
   });
 });

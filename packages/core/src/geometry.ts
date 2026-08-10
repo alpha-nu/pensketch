@@ -1,5 +1,6 @@
-import { AMP, LINE_H, WIDTH } from './constants';
+import { AMP, LINE_H, LOOP_OUT, LOOP_SPAN, WIDTH } from './constants';
 import { anchor } from './draw';
+import { bowPoints, loopPoints } from './sample';
 import type { DiagramEdge, DiagramNode, Point } from './types';
 
 // The geometry the checker reasons with. Internal: no entry point re-exports
@@ -77,30 +78,33 @@ export function contains(outer: Box, inner: Box): boolean {
 }
 
 /**
- * The line an edge would be drawn along: the anchor it leaves, its `via`
- * corners in the order given, and the anchor it lands on. `draw` assembles
- * exactly this list before handing it to the pen — through the same exported
- * `anchor` — so the checker measures the line the renderer will draw, give or
- * take the wobble.
+ * The line an edge is drawn along, as points — the four shapes `draw` chooses
+ * between, chosen on the same terms. A self-transition is the loop off its
+ * side; an edge whose `bow` is not 0 is that arc; an edge with `via` is the
+ * anchor it leaves, those corners in the order given, and the anchor it lands
+ * on; anything else is the straight run between the two anchors. Both curves
+ * come back as the chords they are drawn as, from the same `loopPoints` and
+ * `bowPoints` the pen is handed, through the same exported `anchor` — so the
+ * checker measures the line the renderer will draw, give or take the wobble,
+ * and every rule here goes on reasoning in straight segments.
  *
  * `null` when either end names a node the diagram does not define. `draw`
  * throws on that by name, so there is nothing the checker can usefully add.
  *
- * Two curved paths are the exception, and each is a gap rather than a
- * decision. A self-transition is drawn as a loop off its side and this
- * returns the two identical anchors it leaves and lands on; a bowed edge is
- * drawn as an arc and this returns the chord it bows off. Both sets of points
- * are ink, so the rules are not blind on such an edge - but the curve between
- * them is not measured, so a loop or a bow that leaves the frame goes
- * unreported. Closing that is the job of the task that samples loops and bows
- * into segments; until then, do not read this as the whole of the line the
- * renderer draws for either.
+ * A `via` on an edge naming one node at both ends is left out entirely: the
+ * loop branch never reads the field. `draw` refuses that edge rather than
+ * drawing it, and the loop it would otherwise draw turns at no corners, so
+ * splicing them in would measure ink that is nowhere - which is a finding
+ * about a line the renderer never draws.
  *
- * A `via` on an edge naming one node at both ends is left out entirely. `draw`
- * refuses that edge rather than drawing it, and the loop it would otherwise
- * draw turns at no corners, so splicing them in would measure ink that is
- * nowhere - which is a finding about a line the renderer never draws, and
- * worse than the silence above.
+ * What a curve costs is length: a loop at the default `out` is fourteen points
+ * where the chord was two, and more as it grows, since a chord of it is held
+ * to the same `SEG_LEN` a straight leg is. Every rule that walks a path pays
+ * that, once per path it is compared against. What it buys is that a loop or a
+ * bow leaving the frame is now seen, where the chord this used to return sat
+ * entirely inside one. It buys nothing against an obstacle: no
+ * rule compares a path to a node's box, so a loop drawn over the node beside
+ * it is as silent as it ever was.
  */
 export function edgePath(
   e: DiagramEdge,
@@ -108,13 +112,18 @@ export function edgePath(
 ): Point[] | null {
   const from = byId.get(e.from[0]);
   const to = byId.get(e.to[0]);
-  return from && to
-    ? [
+  if (!from || !to) return null;
+  const bow = e.bow ?? 0;
+  return e.from[0] === e.to[0]
+    ? loopPoints(
         anchor(from, e.from[1]),
-        ...(e.from[0] === e.to[0] ? [] : e.via || []),
-        anchor(to, e.to[1]),
-      ]
-    : null;
+        e.from[1],
+        e.out ?? LOOP_OUT,
+        e.span ?? LOOP_SPAN,
+      )
+    : bow !== 0
+      ? bowPoints(anchor(from, e.from[1]), anchor(to, e.to[1]), bow)
+      : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
 }
 
 /** Distance from a point to a box, and zero anywhere inside it. */
