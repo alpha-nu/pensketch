@@ -79,6 +79,28 @@ export const TITLE_DY = 18;
 export const TITLE_SIZE = 14;
 /** Edge label font size in px. */
 export const EDGE_SIZE = 12.5;
+/**
+ * How far a self-transition projects beyond the side it leaves, in px, when
+ * the edge does not say.
+ *
+ * A starting point rather than a computed value: nothing here measures a node
+ * to decide how far its loop should reach, because that would be layout. Both
+ * this and `LOOP_SPAN` are what the state-machine example's hand-drawn loop
+ * used - 60 px out from a 190 px box - which is a drawing someone looked at
+ * and kept, rather than a number chosen at a desk. A caller whose node is much
+ * smaller or much busier will want their own.
+ */
+export const LOOP_OUT = 60;
+/**
+ * How far apart a self-transition's two anchors sit along its side, in px,
+ * when the edge does not say. Centred on the side's midpoint, so the loop
+ * leaves above and returns below.
+ *
+ * The same drawing's 24 px, and the same caveat: on a side shorter than this
+ * the anchors run past the corners, which `check` reports rather than the
+ * renderer silently adjusting.
+ */
+export const LOOP_SPAN = 24;
 /** Note font size in px. */
 export const NOTE_SIZE = 13;
 /** Jitter amplitude in px of a note's arrow. */
@@ -124,6 +146,8 @@ export const constants = Object.freeze({
   TITLE_DY,
   TITLE_SIZE,
   EDGE_SIZE,
+  LOOP_OUT,
+  LOOP_SPAN,
   NOTE_SIZE,
   NOTE_AMP,
   SEED,

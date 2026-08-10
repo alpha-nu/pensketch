@@ -35,7 +35,7 @@ sequence is the port being measured against them, not their regeneration.
 
 ## 2. Self-transitions
 
-- [ ] 2.1 `LOOP_OUT` and `LOOP_SPAN` constants with the defaults, documented
+- [x] 2.1 `LOOP_OUT` and `LOOP_SPAN` constants with the defaults, documented
       as starting points rather than as computed values
 - [ ] 2.2 Loop geometry in `geometry.ts`: two anchors on a side `span` apart,
       an arc projecting `out`, arrowhead on the returning anchor

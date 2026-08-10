@@ -137,7 +137,7 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |
 | `SEED` | 1 | default seed |
 
-All 34 are exported as `constants`.
+All 36 are exported as `constants`.
 
 Proportions that read well, from this project's own diagrams: a labelled box
 about **150 × 46**, rows about **80** apart, a group title needing about **30 px**

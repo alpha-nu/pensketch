@@ -92,6 +92,8 @@ describe('constants', () => {
       TITLE_DY: 18,
       TITLE_SIZE: 14,
       EDGE_SIZE: 12.5,
+      LOOP_OUT: 60,
+      LOOP_SPAN: 24,
       NOTE_SIZE: 13,
       NOTE_AMP: 2,
       SEED: 1,
