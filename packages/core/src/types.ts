@@ -213,8 +213,8 @@ export interface DiagramEdge {
    * Ignored unless `from` and `to` name the same node and side. It is a
    * starting point rather than a fitted value: nothing measures the node to
    * decide how far its loop should reach, because that would be layout. On a
-   * small or crowded node, choose your own and let `check` tell you where it
-   * lands.
+   * small or crowded node, choose your own: `check` reports a loop that leaves
+   * the frame, and nothing reports one that lands on a neighbour.
    *
    * A loop is sampled into chords no longer than a straight line's, so the
    * number of points it costs grows with this. A value that is not a finite

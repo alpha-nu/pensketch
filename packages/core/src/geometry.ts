@@ -87,11 +87,15 @@ export function contains(outer: Box, inner: Box): boolean {
  * throws on that by name, so there is nothing the checker can usefully add.
  *
  * One exception, and it is a gap rather than a decision: a self-transition is
- * drawn as a loop off its side, and this still returns the degenerate chord
- * between the two identical anchors. So a loop that leaves the frame is
- * invisible to every rule that measures this list. Closing it is the job of
- * the task that samples loops and bows into segments; until then, do not read
- * this as the line the renderer draws for such an edge.
+ * drawn as a loop off its side, and this returns the two identical anchors
+ * instead - plus any `via` points, which `draw` ignores on a loop and this
+ * does not. So the rules do not go blind on such an edge, which would be the
+ * safer failure. They measure a line that is only notionally there: a loop
+ * that leaves the frame goes unreported, while a label near the side's
+ * midpoint can be reported as sitting on the line it labels, and a `via` the
+ * renderer never turns at can be reported as a corner outside the viewBox.
+ * Closing it is the job of the task that samples loops and bows into segments;
+ * until then, do not read this as the line the renderer draws for such an edge.
  */
 export function edgePath(
   e: DiagramEdge,

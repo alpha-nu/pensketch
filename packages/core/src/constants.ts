@@ -97,8 +97,10 @@ export const LOOP_OUT = 60;
  * leaves above and returns below.
  *
  * The same drawing's 24 px, and the same caveat: on a side shorter than this
- * the anchors run past the corners, which `check` reports rather than the
- * renderer silently adjusting.
+ * the anchors run past the corners, which is the caller's to notice rather
+ * than the renderer's to correct. No rule measures a loop against the node it
+ * hangs off, and none is coming: relating the two is the layout this library
+ * does not do.
  */
 export const LOOP_SPAN = 24;
 /** Note font size in px. */
