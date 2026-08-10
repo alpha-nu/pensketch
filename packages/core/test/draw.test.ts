@@ -526,7 +526,7 @@ describe('draw() self-transitions', () => {
     );
   });
 
-  it('sets the anchors span apart, and span is the caller’s to change', () => {
+  it("sets the anchors span apart, and span is the caller's to change", () => {
     const separation = (edge: DiagramEdge) => {
       const points = pointsOf(nth(pathsOf(loopOf(edge)), 0));
       return nth(points, points.length - 1)[1] - nth(points, 0)[1];

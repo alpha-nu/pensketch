@@ -166,9 +166,14 @@ longer than anything a README can afford to print.
 
 ## ASCII source
 
-Source files contain no literal multi-byte characters. Fixture and label
-strings use `\uXXXX` escapes for any non-ASCII glyph, which keeps rendered
-output independent of file encoding and keeps diffs readable everywhere.
+Strings that reach rendered output use `\uXXXX` escapes for any non-ASCII
+glyph — fixture and label strings above all — which keeps what is drawn
+independent of file encoding and keeps diffs readable everywhere.
+
+Prose is not covered. Comments, documentation and error messages use the
+typographic dashes the rest of the project uses. This section used to forbid a
+literal multi-byte character anywhere in a source file, which was never true of
+this repository and which nothing checks.
 
 HTML files declare `<meta charset="utf-8">` and may use HTML entities in
 markup, but JavaScript and TypeScript strings inside them still use escapes.
