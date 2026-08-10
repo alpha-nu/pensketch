@@ -631,9 +631,33 @@ describe('draw() self-transitions', () => {
     ).toThrowError(/lx and ly are not both numbers/);
   });
 
+  // `??` and not `||`: a caller who asks for nought gets nought. The two
+  // spellings read alike in a diff and differ by a whole loop in the picture,
+  // and neither value is one a drawing would notice going missing.
+  it('takes out 0 and span 0 as asked rather than as absent', () => {
+    const loop = (edge: DiagramEdge) => pointsOf(nth(pathsOf(loopOf(edge)), 0));
+    const reach = (edge: DiagramEdge) =>
+      Math.max(...loop(edge).map(([x]) => x)) - MID[0];
+    const apart = (edge: DiagramEdge) => {
+      const pts = loop(edge);
+      return Math.abs(nth(pts, pts.length - 1)[1] - nth(pts, 0)[1]);
+    };
+    const both: DiagramEdge = { from: ['a', 'r'], to: ['a', 'r'] };
+
+    expect(reach(both)).toBeGreaterThan(50);
+    expect(reach({ ...both, out: 0 })).toBeLessThan(2);
+    expect(apart(both)).toBeGreaterThan(20);
+    expect(apart({ ...both, span: 0 })).toBeLessThan(3);
+  });
+
   // The entire point of doing this in data rather than through `raw`: a
-  // callback cannot cross this boundary, and a loop has to.
-  it('draws the same bytes after a round trip through JSON', () => {
+  // callback cannot cross this boundary, and a loop has to. The crossing on
+  // its own cannot fail - arrays, strings and numbers all survive JSON - so
+  // what is asserted is the pair of claims that can. That `draw` hands the
+  // diagram back as it found it matters most to the caller who renders the
+  // same object twice, and it is the one defect a round trip would otherwise
+  // hide, because a mutated diagram serializes to its mutated self.
+  it('leaves the diagram as it found it, and draws it the same after JSON', () => {
     const diagram: Diagram = {
       nodes,
       edges: [
@@ -646,12 +670,20 @@ describe('draw() self-transitions', () => {
           lx: 150,
           ly: 25,
         },
+        // Sized by nothing, so a `draw` that wrote its defaults back onto the
+        // caller's edge would show up here and nowhere else. The edge above
+        // carries both numbers already and would absorb the same mutation
+        // without a trace.
+        { from: ['a', 't'], to: ['a', 't'] },
       ],
     };
+    const before = JSON.stringify(diagram);
     const direct = makeSvg();
     draw(direct, diagram);
+    expect(JSON.stringify(diagram)).toBe(before);
+
     const crossed = makeSvg();
-    draw(crossed, JSON.parse(JSON.stringify(diagram)) as Diagram);
+    draw(crossed, JSON.parse(before) as Diagram);
     expect(serialize(crossed)).toBe(serialize(direct));
   });
 });
