@@ -460,8 +460,9 @@ describe('arc()', () => {
     // the case group 3 produces: a connector bowed shallowly across a wide
     // diagram is a large radius through a small sweep.
     // An ellipse rather than a circle, and the long radius second: the
-    // longest chord sits at the end of the longer radius, so a rule that
-    // reached for either radius in particular would under-sample this.
+    // longest chord sits at the end of the shorter radius, where the longer
+    // one sets the speed, so a rule reaching for either radius by name rather
+    // than for the larger of the two would under-sample this.
     const rx = 60;
     const ry = 200;
     const sampled = (a: number, b: number, to: number) => {

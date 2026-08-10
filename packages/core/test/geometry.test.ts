@@ -224,10 +224,13 @@ describe('loopPoints', () => {
   // One statement of the whole anchor rule: each anchor is the side's midpoint
   // displaced half a SPAN along the side and by nothing at all across it. A
   // tolerance would let a loop start a hair inside the node or in the gap
-  // beside it, and none is needed - at these coordinates the arithmetic lands
-  // on the side to the last bit, the largest stray term being 60 * cos(-PI/2),
-  // about 4e-15, against a gap between representable numbers near 250 of ten
-  // times that.
+  // beside it, and none is needed - but the margin is narrower than it looks.
+  // The largest stray term is the l row's returning anchor, 60 * cos(-3 * PI /
+  // 2) at 1.10e-14, against half the gap between representable numbers near
+  // 250, which is 1.42e-14. A factor of 1.29, not the order of magnitude a
+  // reader would assume, and a property of these coordinates rather than of
+  // the code: at LOOP_OUT 78 the l anchor stops landing exactly, t and b at
+  // 117, r at 233. A failure here means the numbers above moved.
   it('puts both anchors on the side, SPAN apart and centred on the midpoint', () => {
     for (const side of SIDES) {
       const [ax, ay] = ALONG[side];

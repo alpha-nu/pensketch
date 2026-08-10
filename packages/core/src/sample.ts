@@ -35,8 +35,9 @@ export function arcPoints(
   const steps = Math.max(
     MIN_STEPS,
     Math.round((ARC_STEPS * Math.abs(sweep)) / (2 * Math.PI)),
-    // An ellipse's longest chord is the one at the end of its longer radius,
-    // so that radius bounds them all.
+    // An ellipse travels fastest at the end of its shorter radius, because
+    // that is where the longer one carries the whole of the movement, so the
+    // longer radius bounds every chord.
     Math.ceil((Math.max(rx, ry) * Math.abs(sweep)) / SEG_LEN),
   );
   // A radius or an angle that is not a finite number makes `steps` one too,
@@ -87,10 +88,11 @@ export function arcPoints(
  * nothing about how a loop reads.
  *
  * The curve between those points is not the same, and the difference is
- * visible. The hand-drawn loop is fat in the middle - 24 px across where this
- * is 10 - because it was placed point by point to look like a loop. A half
- * ellipse is widest at its anchors and tapers to the tip. Whichever reads
- * better is a question for the drawing that replaces it, not for this file.
+ * visible. Measured across at x = 280, where the hand-drawn loop is widest, it
+ * spans 48 px against this one's 21: it was placed point by point to look like
+ * a loop, where a half ellipse is widest at its anchors and tapers to the tip.
+ * Whichever reads better is a question for the drawing that replaces it, not
+ * for this file.
  */
 export function loopPoints(
   mid: Point,
