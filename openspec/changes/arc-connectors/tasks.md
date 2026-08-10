@@ -99,9 +99,12 @@ free and where finding messages are already three quarters of the entry.
 
 ## 5. The reference stops being wrong
 
-- [ ] 5.1 Trap 4 in `docs/agents.md` — "An edge connects two *different*
-      nodes. There are no self-transitions." — rewritten, saying what the rule
-      was and that it has moved
+- [ ] 5.1 Trap 4 in `docs/agents.md` already states the rule, as of the group 2
+      remediation: the false sentence went the moment it became false, on
+      62f0006's precedent that a document contradicting what it documents is
+      drift rather than a scheduled edit. What is left here is the narrative —
+      that the rule used to be the opposite, and where the loop went — for a
+      reader who learned the old one
 - [ ] 5.2 `raw` described as the hatch for what the data model still has no
       word for, rather than for self-transitions specifically
 - [ ] 5.3 The count of exported constants, which every group before this one

@@ -47,9 +47,10 @@ three labels.
 
 When space is tight, put the text in the box instead of beside the arrow.
 
-**4. An edge connects two *different* nodes.** There are no self-transitions.
-A state machine's "retry, stay here" loop has to be drawn with the `raw`
-escape hatch.
+**4. A self-transition names the same side twice.** An edge whose `from` and
+`to` are both `['s', 'r']` loops off that node's right side; `out` and `span`
+size it. Naming the same node with two *different* sides throws — a loop hangs
+off one side, and a corner loop is a different shape.
 
 **5. `via` points are used exactly as given, in order.** The arrow walks the
 legs you describe and nothing is inferred. Orthogonal routing is three points
@@ -83,8 +84,10 @@ type DiagramNode =
 
 interface DiagramEdge {
   from: [string, Side];    // node id + which side to leave
-  to:   [string, Side];
-  via?: Point[];           // corners, used verbatim
+  to:   [string, Side];    // same node and same side = a self-transition
+  out?: number;            // loop only: how far it projects, default 60
+  span?: number;           // loop only: how far apart its anchors sit, default 24
+  via?: Point[];           // corners, used verbatim; a loop ignores them
   dotted?: boolean;        // dashes it and recolours it to --ps-accent
   label?: string;          // one line; REQUIRES lx and ly
   lx?: number; ly?: number;
@@ -151,6 +154,7 @@ of clear space at the top of its box.
 | `two nodes share the id "x"` | ids must be unique — edges name nodes by id |
 | `node "x" has unknown shape "y"` | one of `group`, `box`, `pill`, `diamond` |
 | `edge N has label "…" but lx and ly are not both numbers` | a label is positioned by hand, because text is never measured |
+| `edge N names node "x" at both ends but sides "t" and "r"` | a self-transition attaches to one side; name the same side in `from` and `to` |
 
 `draw` throws on the first defect and renders nothing.
 
@@ -203,8 +207,9 @@ Two more, complete and runnable, in [`examples/`](../examples/): a CI pipeline
 You cannot see the result, so do not rely on having looked at it. Three
 things look for you, in increasing order of what they can tell:
 
-- **`draw` throws** on unknown ids, duplicate ids, unknown shapes, and a label
-  without coordinates. It stops at the first one.
+- **`draw` throws** on unknown ids, duplicate ids, unknown shapes, a label
+  without coordinates, and a self-transition naming two different sides. It
+  stops at the first one.
 - **The JSON Schema** rejects malformed data, including misspelled keys.
 - **`check` finds the rest** — every trap in the list above — and reports all
   of them at once, without drawing anything:
