@@ -51,31 +51,52 @@ sequence is the port being measured against them, not their regeneration.
 - [x] 2.7 Tests including a round trip through `JSON.parse(JSON.stringify())`,
       because crossing that boundary is the entire point
 
+Known and left open, so that no later group has to rediscover it: `check`
+does not see the loop. `edgePath` returns the two identical anchors plus any
+`via`, which is not what the renderer draws, so a loop leaving the frame goes
+unreported while a label near the side's midpoint can be reported as sitting
+on a line that has no ink, and a `via` the arrow never turns at as a corner
+outside the viewBox. None of tasks 2.1 to 2.7 promised otherwise and none is
+ticked falsely; the scenario that claimed the checker could see it has been
+deleted from the core-renderer delta, where it exercised nothing in its own
+requirement and duplicated the checker delta's own wording. 4.1 closes it.
+
 ## 3. Bowed connectors
 
-**Settle the budget before writing any of this.** `@pensketch/core/server`
-finished group 2 with **137 B** of its 3072, and it carries its own copy of
-`draw.ts`, which is where all of this lands. Measured at the group 2 boundary:
-one throw message of this project's usual length costs 61 B gzipped and two
-cost 71, against roughly 100 B for the loop geometry alone — and 3.1 and 3.2
-have two call sites where the loop had one. **A breach in the 30 to 100 B
-range is expected, not possible.** The choice is between raising a published
-budget and writing shorter messages than the spec's "carry what the caller
-needs to fix it" asks for, and it is the owner's. Taking it at the gate means
-taking it under pressure.
+**Both halves of the budget decision are taken.** `./server`'s budget is 3328
+and this group starts with 373 B of it free. The other half binds every message
+written here: carry which item is wrong, what conflicts, and the one fact the
+caller cannot derive from those two — then stop. A clause restating the fact in
+another mood is not a second fact. Bytes never come out of the enumeration of
+what does exist: `known()` is the most expensive part of its message and the
+most valuable, because a program with no view of the picture cannot recover the
+list of real ids any other way.
 
-**Open, and the owner's:** `via` on a self-transition is silently ignored
-today, and the JSDoc says so. 3.3 is where the same sentence gets written for
-`bow`, so it is the cheap moment to make it throw instead. The argument for
-throwing is that `via` works on every other edge, so ignoring it is the shape
-of trap D2 exists to remove; the argument against is that the spec's throw
-list is closed and adding to it is a decision, not a tidy-up.
+**`via` on a self-transition throws**, written at 3.3 alongside `bow` with
+`via`, which is the same defect under different names. The line the spec now
+draws, so later groups stop re-litigating it: a field that **contradicts** the
+path actually drawn throws, and a field that merely does not **apply** to it is
+ignored. `via` on a loop names corners the loop will not turn at; `out` and
+`span` on a straight edge name a loop that is not being drawn, and say so in
+their own names.
+
+3.3 also owns two false findings the checker produces today, both from `via` on
+a loop and both measured. `out-of-bounds` reports "edge N turns at (x, y)" for
+a corner the arrow never turns at, because `check` walks `e.via` directly.
+`label-collision` reports a label lying on the line it labels where no ink is
+drawn near it, because `edgePath` splices the same `via` in. Making the input
+throw does not settle these on its own: `check` runs on diagrams that are never
+drawn, which is most of the reason it exists.
 
 - [ ] 3.1 `bow` on `DiagramEdge`: perpendicular offset from the chord
       midpoint, positive to the right of travel
 - [ ] 3.2 `bow` on `DiagramNote` pointers, same meaning
-- [ ] 3.3 `bow` with `via` throws on both, with a message saying the path is
-      already described
+- [ ] 3.3 `bow` with `via` throws on both, and so does `via` on a
+      self-transition — one message shape for all three, saying the path is
+      already described. In the same task, `check` stops reading a loop's
+      `via`: it is neither a corner the arrow turns at nor a line a label can
+      lie on, and reporting it as either is a finding about ink that is not
+      there
 - [ ] 3.4 Tests: `A→B` and `B→A` at the same positive `bow` land on opposite
       sides; an edge without `bow` is byte-identical to before
 
@@ -94,7 +115,13 @@ it rather than at 7.1.
 - [ ] 4.4 Tests for both, including the near-parallel case and the crossing
       case that must stay quiet
 
-Gate: `npm run size`. This group's weight lands on `./check`, which has 490 B
+4.1 carries a debt three shipped strings depend on. `DiagramEdge.out`'s JSDoc
+says `check` reports a loop that leaves the frame, and that sentence is copied
+verbatim into `schema/diagram.schema.json` and into the `SCHEMA` the server
+hands to agents. It becomes true when 4.1 lands and nothing releases before
+then — but narrow 4.1 and all three go false together, and no gate can see it.
+
+Gate: `npm run size`. This group's weight lands on `./check`, which has 492 B
 free and where finding messages are already three quarters of the entry.
 
 ## 5. The reference stops being wrong

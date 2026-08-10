@@ -46,10 +46,6 @@ meaning they carry on any other edge.
 - **WHEN** a diagram containing a self-transition is serialized, sent over an interface that carries data rather than code, and rendered by the receiver
 - **THEN** the loop is drawn, because it is data and not a function
 
-#### Scenario: The checker can see it
-- **WHEN** a self-transition's loop or its label lies outside the `viewBox`, or its label sits on a connector
-- **THEN** `check` reports it, where a loop drawn through `raw` was invisible to every rule
-
 ### Requirement: A connector can bow off its chord
 An edge SHALL accept `bow`, offsetting the apex of its path from the midpoint
 of the straight line between its anchors, perpendicular to that line, by the
@@ -118,13 +114,18 @@ release.
 `draw()` SHALL throw an `Error` naming the offending item for: an edge
 referencing an unknown node id, two nodes sharing an id, a node with an
 unknown shape, an edge `label` without numeric `lx`/`ly`, an edge whose `from`
-and `to` name the same node but **different** sides, and an edge or note
-combining `bow` with `via`. Each message SHALL carry what the caller needs to
-fix it without reading the source — the ids that do exist, the shapes that are
-accepted, why a label needs coordinates, that a loop attaches to one side, or
-that a path with corners is already described — since the caller may be a
-program with no view of the result. There SHALL be no other validation, no
-console warnings, and no silent fallbacks in library code.
+and `to` name the same node but **different** sides, an edge or note combining
+`bow` with `via`, and a self-transition carrying `via`. Each message SHALL
+carry what the caller needs to fix it without reading the source — the ids that
+do exist, the shapes that are accepted, why a label needs coordinates, that a
+loop attaches to one side, or that a path with corners is already described —
+since the caller may be a program with no view of the result. A field that
+**contradicts** the path actually drawn SHALL throw; a field that merely does
+not **apply** to it SHALL be ignored. That is the line between `via` on a
+loop, which describes corners the loop will not turn at, and `out` or `span` on
+a straight edge, which describe a loop that is not being drawn and whose names
+say so. There SHALL be no other validation, no console warnings, and no silent
+fallbacks in library code.
 
 #### Scenario: Unknown node id
 - **WHEN** an edge references node id `"ghost"` that no node declares
@@ -133,6 +134,10 @@ console warnings, and no silent fallbacks in library code.
 #### Scenario: A repeated id is not resolved silently
 - **WHEN** two nodes declare the same `id`
 - **THEN** `draw()` throws rather than keeping one of them, since every edge naming that id would otherwise point at a node the author did not mean
+
+#### Scenario: A loop given corners to turn at is refused
+- **WHEN** an edge names the same node and side at both ends and also carries `via`
+- **THEN** `draw()` throws, saying the loop's path is settled by the side it hangs off and by `out` and `span` — rather than drawing the loop and discarding the corners, which is the silent ignoring this change removes everywhere else
 
 #### Scenario: A loop across two sides is refused rather than guessed
 - **WHEN** an edge names the same node at both ends but two different sides
