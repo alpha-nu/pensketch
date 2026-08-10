@@ -88,6 +88,7 @@ interface DiagramEdge {
   out?: number;            // loop only: how far it projects, default 60
   span?: number;           // loop only: how far apart its anchors sit, default 24
   via?: Point[];           // corners, used verbatim; a loop ignores them
+  bow?: number;            // px off the straight line, right of travel positive
   dotted?: boolean;        // dashes it and recolours it to --ps-accent
   label?: string;          // one line; REQUIRES lx and ly
   lx?: number; ly?: number;

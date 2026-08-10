@@ -13,7 +13,7 @@ import {
   TITLE_SIZE,
 } from './constants';
 import { pen } from './pen';
-import { loopPoints } from './sample';
+import { bowPoints, loopPoints } from './sample';
 import { resolveTheme } from './theme';
 import type {
   Diagram,
@@ -150,6 +150,12 @@ export function draw(
     // A loop is an edge: it differs in its points and in nothing else, so
     // dotted, label, lx, ly and anchor keep working below by not being asked
     // about here.
+    //
+    // `e.bow` for its truth rather than against `undefined`, unlike `out` and
+    // `span` below: nought is not a caller asking for a flat arc, which has
+    // no centre and no radius, but a caller describing the straight line they
+    // would have got by leaving the field out. An absent bow and a bow of
+    // nought take the same branch, and take it without sampling anything.
     const pts: Point[] = loop
       ? loopPoints(
           anchor(from, e.from[1]),
@@ -157,7 +163,9 @@ export function draw(
           e.out ?? LOOP_OUT,
           e.span ?? LOOP_SPAN,
         )
-      : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
+      : e.bow
+        ? bowPoints(anchor(from, e.from[1]), anchor(to, e.to[1]), e.bow)
+        : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
     p.arrow(pts, {
       dotted: !!e.dotted,
       color: e.dotted ? theme.accent : theme.ink,

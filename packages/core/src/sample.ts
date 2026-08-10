@@ -58,6 +58,68 @@ export function arcPoints(
 }
 
 /**
+ * A bowed connector as points: the circular arc through `from` and `to` whose
+ * apex sits `bow` px off the midpoint of the chord between them, measured
+ * perpendicular to that chord. Positive is to the right of travel, so an edge
+ * and its reverse given the same `bow` bow to opposite sides of the one line -
+ * which is the only reason the offset is signed against the direction of
+ * travel rather than against an axis.
+ *
+ * Right of travel, in a space where y grows downward, is the chord direction
+ * turned to `(-dy, dx)`: travelling +x as `(1, 0)` gives `(0, 1)`, which is
+ * down the screen, and down the screen is the right hand of someone walking
+ * that way.
+ *
+ * A circle rather than an ellipse, because a circle is the same shape
+ * whichever way its chord happens to lie and so needs no rotation term.
+ * `arcPoints` has none, and one added for this could only go after `ry`,
+ * where it would read as a third radius to everyone already calling it.
+ *
+ * There is no arc to draw for a `bow` of 0 - the radius below divides by it -
+ * and none is wanted: a connector that does not bow is the straight line
+ * between its anchors, which is the caller's to keep off this function.
+ *
+ * Two anchors at one point are a different degenerate case and need no
+ * handling of their own. The chord has no direction, so its unit vector is
+ * 0/0 and the centre and both angles are NaN; `arcPoints` already refuses a
+ * sweep that is not a finite number and hands back nothing, which the pen
+ * refuses to draw. A guard here could only reach the same answer by a longer
+ * road.
+ */
+export function bowPoints(from: Point, to: Point, bow: number): Point[] {
+  const chord = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const half = chord / 2;
+  const nx = (from[1] - to[1]) / chord;
+  const ny = (to[0] - from[0]) / chord;
+  // Which way round the circle the sweep runs, which is always the side the
+  // bow is not on. At the apex the tangent points along the chord, and an
+  // increasing angle carries a point a quarter turn ahead of its own radius,
+  // from +x towards +y. The radius there is the bow's own direction, so an
+  // increasing angle at a positive bow travels back along the chord rather
+  // than forward down it. True at any depth, unlike the centre below.
+  const dir = bow > 0 ? -1 : 1;
+  // Radius from the half-chord and the sagitta, the sagitta being `bow`
+  // itself. The centre sits `(half^2 - bow^2) / 2|bow|` from the midpoint
+  // along the same perpendicular - negative once the bow is deeper than half
+  // the chord, which puts the centre on the bow's own side and sweeps more
+  // than half a turn. That is a legal arc, not a case to correct.
+  const away = 2 * Math.abs(bow);
+  const r = (half * half + bow * bow) / away;
+  const t = (dir * (half * half - bow * bow)) / away;
+  const cx = (from[0] + to[0]) / 2 + nx * t;
+  const cy = (from[1] + to[1]) / 2 + ny * t;
+  const a0 = Math.atan2(from[1] - cy, from[0] - cx);
+  let a1 = Math.atan2(to[1] - cy, to[0] - cx);
+  // `atan2` names each end within one turn of the +x axis and knows nothing
+  // of the arc between them, so the difference is as likely to describe the
+  // long way round as the short. One turn in the direction settled above is
+  // the whole correction: it is the same pair of points either way, and only
+  // the arc through the apex runs in `dir`.
+  if ((a1 - a0) * dir < 0) a1 += dir * 2 * Math.PI;
+  return arcPoints(cx, cy, r, r, a0, a1);
+}
+
+/**
  * A self-transition as one point list: the anchor it leaves, the arc that
  * carries it out and back, and the anchor it returns to. Handed to `arrow`,
  * the head lands on the returning anchor, which is what makes a loop read as a

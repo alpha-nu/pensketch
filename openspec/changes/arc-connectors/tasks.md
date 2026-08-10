@@ -88,15 +88,20 @@ drawn near it, because `edgePath` splices the same `via` in. Making the input
 throw does not settle these on its own: `check` runs on diagrams that are never
 drawn, which is most of the reason it exists.
 
-- [ ] 3.1 `bow` on `DiagramEdge`: perpendicular offset from the chord
+- [x] 3.1 `bow` on `DiagramEdge`: perpendicular offset from the chord
       midpoint, positive to the right of travel
 - [ ] 3.2 `bow` on `DiagramNote` pointers, same meaning
-- [ ] 3.3 `bow` with `via` throws on both, and so does `via` on a
-      self-transition — one message shape for all three, saying the path is
-      already described. In the same task, `check` stops reading a loop's
-      `via`: it is neither a corner the arrow turns at nor a line a label can
-      lie on, and reporting it as either is a finding about ink that is not
-      there
+- [ ] 3.3 `bow` with `via` throws on both, and so do `via` and `bow` on a
+      self-transition — one message shape for all four, saying the path is
+      already described. A loop's path is settled by its side, `out` and
+      `span`, so a corner to turn at and a bulge to carry both contradict it,
+      and the line group 3 draws puts contradiction on the throwing side. In
+      the same task, `check` stops reading a loop's `via`: it is neither a
+      corner the arrow turns at nor a line a label can lie on, and reporting it
+      as either is a finding about ink that is not there. `bow` that is not a
+      finite number is settled here too, since this is where the field's
+      refusals are written — today `NaN` reads as falsy and draws the straight
+      line while `Infinity` throws, and neither is a decision anyone took
 - [ ] 3.4 Tests: `A→B` and `B→A` at the same positive `bow` land on opposite
       sides; an edge without `bow` is byte-identical to before
 

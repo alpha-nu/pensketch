@@ -116,7 +116,10 @@ obstacle.
 |---|---|---|---|
 | `from` | `[string, Side]` | required | The node to leave, and which side to leave from. |
 | `to` | `[string, Side]` | required | The node to reach, and which side the arrowhead lands on. |
+| `out` | `number` | `60` | Self-transitions only: how far the loop projects beyond its side. |
+| `span` | `number` | `24` | Self-transitions only: how far apart the loop's two anchors sit along that side. |
 | `via` | `Point[]` | none | Corner points between the two anchors. |
+| `bow` | `number` | `0` | Bow the arrow off the straight line between its anchors, in px. Positive is to the right of travel, so an edge and its reverse bow apart rather than overlapping. |
 | `dotted` | `boolean` | `false` | Dash the line and recolor it, and its label, to `--ps-accent`. |
 | `label` | `string` | none | One line of text. Requires `lx` and `ly`. |
 | `lx`, `ly` | `number` | none | Where the label sits. `draw` throws when `label` is set and these are not numbers. |
@@ -398,7 +401,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **2902 B** | 8919 B |
+| Size, min+gzip | **3057 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

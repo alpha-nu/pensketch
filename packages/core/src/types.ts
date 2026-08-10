@@ -190,9 +190,11 @@ interface ShapeNode extends NodeBox {
 export type DiagramNode = GroupNode | ShapeNode;
 
 /**
- * An arrow from one node's side to another's. The path is exactly the legs
- * between the anchors and whatever `via` points are given, in order: nothing
- * routes around obstacles.
+ * An arrow from one node's side to another's. Its path is the one this edge's
+ * own fields describe and nothing more: a straight run between the anchors,
+ * the legs through `via`, an arc set by `bow`, or the loop a self-transition
+ * hangs off one side. Nothing is inferred and nothing routes around an
+ * obstacle.
  */
 export interface DiagramEdge {
   /** The id of the node to leave, and which side to leave from. */
@@ -244,6 +246,22 @@ export interface DiagramEdge {
    * to place.
    */
   via?: Point[];
+  /**
+   * How far the arrow bows off the straight line between its anchors, in px.
+   * Default: `0`, which is that straight line.
+   *
+   * The path becomes the circular arc through both anchors whose furthest
+   * point sits this far from the middle of that line, measured at a right
+   * angle to it. A positive value bows to the right of travel, so an edge and
+   * its reverse given the same `bow` bow to opposite sides and stay two
+   * readable lines rather than one.
+   *
+   * A value deeper than half the distance between the anchors is drawn as
+   * asked: the arc simply carries more than half a turn. As with a loop, the
+   * curve is sampled into chords no longer than a straight line's, so the
+   * points it costs grow with the value.
+   */
+  bow?: number;
   /** Dash the line and recolor it, and its label, to `theme.accent`. */
   dotted?: boolean;
   /** A single line of text. Requires `lx` and `ly`. */

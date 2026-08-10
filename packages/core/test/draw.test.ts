@@ -688,6 +688,116 @@ describe('draw() self-transitions', () => {
   });
 });
 
+describe('draw() bowed connectors', () => {
+  const nodes: DiagramNode[] = [
+    { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 50 },
+    { id: 'b', shape: 'box', x: 200, y: 0, w: 100, h: 50 },
+    { id: 'c', shape: 'box', x: 0, y: 200, w: 100, h: 50 },
+  ];
+  // a's right side is [100, 25] and b's left is [200, 25], so the chord
+  // between them lies along y = 25. a's bottom is [50, 50] and c's top is
+  // [50, 200], so that one runs down x = 50. Both are read as a signed
+  // distance from the chord, positive to the right of travel, which is what
+  // the field claims to be measured in.
+  const shaft = (edge: DiagramEdge) => {
+    const svg = makeSvg();
+    draw(svg, { nodes, edges: [edge] });
+    return pointsOf(nth(pathsOf(svg), 0));
+  };
+  const rightGoingRight = (edge: DiagramEdge) =>
+    shaft(edge).map(([, y]) => y - 25);
+  const rightGoingDown = (edge: DiagramEdge) =>
+    shaft(edge).map(([x]) => 50 - x);
+  // Half the jitter amplitude, which is as far as the pen moves any point.
+  const J = 1.3;
+
+  it('bows a pair between one node and another to opposite sides', () => {
+    const there = rightGoingRight({
+      from: ['a', 'r'],
+      to: ['b', 'l'],
+      bow: 30,
+    });
+    const back = rightGoingRight({ from: ['b', 'l'], to: ['a', 'r'], bow: 30 });
+
+    // Right of travel, on a screen whose y grows downward, is below the line
+    // going out and above it coming back - so the same `bow` on an edge and
+    // its reverse draws two lines and not one. Neither strays to the wrong
+    // side of the chord by more than the pen's own wander.
+    expect(Math.min(...there)).toBeGreaterThan(-J);
+    expect(Math.max(...back)).toBeLessThan(J);
+
+    // 30 px was asked for. The 124-degree sweep takes nine chords, an odd
+    // number, so the apex falls between two vertices rather than on one and
+    // the deepest sits 29.59 px off the chord - 0.41 px short, measured.
+    const DEEP = 29.59;
+    expect(Math.max(...there)).toBeGreaterThan(DEEP - J);
+    expect(Math.max(...there)).toBeLessThan(DEEP + J);
+    expect(Math.min(...back)).toBeLessThan(-(DEEP - J));
+    expect(Math.min(...back)).toBeGreaterThan(-(DEEP + J));
+  });
+
+  // The case that separates a perpendicular from a fixed side of the page: on
+  // a chord running down rather than across, right of travel is smaller x.
+  // Built as (dy, -dx) instead of (-dy, dx) it lands on the other one, and
+  // every assertion above still passes.
+  it('turns the perpendicular with the chord, not with the page', () => {
+    const down = rightGoingDown({ from: ['a', 'b'], to: ['c', 't'], bow: 30 });
+    const other = rightGoingDown({
+      from: ['a', 'b'],
+      to: ['c', 't'],
+      bow: -30,
+    });
+
+    // A shallower sweep across a longer chord: 87 degrees at a radius of
+    // 108.75, seven chords, deepest vertex 29.36 px off. This is also the
+    // pair that crosses `atan2`'s own seam at the -x axis, where the two end
+    // angles come back a turn apart and the sweep has to be brought back.
+    const DEEP = 29.36;
+    expect(Math.min(...down)).toBeGreaterThan(-J);
+    expect(Math.max(...down)).toBeGreaterThan(DEEP - J);
+    expect(Math.max(...down)).toBeLessThan(DEEP + J);
+    expect(Math.max(...other)).toBeLessThan(J);
+    expect(Math.min(...other)).toBeLessThan(-(DEEP - J));
+    expect(Math.min(...other)).toBeGreaterThan(-(DEEP + J));
+  });
+
+  it('draws a bow deeper than half the chord instead of flattening it', () => {
+    // 80 px across a 100 px chord, which puts the circle's centre on the
+    // bow's own side of the line. Nothing corrects that, and nothing here
+    // should: it is the arc that was asked for.
+    const edge: DiagramEdge = { from: ['a', 'r'], to: ['b', 'l'], bow: 80 };
+    const deep = rightGoingRight(edge);
+    const DEEP = 79.61;
+    expect(Math.min(...deep)).toBeGreaterThan(-J);
+    expect(Math.max(...deep)).toBeGreaterThan(DEEP - J);
+    expect(Math.max(...deep)).toBeLessThan(DEEP + J);
+
+    // The sweep is 232 degrees, so the arc reaches 5.6 px back behind each
+    // anchor - measured, and four times the pen's own wander. An arc of half
+    // a turn or less stays between the two anchors, which is what a bow
+    // silently clamped to the chord would draw.
+    const xs = shaft(edge).map(([x]) => x);
+    expect(Math.min(...xs)).toBeLessThan(100 - J);
+    expect(Math.max(...xs)).toBeGreaterThan(200 + J);
+  });
+
+  // Nought is not a flat arc - an arc through it has neither centre nor
+  // radius - it is the line the edge would have drawn without the field at
+  // all, and it has to be that line down to the byte rather than to a
+  // tolerance. That the same line is also the one drawn before bows existed
+  // is what the parity tests hold, by re-rendering the reference's fixtures.
+  it('takes a bow of 0 as the straight line, byte for byte', () => {
+    const straight = makeSvg();
+    draw(straight, { nodes, edges: [{ from: ['a', 'r'], to: ['b', 'l'] }] });
+    const flat = makeSvg();
+    draw(flat, {
+      nodes,
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'], bow: 0 }],
+    });
+    expect(serialize(flat)).toBe(serialize(straight));
+  });
+});
+
 describe('draw() node phase', () => {
   const at = (
     extra: Partial<Exclude<DiagramNode, { shape: 'group' }>>,
