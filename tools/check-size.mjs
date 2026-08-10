@@ -28,10 +28,14 @@ const PACKAGES = [
   {
     // The renderer again, plus a DOM the size of what it touches. It carries
     // its own copy of `draw` and `pen` rather than importing the root entry,
-    // which is the point: a server installs this and nothing else.
+    // which is the point: a server installs this and nothing else. That copy
+    // is also why this is the entry every renderer feature is measured
+    // against: an error message added to `draw` lands here as well as in the
+    // root. Raised from 3072 for the curved connectors, deliberately and once,
+    // rather than a byte at a time at each gate.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 3072,
+    budget: 3328,
   },
   {
     name: '@pensketch/react',
