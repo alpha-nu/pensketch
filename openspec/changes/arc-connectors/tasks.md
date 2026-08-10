@@ -92,7 +92,13 @@ free and where finding messages are already three quarters of the entry.
 - [ ] 5.4 The checker rules table, in the reference and in both READMEs
 - [ ] 5.5 `pensketch://spec` regenerates; served bytes still equal the file
 
-## 6. The examples stop paying for it
+## 6. The examples stop paying for it, and start showing it off
+
+The first three tasks take `raw` away. The two after them are the point of
+having done it: an example is how most readers meet a feature, and a change
+that lifts a documented impossibility and leaves every picture looking the
+same has told nobody. Both are diagrams first — a shape that appears because
+the picture needs it, never a picture built around a shape.
 
 - [ ] 6.1 `examples/custom-pen/` — the lifecycle retry loop becomes data. The
       page keeps a `raw` block only if it still demonstrates something the
@@ -101,11 +107,21 @@ free and where finding messages are already three quarters of the entry.
 - [ ] 6.2 `examples/state-machine/` — the keypad loop becomes data
 - [ ] 6.3 Both `rawOmitted` disclosures disappear with the callbacks they
       described, and the served examples become whole pictures
-- [ ] 6.4 `npm run resources` — the two examples' entries are what move, and
-      the diff is reviewed rather than accepted. Not goldens: there are none
-      for the examples. The two that exist are the reference's own fixtures,
+- [ ] 6.4 A bowed pair earns its place in a shipped example. `edge-overlap`
+      exists because two connectors between one pair draw one line and look
+      deliberate; a reader should meet the fix in a diagram rather than in a
+      rule. The state machine is the likely home — a transition and its
+      reverse between the same two states is the shape that wanted this
+- [ ] 6.5 The self-transitions from 6.1 and 6.2 are read as a reader would
+      read them: is the loop where a hand would have drawn it, is its label
+      clear of the arc, does the picture look like someone meant it. `out` and
+      `span` are the caller's numbers, so the defaults being reasonable is a
+      claim only a drawing can settle
+- [ ] 6.6 `npm run resources` — the examples' entries are what move, and the
+      diff is reviewed rather than accepted. Not goldens: there are none for
+      the examples. The two that exist are the reference's own fixtures,
       which no example can reach
-- [ ] 6.5 A changeset naming the minor, and saying plainly that a documented
+- [ ] 6.7 A changeset naming the minor, and saying plainly that a documented
       impossibility is now possible
 
 ## 7. Release

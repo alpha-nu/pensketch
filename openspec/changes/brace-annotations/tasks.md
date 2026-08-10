@@ -83,8 +83,18 @@ the entry with the least headroom.
 - [ ] 4.2 Both READMEs: the type tables, and the phase order wherever it is
       printed
 - [ ] 4.3 `pensketch://spec` regenerates; served bytes still equal the file
-- [ ] 4.4 An example that earns it — a brace over a group of steps, in a
-      diagram that wanted one anyway rather than one invented to show it off
+- [ ] 4.4 A brace earns its place in a shipped example — over a group of steps
+      in a diagram that wanted one anyway, rather than one invented to show it
+      off. An example is how most readers meet a feature, so a change that
+      adds an annotation and leaves every picture looking the same has told
+      nobody
+- [ ] 4.5 A bracket too, wherever it reads better than a brace — they are one
+      enum apart and a reader should be able to see the difference rather than
+      infer it from a field table
+- [ ] 4.6 Both read as a reader would read them: is the brace where a hand
+      would have drawn it, does its text sit clear of the tip, does the
+      picture look like someone meant it. `depth` is the caller's number, so
+      the default being reasonable is a claim only a drawing can settle
 
 ## 5. Release
 
