@@ -72,6 +72,20 @@ describe('the generated diagram schema', () => {
     expect(accepts({ nodes: [{ ...group, shape: 'box' }] })).toBe(true);
   });
 
+  // `additionalProperties: false` means every new field is refused until the
+  // schema is regenerated, and this pair arrived after the schema had already
+  // shipped once. The drift gate proves the file matches the types; it cannot
+  // prove the shape a caller sends is one the file lets through.
+  it('accepts a self-transition carrying out and span', () => {
+    const box = { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 50 };
+    expect(
+      accepts({
+        nodes: [box],
+        edges: [{ from: ['a', 'r'], to: ['a', 'r'], out: 40, span: 18 }],
+      }),
+    ).toBe(true);
+  });
+
   it('rejects a node missing part of its box', () => {
     expect(
       accepts({ nodes: [{ id: 'a', shape: 'box', x: 0, y: 0, w: 10 }] }),
