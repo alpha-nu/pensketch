@@ -53,6 +53,24 @@ sequence is the port being measured against them, not their regeneration.
 
 ## 3. Bowed connectors
 
+**Settle the budget before writing any of this.** `@pensketch/core/server`
+finished group 2 with **137 B** of its 3072, and it carries its own copy of
+`draw.ts`, which is where all of this lands. Measured at the group 2 boundary:
+one throw message of this project's usual length costs 61 B gzipped and two
+cost 71, against roughly 100 B for the loop geometry alone — and 3.1 and 3.2
+have two call sites where the loop had one. **A breach in the 30 to 100 B
+range is expected, not possible.** The choice is between raising a published
+budget and writing shorter messages than the spec's "carry what the caller
+needs to fix it" asks for, and it is the owner's. Taking it at the gate means
+taking it under pressure.
+
+**Open, and the owner's:** `via` on a self-transition is silently ignored
+today, and the JSDoc says so. 3.3 is where the same sentence gets written for
+`bow`, so it is the cheap moment to make it throw instead. The argument for
+throwing is that `via` works on every other edge, so ignoring it is the shape
+of trap D2 exists to remove; the argument against is that the spec's throw
+list is closed and adding to it is a decision, not a tidy-up.
+
 - [ ] 3.1 `bow` on `DiagramEdge`: perpendicular offset from the chord
       midpoint, positive to the right of travel
 - [ ] 3.2 `bow` on `DiagramNote` pointers, same meaning
