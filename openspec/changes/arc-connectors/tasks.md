@@ -37,7 +37,7 @@ sequence is the port being measured against them, not their regeneration.
 
 - [x] 2.1 `LOOP_OUT` and `LOOP_SPAN` constants with the defaults, documented
       as starting points rather than as computed values
-- [ ] 2.2 Loop geometry in `geometry.ts`: two anchors on a side `span` apart,
+- [x] 2.2 Loop geometry in `geometry.ts`: two anchors on a side `span` apart,
       an arc projecting `out`, arrowhead on the returning anchor
 - [ ] 2.3 `draw` recognises same id + same side and draws the loop, in the
       edges phase, in array order

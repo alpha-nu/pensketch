@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AMP, WIDTH } from '../src/constants';
+import { AMP, ARC_STEPS, WIDTH } from '../src/constants';
 import { draw } from '../src/draw';
 import {
   boxToSegment,
@@ -9,7 +9,9 @@ import {
   labelBox,
   pointToSegment,
 } from '../src/geometry';
-import type { DiagramEdge, DiagramNode, Point } from '../src/types';
+import { loopPoints } from '../src/sample';
+import type { DiagramEdge, DiagramNode, Point, Side } from '../src/types';
+import { nth } from './helpers';
 
 // Every expectation here is worked out by hand from the rule it encodes. A
 // test that recomputes the implementation's own arithmetic proves the code
@@ -153,6 +155,170 @@ describe('edgePath', () => {
       );
       expect(nearest).toBeLessThanOrEqual((AMP / 2) * Math.SQRT2);
     }
+  });
+});
+
+// A loop's geometry lives in `sample.ts` rather than in `geometry.ts`, which
+// imports `anchor` and so cannot be imported back by the renderer that draws
+// one. Where the points land is this file's question either way.
+describe('loopPoints', () => {
+  const SIDES: Side[] = ['r', 'l', 't', 'b'];
+  // The node behind these numbers is the state-machine example's `pin`: its
+  // right edge is x = 250 and its vertical middle is y = 196.
+  const MID: Point = [250, 196];
+  const OUT = 60;
+  const SPAN = 24;
+  const loop = (side: Side) => loopPoints(MID, side, OUT, SPAN);
+
+  const first = (side: Side) => nth(loop(side), 0);
+  const last = (side: Side) => {
+    const pts = loop(side);
+    return nth(pts, pts.length - 1);
+  };
+
+  // Which way each side's loop bulges, and which way its two anchors run
+  // along the side. Written out rather than derived: these four pairs are the
+  // claim the arc table is supposed to satisfy, and deriving them from the
+  // same reasoning that built the table would test nothing.
+  const OUTWARD: Record<Side, Point> = {
+    r: [1, 0],
+    l: [-1, 0],
+    t: [0, -1],
+    b: [0, 1],
+  };
+  const ALONG: Record<Side, Point> = {
+    r: [0, 1],
+    l: [0, 1],
+    t: [1, 0],
+    b: [1, 0],
+  };
+
+  // By hand off the drawing: a right-side loop leaves 12 px above the side's
+  // midpoint and returns 12 px below it. Note that `r` and `l` share both
+  // anchors, as do `t` and `b` - the pair is a side's chord, and which way the
+  // arc bulges off it is asserted separately, below.
+  const ENDS: Record<Side, [Point, Point]> = {
+    r: [
+      [250, 184],
+      [250, 208],
+    ],
+    l: [
+      [250, 184],
+      [250, 208],
+    ],
+    t: [
+      [238, 196],
+      [262, 196],
+    ],
+    b: [
+      [238, 196],
+      [262, 196],
+    ],
+  };
+
+  it('leaves one anchor and returns to the other, for every side', () => {
+    for (const side of SIDES)
+      expect([first(side), last(side)]).toEqual(ENDS[side]);
+  });
+
+  // One statement of the whole anchor rule: each anchor is the side's midpoint
+  // displaced half a SPAN along the side and by nothing at all across it. A
+  // tolerance would let a loop start a hair inside the node or in the gap
+  // beside it, and none is needed - at these coordinates the arithmetic lands
+  // on the side to the last bit, the largest stray term being 60 * cos(-PI/2),
+  // about 4e-15, against a gap between representable numbers near 250 of ten
+  // times that.
+  it('puts both anchors on the side, SPAN apart and centred on the midpoint', () => {
+    for (const side of SIDES) {
+      const [ax, ay] = ALONG[side];
+      const from = (d: number): Point => [MID[0] + ax * d, MID[1] + ay * d];
+
+      // It leaves the upper - or left - anchor and returns to the lower one,
+      // which is the ordering that makes every side read the same way.
+      expect(first(side)).toEqual(from(-SPAN / 2));
+      expect(last(side)).toEqual(from(SPAN / 2));
+    }
+  });
+
+  // The assertion that separates `r` from `l` and `t` from `b`. Each pair
+  // shares both anchors, so every expectation above passes unchanged if two
+  // rows of the table are swapped or a sweep runs the wrong way round.
+  it('bulges to the outward side and never crosses back through it', () => {
+    for (const side of SIDES) {
+      const [ox, oy] = OUTWARD[side];
+      const reach = loop(side).map(
+        ([x, y]) => (x - MID[0]) * ox + (y - MID[1]) * oy,
+      );
+      for (const d of reach) expect(d).toBeGreaterThanOrEqual(0);
+      // The anchors are the only points on the side; a loop that stayed flat
+      // would satisfy the line above and nothing else.
+      expect(Math.max(...reach)).toBeGreaterThan(0);
+    }
+  });
+
+  it('reaches exactly OUT from the side, and no point further', () => {
+    for (const side of SIDES) {
+      const [ox, oy] = OUTWARD[side];
+      const [ax, ay] = ALONG[side];
+
+      for (const [x, y] of loop(side)) {
+        const reach = (x - MID[0]) * ox + (y - MID[1]) * oy;
+        const along = (x - MID[0]) * ax + (y - MID[1]) * ay;
+        expect(reach).toBeLessThanOrEqual(OUT);
+        // Every point sits on the ellipse whose radius away from the side is
+        // OUT and whose radius along it is half of SPAN. That pins the reach
+        // at the apex without needing a sample there: the ellipse is furthest
+        // from the side where it crosses the midpoint, and that distance is
+        // OUT by construction. Swapping the two radii moves every point off
+        // this curve.
+        expect((reach / OUT) ** 2 + (along / (SPAN / 2)) ** 2).toBeCloseTo(1);
+      }
+    }
+  });
+
+  it('samples the loop at the density every other curve is drawn at', () => {
+    for (const side of SIDES) {
+      // A half turn, so half of ARC_STEPS chords and one more vertex than
+      // that. The chord rule is the slacker of the two here - 60 px of radius
+      // over PI radians asks for 8 chords of SEG_LEN, against the angle
+      // rule's 13 - so this count is the angle rule's alone.
+      expect(loop(side)).toHaveLength(ARC_STEPS / 2 + 1);
+
+      // Which leaves the apex between two samples rather than on one: 13
+      // chords is odd, so the middle of the sweep falls half a chord -
+      // PI / ARC_STEPS - from the nearest vertex either side of it. That is
+      // 60 * cos(PI / 26) = 59.5625 out, and it is why the test above asserts
+      // the curve's reach rather than any one point's.
+      const [ox, oy] = OUTWARD[side];
+      const reach = loop(side).map(
+        ([x, y]) => (x - MID[0]) * ox + (y - MID[1]) * oy,
+      );
+      expect(Math.max(...reach)).toBeCloseTo(
+        OUT * Math.cos(Math.PI / ARC_STEPS),
+      );
+    }
+  });
+
+  // Every assertion above is at one midpoint, one `out` and one `span`, and
+  // three of the four arguments can be ignored entirely without any of them
+  // noticing: hard-coding MID, or deriving the reach from `span`, both give
+  // the right answer for these numbers alone. A loop has to follow the node
+  // it belongs to, which is the reason this takes a point at all.
+  it('follows its midpoint, and its two radii, wherever they are', () => {
+    const mid: Point = [-40, 12.5];
+    const out = 17;
+    const span = 90;
+    const points = loopPoints(mid, 'r', out, span);
+
+    const [first, last] = [nth(points, 0), nth(points, points.length - 1)];
+    expect(first).toEqual([mid[0], mid[1] - span / 2]);
+    expect(last).toEqual([mid[0], mid[1] + span / 2]);
+    // Reach and span are independent: here the loop is shallower than it is
+    // tall, the opposite of the defaults, so a rule deriving one from the
+    // other lands somewhere else entirely.
+    expect(Math.max(...points.map(([x]) => x - mid[0]))).toBeCloseTo(
+      out * Math.cos(Math.PI / ARC_STEPS),
+    );
   });
 });
 
