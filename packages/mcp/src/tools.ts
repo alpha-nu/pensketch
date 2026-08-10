@@ -18,7 +18,7 @@ export const TRAPS = {
   coordinates:
     'Every coordinate is yours: pensketch performs no layout and routes no edges.',
   text: 'Text is never measured, so a box does not grow to fit its label.',
-  font: 'The PNG draws text in a stand-in font, not the handwriting stack the SVG names, so it is authoritative about structure and not about fit — use check_diagram for fit.',
+  font: 'The PNG draws text in a stand-in font, not the handwriting stack the SVG names, so it is authoritative about structure and not about fit; use check_diagram for fit.',
 } as const;
 
 // A refusal names the fix, not just the defect. Everything else this project
