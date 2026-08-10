@@ -176,11 +176,11 @@
         },
         "out": {
           "type": "number",
-          "description": "How far a self-transition projects beyond its side, in px. Default: `60`.\n\nIgnored unless `from` and `to` name the same node and side. It is a starting point rather than a fitted value: nothing measures the node to decide how far its loop should reach, because that would be layout. On a small or crowded node, choose your own and let `check` tell you where it lands."
+          "description": "How far a self-transition projects beyond its side, in px. Default: `60`.\n\nIgnored unless `from` and `to` name the same node and side. It is a starting point rather than a fitted value: nothing measures the node to decide how far its loop should reach, because that would be layout. On a small or crowded node, choose your own and let `check` tell you where it lands.\n\nA loop is sampled into chords no longer than a straight line's, so the number of points it costs grows with this. A value that is not a finite number throws rather than sampling; a merely enormous one is drawn, and one large enough exhausts memory before it finishes."
         },
         "span": {
           "type": "number",
-          "description": "How far apart a self-transition's two anchors sit along its side, in px, centred on the side's midpoint. Default: `24`.\n\nIgnored unless `from` and `to` name the same node and side. A value wider than the side itself puts the anchors past the corners, which is the caller's to notice rather than the renderer's to correct."
+          "description": "How far apart a self-transition's two anchors sit along its side, in px, centred on the side's midpoint. Default: `24`.\n\nIgnored unless `from` and `to` name the same node and side. A value wider than the side itself puts the anchors past the corners, which is the caller's to notice rather than the renderer's to correct. As with `out`, a value that is not a finite number throws rather than sampling."
         },
         "via": {
           "type": "array",

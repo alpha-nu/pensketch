@@ -215,6 +215,11 @@ export interface DiagramEdge {
    * decide how far its loop should reach, because that would be layout. On a
    * small or crowded node, choose your own and let `check` tell you where it
    * lands.
+   *
+   * A loop is sampled into chords no longer than a straight line's, so the
+   * number of points it costs grows with this. A value that is not a finite
+   * number throws rather than sampling; a merely enormous one is drawn, and
+   * one large enough exhausts memory before it finishes.
    */
   out?: number;
   /**
@@ -223,7 +228,8 @@ export interface DiagramEdge {
    *
    * Ignored unless `from` and `to` name the same node and side. A value wider
    * than the side itself puts the anchors past the corners, which is the
-   * caller's to notice rather than the renderer's to correct.
+   * caller's to notice rather than the renderer's to correct. As with `out`, a
+   * value that is not a finite number throws rather than sampling.
    */
   span?: number;
   /**

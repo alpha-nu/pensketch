@@ -178,6 +178,24 @@ describe('draw() validation', () => {
     );
   });
 
+  // The message is not asserted because there is nothing to assert: the pen
+  // refuses an empty point list, and that is the whole fix. What is asserted
+  // is that it throws at all - without the guard in `arcPoints` this samples
+  // until the heap gives out and takes the process with it, which no caller
+  // can catch. A coordinate that large reaches a string and fails catchably at
+  // any magnitude; out and span reach a count of points instead. `1e400` is
+  // five characters of JSON and parses to Infinity, so no limit on request
+  // size stands between a caller and this.
+  it('throws instead of sampling forever when a loop is sized by NaN', () => {
+    for (const bad of [{ out: Number.NaN }, { out: Number.POSITIVE_INFINITY }])
+      expect(() =>
+        draw(makeSvg(), {
+          nodes,
+          edges: [{ from: ['a', 'r'], to: ['a', 'r'], ...bad }],
+        }),
+      ).toThrow();
+  });
+
   it('names the edge and the id when an edge ends nowhere', () => {
     rejects(
       {

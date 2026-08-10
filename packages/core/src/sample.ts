@@ -39,6 +39,12 @@ export function arcPoints(
     // so that radius bounds them all.
     Math.ceil((Math.max(rx, ry) * Math.abs(sweep)) / SEG_LEN),
   );
+  // A radius or an angle that is not a finite number makes `steps` one too,
+  // and the loop below would then allocate points until the heap gives out.
+  // That is the one failure here a caller cannot catch: every other bad number
+  // reaches a string first and raises a RangeError. Handing back nothing sends
+  // it to the pen, which refuses a point list too short to draw.
+  if (!Number.isFinite(steps)) return [];
   const pts: Point[] = [];
   for (let i = 0; i <= steps; i++) {
     // `sweep * (i / steps)`, not `(sweep * i) / steps`: the fraction first is
