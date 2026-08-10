@@ -18,10 +18,11 @@ order that change leaves behind. It needs `strict-tool-input` in the tree
 because without it a `braces` key the server has not been taught is discarded
 in silence, and this change would appear to work while drawing nothing.
 
-**Before starting**, close the three questions in design.md D6. They are the
-owner's, and each one changes what ships: whether a brace joins the paths
-`label-collision` searches, what the default depth is, and whether a brace is
-drawn in `theme.ink` or `theme.accent`.
+The three questions in design.md D6 are closed, all three before any code was
+written against them: a brace joins the paths `label-collision` searches, which
+buys the `struckBy` refactor; `depth` defaults to 26 px; and a brace and its
+label stroke in `theme.pen`, with a group's border and a group's title, because
+a brace does a group's job where a rectangle cannot.
 
 ## 1. The shape on paper
 
@@ -67,10 +68,10 @@ is known.
 - [ ] 3.1 A brace's sampled points join what the geometric rules measure, so
       `out-of-bounds` reports a tip outside the frame whose endpoints are
       inside
-- [ ] 3.2 Whatever D6.1 decided about `label-collision`. If a brace joins the
-      searched paths, `struckBy` has to return a subject rather than an index:
-      it returns an edge index today and all its call sites write the word
-      "edge" into the message
+- [ ] 3.2 A brace joins the paths `label-collision` searches, which means
+      `struckBy` returns a subject rather than an index: it returns an edge
+      index today and all its call sites write the word "edge" into the
+      message, so a finding cannot yet say `brace 2`
 - [ ] 3.3 Tests for both, including the case that must stay quiet
 
 Gate: `npm run size`. This group's weight lands on `@pensketch/core/check`,

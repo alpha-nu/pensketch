@@ -106,20 +106,26 @@ positive is to the right of travel, which is the convention `bow` carries in
 `arc-connectors`. A caller who learned one already knows the other, and
 flipping a brace to the other side of what it spans is a minus sign.
 
-## D6 — Open, and the owner's to close
+## D6 — Closed by the owner
 
-Recorded here rather than settled, because each changes what ships.
+All three were open when this design was written. None is now, and each was
+settled before any code was written against it.
 
-1. **Does a brace join the paths `label-collision` searches?** It should — a
-   note drawn across a brace is the same defect as a label drawn across an
-   edge. The obstacle is mechanical: `struckBy` returns an edge index and all
-   its call sites interpolate the word "edge" into the message. Making a
-   finding able to say `brace 2` is a small refactor that should be decided
-   before it is discovered mid-group.
-2. **The default depth**, and whether there is one at all. `out` and `span`
-   in `arc-connectors` have defaults; `via` has none. A brace with no depth is
-   a straight line, so a default is probably right, and 26 px is what the
-   prototype used.
-3. **Ink or accent.** A brace is an annotation, which argues for
-   `theme.accent` with the notes. It is also structural, which argues for
-   `theme.ink` with the shapes. Reversible only until it ships.
+1. **A brace joins the paths `label-collision` searches.** A note drawn across
+   a brace is the same defect as a label drawn across an edge and is reported
+   as one. The cost is mechanical and belongs to the task that pays it:
+   `struckBy` returns an edge index and every call site interpolates the word
+   "edge", so a finding able to say `brace 2` is a small refactor rather than a
+   new rule.
+2. **`depth` has a default and it is 26 px**, the prototype's number. A brace
+   with no depth is a straight line, which is not a brace, so the default is
+   the difference between a field that is optional and one that is required in
+   all but name. Documented the way `size` is: a starting point a caller
+   overrides, never a value computed from anything.
+3. **A brace strokes in `theme.pen`, and so does its label.** Not `ink`, which
+   would set it competing with the boxes it spans, and not `accent`, which
+   would have it shout like a note. `pen` already carries a group's border and
+   a group's title, and a brace does what a group does — bounding a set and
+   naming it — for the cases a rectangle cannot serve: overlapping sets, and
+   spanning without enclosing. A reader who has learned what that blue means
+   here has already learned what a brace is.

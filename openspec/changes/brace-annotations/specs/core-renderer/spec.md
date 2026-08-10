@@ -19,6 +19,12 @@ and re-jitters independently per call: a shared point drawn twice lands about
 a stroke's width apart, which reads as a break at a tangent join where it
 reads as a hand-drawn corner at a right angle.
 
+A brace and its label SHALL be drawn in `theme.pen`, the role that already
+carries a group's border and a group's title, because a brace bounds a set and
+names it for the cases a rectangle cannot serve. It SHALL NOT use `theme.ink`,
+which would set it competing with the shapes it spans, nor `theme.accent`,
+which would read as a note about the picture rather than part of it.
+
 A brace SHALL take `lines`, `lx`, `ly` and `anchor` with the meaning they
 carry on an edge's label, and `draw()` SHALL throw when `lines` is given
 without numeric `lx` and `ly`. Nothing SHALL position the label relative to
