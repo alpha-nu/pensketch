@@ -40,3 +40,12 @@ holds functions and never crossed this interface anyway. If you spread a
 served `pensketch://example/*` envelope straight into the arguments, its
 `title` and `rawOmitted` are now refused; pass `example.diagram` and
 `example.viewBox` instead, which is what the resource description now says.
+
+**If you are a client author.** The arguments object beside the diagram is
+strict too, so a field your client adds to a tool call for its own purposes
+will be refused by name. The protocol's place for that is `_meta`, a sibling
+of `arguments` rather than a key inside it, and anything sent there is
+untouched. This is worth saying because at least one MCP client has been known
+to put scheduling metadata into the arguments payload itself: if a user
+reports a refusal naming a key they have never written, that is where it comes
+from.
