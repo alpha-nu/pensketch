@@ -926,3 +926,89 @@ describe('edge-overlap', () => {
     ).toEqual([]);
   });
 });
+
+describe('a brace is checked as the shape it draws', () => {
+  const FRAME = [0, 0, 400, 300] as const;
+  // A span whose two endpoints sit well inside the frame, with the tip
+  // reaching for the left edge. The straight line between the endpoints would
+  // never leave the viewBox, which is the whole point of the first case.
+  const span = {
+    from: [30, 60] as [number, number],
+    to: [30, 240] as [number, number],
+  };
+
+  it('reports a tip past the frame whose endpoints are both inside', () => {
+    const findings = check(
+      { braces: [{ ...span, depth: 40 }] },
+      {
+        viewBox: FRAME,
+      },
+    );
+    expect(rules(findings)).toEqual(['out-of-bounds']);
+    expect(findings[0]).toMatchObject({
+      severity: 'error',
+      subjects: ['brace 0'],
+    });
+    // Named, not numbered: `edge 0` here would point at an edge that does not
+    // exist, in a diagram that has no edges at all.
+    expect(findings[0]?.message).toContain('brace 0 reaches outside');
+  });
+
+  // The case that must stay quiet. The same brace turned the other way puts
+  // its tip 40 px further into the frame rather than out of it.
+  it('says nothing about a brace whose tip points inward', () => {
+    expect(
+      check({ braces: [{ ...span, depth: -40 }] }, { viewBox: FRAME }),
+    ).toEqual([]);
+  });
+
+  it('reports a brace label outside the frame, as it reports any other text', () => {
+    const findings = check(
+      { braces: [{ ...span, lines: ['set'], lx: 500, ly: 150 }] },
+      { viewBox: FRAME },
+    );
+    expect(rules(findings)).toEqual(['out-of-bounds']);
+    expect(findings[0]?.message).toBe(
+      'the label on brace 0 sits outside the viewBox and will not be seen',
+    );
+  });
+
+  // D6's first question, closed: a note drawn across a brace is the same
+  // defect as a label drawn across a connector, and is reported as one. This
+  // is the finding `struckBy` could not produce while it returned an index.
+  it('reports a note lying across a brace, naming the brace', () => {
+    const findings = check({
+      braces: [{ ...span, depth: 40 }],
+      notes: [{ x: -8, y: 150, lines: ['x'] }],
+    });
+    expect(rules(findings)).toEqual(['label-collision']);
+    expect(findings[0]).toMatchObject({
+      subjects: ['note 0', 'brace 0'],
+      estimated: true,
+    });
+    expect(findings[0]?.message).toBe(
+      'note 0 lies under brace 0, which will be drawn through it',
+    );
+  });
+
+  // The symmetric case, and the one the asymmetry would have left open: an
+  // edge label is checked against the lines, so a brace label is too.
+  it('reports a brace label lying on its own brace', () => {
+    const findings = check({
+      braces: [{ ...span, depth: 40, lines: ['set'], lx: -8, ly: 150 }],
+    });
+    expect(rules(findings)).toEqual(['label-collision']);
+    expect(findings[0]?.message).toBe(
+      'the label on brace 0 lies on the brace it labels; move it clear of the tip',
+    );
+  });
+
+  it('says nothing about a note that clears the brace', () => {
+    expect(
+      check({
+        braces: [{ ...span, depth: 40 }],
+        notes: [{ x: 120, y: 150, lines: ['x'] }],
+      }),
+    ).toEqual([]);
+  });
+});

@@ -9,6 +9,7 @@ import {
   labelBox,
   pointToSegment,
 } from './geometry';
+import { bracePoints } from './sample';
 import type { Diagram, DiagramNode, Point } from './types';
 
 /**
@@ -116,6 +117,7 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   } = options;
   const nodes = diagram.nodes || [];
   const edges = diagram.edges || [];
+  const braces = diagram.braces || [];
   const notes = diagram.notes || [];
   const findings: Finding[] = [];
 
@@ -282,10 +284,32 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
         );
   });
 
-  // The first path this box is too close to, if any. An edge label sitting on
-  // its own line counts: that is exactly the defect this rule exists for.
+  // Every line the picture actually lays down, named the way a finding names
+  // it rather than numbered. A brace is drawn too, so a label can lie under one
+  // and a point on one can leave the frame - and `edge 2` said about a brace
+  // points at the wrong thing, or at nothing when a diagram has more braces
+  // than edges. `cut` is how many points at each end go unmeasured for
+  // `out-of-bounds`: one on an edge, whose anchors sit on a node the rule above
+  // already reports, and none on a brace, whose ends are the caller's own two
+  // points with nothing behind them to be reported instead.
+  const drawn = paths.map(({ i, path }) => ({
+    subject: `edge ${i}`,
+    path,
+    cut: 1,
+  }));
+  drawn.push(
+    ...braces.map((b, i) => ({
+      subject: `brace ${i}`,
+      path: bracePoints(b),
+      cut: 0,
+    })),
+  );
+
+  // The first line this box is too close to, if any. A label sitting on the
+  // very line it labels counts: that is exactly the defect this rule exists
+  // for.
   const struckBy = (box: Box) =>
-    paths.find(({ path }) =>
+    drawn.find(({ path }) =>
       path
         .slice(1)
         .some((p, k) => boxToSegment(box, path[k] as Point, p) < margin),
@@ -307,11 +331,29 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     if (hit)
       add(
         'label-collision',
-        hit.i === i
+        hit.subject === `edge ${i}`
           ? `the label on edge ${i} lies on the line it labels; move it clear or put the text in a box instead`
-          : `the label on edge ${i} lies under edge ${hit.i}, which will be drawn through it`,
+          : `the label on edge ${i} lies under ${hit.subject}, which will be drawn through it`,
         [e.lx, e.ly],
-        [`edge ${i}`, `edge ${hit.i}`],
+        [`edge ${i}`, hit.subject],
+        true,
+      );
+  });
+
+  braces.forEach((b, i) => {
+    if (!b.lines || typeof b.lx !== 'number' || typeof b.ly !== 'number')
+      return;
+    const hit = struckBy(
+      labelBox(b.lx, b.ly, b.lines, SIZE, b.anchor || 'start', glyphWidth),
+    );
+    if (hit)
+      add(
+        'label-collision',
+        hit.subject === `brace ${i}`
+          ? `the label on brace ${i} lies on the brace it labels; move it clear of the tip`
+          : `the label on brace ${i} lies under ${hit.subject}, which will be drawn through it`,
+        [b.lx, b.ly],
+        [`brace ${i}`, hit.subject],
         true,
       );
   });
@@ -330,9 +372,9 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     if (hit)
       add(
         'label-collision',
-        `note ${i} lies under edge ${hit.i}, which will be drawn through it`,
+        `note ${i} lies under ${hit.subject}, which will be drawn through it`,
         [nt.x, nt.y],
-        [`note ${i}`, `edge ${hit.i}`],
+        [`note ${i}`, hit.subject],
         true,
       );
   });
@@ -375,8 +417,10 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     // would bury one defect under ten copies of itself. The cost is that a
     // second corner outside the frame needs a second run to see, which is the
     // one place this file trades away its own "all of them at once".
-    for (const { i, path } of paths) {
-      const p = path.slice(1, -1).find(([x, y]) => outside(x, y));
+    for (const { subject, path, cut } of drawn) {
+      const p = path
+        .slice(cut, path.length - cut)
+        .find(([x, y]) => outside(x, y));
       // Rounded in the message, because the point is a sample and the true
       // crossing lies between it and the one before: the digits after the
       // point are precision the number has not got. `at` keeps them, because
@@ -385,9 +429,9 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
       if (p)
         add(
           'out-of-bounds',
-          `edge ${i} reaches outside the viewBox at (${Math.round(p[0])}, ${Math.round(p[1])}), so part of it is clipped away`,
+          `${subject} reaches outside the viewBox at (${Math.round(p[0])}, ${Math.round(p[1])}), so part of it is clipped away`,
           p,
-          [`edge ${i}`],
+          [subject],
         );
     }
 
@@ -402,6 +446,20 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
           `the label on edge ${i} sits outside the viewBox and will not be seen`,
           [e.lx, e.ly],
           [`edge ${i}`],
+        );
+    });
+
+    braces.forEach((b, i) => {
+      if (
+        typeof b.lx === 'number' &&
+        typeof b.ly === 'number' &&
+        outside(b.lx, b.ly)
+      )
+        add(
+          'out-of-bounds',
+          `the label on brace ${i} sits outside the viewBox and will not be seen`,
+          [b.lx, b.ly],
+          [`brace ${i}`],
         );
     });
 

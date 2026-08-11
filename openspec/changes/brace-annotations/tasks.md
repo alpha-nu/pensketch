@@ -102,17 +102,29 @@ model has not got yet, so that test has to keep naming one of those.
 
 ## 3. The checker sees it
 
-- [ ] 3.1 A brace's sampled points join what the geometric rules measure, so
+- [x] 3.1 A brace's sampled points join what the geometric rules measure, so
       `out-of-bounds` reports a tip outside the frame whose endpoints are
       inside
-- [ ] 3.2 A brace joins the paths `label-collision` searches, which means
+- [x] 3.2 A brace joins the paths `label-collision` searches, which means
       `struckBy` returns a subject rather than an index: it returns an edge
       index today and all its call sites write the word "edge" into the
       message, so a finding cannot yet say `brace 2`
-- [ ] 3.3 Tests for both, including the case that must stay quiet
+- [x] 3.3 Tests for both, including the case that must stay quiet
 
 Gate: `npm run size`. This group's weight lands on `@pensketch/core/check`,
 the entry with the least headroom.
+
+**+354 B, landing at 2989 of 3072 with 83 free**, against D2's prototype
+measurement of +270. No raise: 437 B were free and the work fits, which is why
+group 2's raise named `./server` and left this entry alone.
+
+304 of that is 3.1 and 3.2 together. The last 50 bought a case neither task
+asked for and the shape of the other two made hard to leave out: a brace's own
+label, checked against the drawn lines exactly as an edge's label is. Without
+it a brace's label was reported by `out-of-bounds` and not by
+`label-collision`, which is an asymmetry a reader would have to discover by
+experiment. Measured before it was kept, and it would not have been kept at
+150.
 
 ## 4. The reference catches up
 
