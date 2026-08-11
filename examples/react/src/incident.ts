@@ -6,7 +6,7 @@ import type { Diagram } from '@pensketch/core';
 // how far the incident has got, and nothing else does:
 //
 //   the accented nodes   where it is right now - two of them at the end
-//   the shaded boxes     the stages already behind it
+//   the shaded nodes     the stages already behind it
 //   the dotted edges     what has not happened - the steps ahead, and the two
 //                        paths nobody wants to take at all
 //
@@ -53,11 +53,12 @@ const LAST = SPINE.length;
 // diagram served as JSON carries what it draws and not a column of `false`.
 const accented = (on: boolean): { accent?: true } => (on ? { accent: true } : {});
 const unreached = (on: boolean): { dotted?: true } => (on ? { dotted: true } : {});
-// `hatch` shades the node's *box*, inset 4px, whatever outline is drawn round
-// it - so on the pill it escapes the ellipse and on the diamond it fills all
-// four corners the shape does not have. Only the spine's three boxes take it,
-// which is why the answered question keeps its plain outline. Nothing past the
-// diamond is ever shaded: the pair at the end is never behind you.
+// `hatch` shades inside the outline the node is drawn with, inset 4px, so the
+// diamond takes it on the same terms as the boxes: it used to be held to them
+// alone, because shading followed the box and filled the four corners a
+// diamond has not got. Nothing past the diamond is ever shaded, which is a
+// statement about the incident rather than about the renderer: the pair at the
+// end is never behind you.
 const shaded = (on: boolean): { hatch?: true } => (on ? { hatch: true } : {});
 
 /**
@@ -73,7 +74,7 @@ export function incident(stage: number): Diagram {
     nodes: [
       ...SPINE.map(({ id, shape, x, y, h, label }, i) => ({
         id, shape, x, y, w: W, h, lines: [label],
-        ...accented(i === stage), ...shaded(shape === 'box' && i < stage),
+        ...accented(i === stage), ...shaded(i < stage),
       })),
       ...OVER.map(({ id, shape, x, y, h, label }) => ({
         id, shape, x, y, w: W, h, lines: [label], ...accented(stage === LAST),

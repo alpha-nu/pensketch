@@ -13,7 +13,7 @@ import {
   TITLE_SIZE,
 } from './constants';
 import { pen } from './pen';
-import { bowPoints, bracePoints, loopPoints } from './sample';
+import { bowPoints, bracePoints, hatchClip, loopPoints } from './sample';
 import { resolveTheme } from './theme';
 import type {
   Diagram,
@@ -232,6 +232,12 @@ export function draw(
       shape(n.x, n.y, n.w, n.h, {
         color: n.accent ? theme.pen : theme.ink,
       });
+      // Two boxes, deliberately: the inset one says which diagonals are ruled,
+      // which is what it has always said and what keeps a hatched shape on the
+      // same lines as a hatched box beside it, and the node's own box is what
+      // `hatchClip` needs to stand a clip `HATCH_INSET` inside the outline it
+      // just drew. A box has no clip and falls through to the closed form the
+      // reference renderer uses.
       if (n.hatch)
         p.hatch(
           n.x + HATCH_INSET,
@@ -239,6 +245,7 @@ export function draw(
           n.w - HATCH_INSET * 2,
           n.h - HATCH_INSET * 2,
           theme.pen,
+          hatchClip(n.shape, n.x, n.y, n.w, n.h),
         );
       if (n.lines)
         p.label(n.x + n.w / 2, n.y + n.h / 2, n.lines, {

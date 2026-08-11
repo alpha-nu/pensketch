@@ -113,8 +113,23 @@ export interface Pen {
   /**
    * Diagonal shading across the box, clipped to it at both ends. Default
    * color: `theme.ink`.
+   *
+   * Given `clip`, a closed polygon in the same coordinates, each diagonal is
+   * cut to that instead — the same lines, cut somewhere else — so a shape
+   * narrower than its box is shaded inside itself. The box still says which
+   * diagonals are ruled, so pass the one the polygon sits in. The polygon may
+   * repeat its first point at the end or not; the edges are walked wrapping
+   * round either way. Concave is fine, and so is self-intersecting: crossings
+   * are paired in order along the line, which fills by the even-odd rule.
    */
-  hatch(x: number, y: number, w: number, h: number, color?: string): void;
+  hatch(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    color?: string,
+    clip?: Point[],
+  ): void;
   /**
    * One `<text>` per line, the block centered on `(x, y)`. A plain string is
    * one line. Where the lines break is the caller's decision: nothing in
@@ -186,9 +201,10 @@ interface ShapeNode extends NodeBox {
    * Shade the node with diagonal lines, inset 4 px, in `theme.pen`. Default:
    * `false`.
    *
-   * The shading follows the *box*, not the outline drawn round it, so on a
-   * pill or a diamond it reaches into the corners the box has and the shape
-   * does not.
+   * The shading follows the outline the shape is drawn with, so a pill is
+   * shaded inside its ellipse and a diamond inside its four sides. Until
+   * 0.3.0 it followed the *box* instead, reaching into corners a pill and a
+   * diamond have not got.
    */
   hatch?: boolean;
 }

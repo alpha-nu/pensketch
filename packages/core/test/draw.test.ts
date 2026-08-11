@@ -1048,7 +1048,12 @@ describe('draw() node phase', () => {
     }
   });
 
-  it('hatches in pen, inset from the outline', () => {
+  const hatchInk = (svg: SVGSVGElement): Point[] =>
+    pathsOf(svg)
+      .filter((path) => num(path, 'stroke-width') === HATCH_W)
+      .flatMap((path) => pointsOf(path));
+
+  it('hatches a box in pen, inset from its outline', () => {
     const svg = makeSvg();
     draw(svg, at({ hatch: true }));
 
@@ -1066,6 +1071,66 @@ describe('draw() node phase', () => {
         expect(y).toBeLessThanOrEqual(40 - HATCH_INSET + 1);
       }
     }
+  });
+
+  // The two shapes whose outline is not their box. Both used to be shaded to
+  // the box regardless: a pill overshot its ellipse by 15.5 px on the 150 x 50
+  // this repository ships, and a diamond filled all four corners of its box,
+  // which is half the box's area and none of the shape's. Held to the outline
+  // here, not to the box, so that neither can quietly go back.
+  it('cuts a hatched pill to its ellipse', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes: [
+        { id: 'n', shape: 'pill', x: 0, y: 0, w: 150, h: 50, hatch: true },
+      ],
+    });
+
+    const ink = hatchInk(svg);
+    expect(ink.length).toBeGreaterThan(0);
+    for (const [x, y] of ink) {
+      // Radii grown by the jitter, so only ink the renderer aimed outside can
+      // fail this.
+      const rx = 75 + 1;
+      const ry = 25 + 1;
+      expect(((x - 75) / rx) ** 2 + ((y - 25) / ry) ** 2).toBeLessThanOrEqual(
+        1,
+      );
+    }
+  });
+
+  it('cuts a hatched diamond to its four sides, leaving the corners of its box bare', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes: [
+        { id: 'n', shape: 'diamond', x: 0, y: 0, w: 150, h: 76, hatch: true },
+      ],
+    });
+
+    const ink = hatchInk(svg);
+    expect(ink.length).toBeGreaterThan(0);
+    // |dx|/a + |dy|/b <= 1 is the diamond; the slack is the jitter carried
+    // through both terms.
+    for (const [x, y] of ink)
+      expect(Math.abs(x - 75) / 75 + Math.abs(y - 38) / 38).toBeLessThanOrEqual(
+        1.03,
+      );
+    // And said the other way round: a 12 px square in each corner of the box,
+    // every one of them wholly outside the diamond, and every one of them
+    // shaded before this. The two assertions fail differently - the one above
+    // lets a clip a little too generous through, and this one names the four
+    // triangles that are half the box's area and none of the shape's.
+    for (const [cx, cy] of [
+      [0, 0],
+      [138, 0],
+      [0, 64],
+      [138, 64],
+    ] as const)
+      expect(
+        ink.some(
+          ([x, y]) => x >= cx && x <= cx + 12 && y >= cy && y <= cy + 12,
+        ),
+      ).toBe(false);
   });
 
   it('centres the label and takes the size the node asks for', () => {

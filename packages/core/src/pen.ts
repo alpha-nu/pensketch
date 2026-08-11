@@ -236,22 +236,74 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     );
   }
 
-  // Diagonals across the box, clipped to it at both ends.
+  // Diagonals across the box, clipped to it at both ends - or, when an outline
+  // is given, to that instead, so a shape narrower than its box is shaded
+  // inside itself rather than inside the rectangle it sits in.
+  //
+  // The box arm is the closed form the reference renderer uses and stays that
+  // way: it emits a degenerate zero-length stroke at its first scanline, a
+  // contour clip emits nothing there, and the goldens are generated from the
+  // reference. The two arms rule the same lines - `i` names the same diagonals
+  // either way - so the difference between them is only where each is cut.
   function hatch(
     x: number,
     y: number,
     w: number,
     h: number,
     color: string = theme.ink,
+    clip?: Point[],
   ) {
-    for (let i = -h; i < w; i += HATCH_GAP)
-      stroke(
-        [
-          [Math.max(x, x + i), i < 0 ? y - i : y],
-          [Math.min(x + w, x + i + h), i + h > w ? y + (w - i) : y + h],
-        ],
-        { color, width: HATCH_W, amplitude: HATCH_AMP },
-      );
+    const opts = { color, width: HATCH_W, amplitude: HATCH_AMP };
+    if (!clip) {
+      for (let i = -h; i < w; i += HATCH_GAP)
+        stroke(
+          [
+            [Math.max(x, x + i), i < 0 ? y - i : y],
+            [Math.min(x + w, x + i + h), i + h > w ? y + (w - i) : y + h],
+          ],
+          opts,
+        );
+      return;
+    }
+    for (let i = -h; i < w; i += HATCH_GAP) {
+      // A hatch line is x = y + c, so one number names it and one number names
+      // a point on it. There is no second coordinate to solve for and no
+      // second sort key.
+      const c = x + i - y;
+      const hits: number[] = [];
+      for (let k = 0; k < clip.length; k++) {
+        const [ax, ay] = clip[k] as Point;
+        const [bx, by] = clip[(k + 1) % clip.length] as Point;
+        const ca = ax - ay;
+        const cb = bx - by;
+        // Half-open at the lower end of the edge, whichever way round the edge
+        // runs: `c` counts when it lies in [min, max). That is what makes a
+        // vertex behave. A line that crosses through one is reported by one of
+        // the two edges meeting there and not both; a line that only touches
+        // one - the extremes of a convex shape, the notches of a concave one -
+        // is reported by both or by neither, which keeps the crossings in
+        // pairs. Reading the interval from the direction of travel instead
+        // reports every vertex exactly once, which is right for a crossing and
+        // wrong for a touch, and a single stray crossing pairs the whole
+        // scanline up wrongly. It also settles an edge parallel to the hatch,
+        // where ca and cb are equal and there is no single crossing to name:
+        // the test is false, so the division below never runs on zero.
+        if (c >= ca !== c >= cb)
+          hits.push(ay + ((c - ca) / (cb - ca)) * (by - ay));
+      }
+      hits.sort((p, q) => p - q);
+      for (let k = 0; k + 1 < hits.length; k += 2) {
+        const p0 = hits[k] as number;
+        const p1 = hits[k + 1] as number;
+        stroke(
+          [
+            [c + p0, p0],
+            [c + p1, p1],
+          ],
+          opts,
+        );
+      }
+    }
   }
 
   // One <text> per line, stacked around (cx, cy). No text measurement here

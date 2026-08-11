@@ -3,6 +3,7 @@ import {
   ARC_STEPS,
   BRACE_DEPTH,
   BRACE_R,
+  HATCH_INSET,
   MIN_STEPS,
   SEG_LEN,
 } from './constants';
@@ -83,6 +84,65 @@ export function arcPoints(
     pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
   }
   return pts;
+}
+
+/**
+ * The polygon a node's hatching is cut to: its own outline, standing
+ * `HATCH_INSET` inside the line the shape is drawn with. Takes the node's box,
+ * not an inset one, because how far inside the outline a shape has to be
+ * redrawn to clear it by a given distance is a question about the shape.
+ *
+ * Closed or not, both are the same outline: `hatch` walks the edges wrapping
+ * round, so a repeated last point is a zero-length edge it discards. A full
+ * turn of `arcPoints` returns its first point again and the diamond below does
+ * not, and neither has to be corrected to match the other.
+ *
+ * A `box` has none, and that is the whole of the shape dispatch: the rectangle
+ * inset on every side is what `hatch` already cuts to, in the closed form the
+ * reference renderer uses, and the goldens are generated from the reference.
+ * Routing a box through a contour clip changes what it draws - the reference
+ * emits a degenerate zero-length stroke at its first scanline and a contour
+ * clip emits nothing there - so parity would fail structurally, not by
+ * rounding.
+ */
+export function hatchClip(
+  shape: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): Point[] | undefined {
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const a = w / 2;
+  const b = h / 2;
+  // An ellipse inset by a constant is not an ellipse, so this is the one that
+  // fits inside the box inset by the same amount: exactly `HATCH_INSET` clear
+  // at the end of each axis and a little less between them. Measured over
+  // 5566 sizes from 60x30 to 300x120, the ink comes no closer to the outline
+  // than 1.85 px, at an aspect of 8.5:1, against a median of 3.31 and the
+  // 3.40 the box arm holds. A hatch line and an outline are 1 and 1.6 px wide,
+  // so half a px of daylight is the worst of it, and offsetting an ellipse
+  // properly is a curve of higher degree than an ellipse.
+  if (shape === 'pill')
+    return arcPoints(cx, cy, a - HATCH_INSET, b - HATCH_INSET, 0, 2 * Math.PI);
+  if (shape === 'diamond') {
+    // A diamond inscribed in the box inset by `HATCH_INSET` is not a diamond
+    // standing `HATCH_INSET` inside this one. Its side vertices come in by
+    // that much horizontally, which perpendicular to a shallow edge is a
+    // fraction of it: 1.81 px on the 150 x 76 this repository ships, and 0.00
+    // - ink on the outline - at 278 x 30. Scaling about the centre is the
+    // correction, and for a diamond it is exact, every edge standing the same
+    // distance from the one outside it.
+    const s = Math.max(0, 1 - (HATCH_INSET * Math.hypot(a, b)) / (a * b));
+    return [
+      [cx, cy - b * s],
+      [cx + a * s, cy],
+      [cx, cy + b * s],
+      [cx - a * s, cy],
+    ];
+  }
+  return undefined;
 }
 
 /**

@@ -133,7 +133,7 @@
             },
             "hatch": {
               "type": "boolean",
-              "description": "Shade the node with diagonal lines, inset 4 px, in `theme.pen`. Default: `false`.\n\nThe shading follows the *box*, not the outline drawn round it, so on a pill or a diamond it reaches into the corners the box has and the shape does not."
+              "description": "Shade the node with diagonal lines, inset 4 px, in `theme.pen`. Default: `false`.\n\nThe shading follows the outline the shape is drawn with, so a pill is shaded inside its ellipse and a diamond inside its four sides. Until 0.3.0 it followed the *box* instead, reaching into corners a pill and a diamond have not got."
             }
           },
           "required": [

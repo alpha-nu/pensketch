@@ -108,7 +108,7 @@ obstacle.
 | `lines` | `string[]` | required on `group`, otherwise unlabelled | Label lines, one `<text>` each. A group's title is drawn unconditionally, so the type demands `lines` there and leaves it optional on the drawn shapes. |
 | `size` | `number` | `13.5` | Label font size in px. Drawn shapes only; a group's title is always 14. |
 | `accent` | `boolean` | `false` | Stroke in `--ps-pen` rather than `--ps-ink`. Drawn shapes only. |
-| `hatch` | `boolean` | `false` | Shade the node with diagonal lines, inset 4 px, in `--ps-pen`. Drawn shapes only, and the shading follows the *box*: on a pill or a diamond it reaches into corners the shape does not have. |
+| `hatch` | `boolean` | `false` | Shade the node with diagonal lines, inset 4 px, in `--ps-pen`. Drawn shapes only. The shading follows the outline the shape is drawn with, so a pill is shaded inside its ellipse and a diamond inside its four sides. |
 
 ### `DiagramEdge`
 
@@ -204,7 +204,7 @@ p.label(395, 65, ['a pill', '(two lines)']);
 | `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
 | `arc(cx, cy, rx, ry, from, to, opts?)` | An elliptical arc around a centre point, swept between two angles in radians. |
 | `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
-| `hatch(x, y, w, h, color?)` | Diagonal shading across the box, clipped to it. |
+| `hatch(x, y, w, h, color?, clip?)` | Diagonal shading across the box, clipped to it — or to `clip`, a polygon of your own, which is how a pill and a diamond are shaded inside themselves. |
 | `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |
 | `wash(x, y, w, h, fill?)` | A plain rounded background rect. |
 | `rng()` | The pen's seeded PRNG; calling it advances the sequence. |
@@ -424,7 +424,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **3497 B** | 8919 B |
+| Size, min+gzip | **3750 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

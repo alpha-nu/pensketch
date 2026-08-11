@@ -106,7 +106,7 @@ type DiagramNode =
       lines?: string[];    // omit for an unlabelled shape
       size?: number;       // label font px, default 13.5
       accent?: boolean;    // stroke in --ps-pen instead of --ps-ink
-      hatch?: boolean };   // diagonal shading of the node's *box*, inset 4px
+      hatch?: boolean };   // diagonal shading inside the outline, inset 4px
 
 interface DiagramEdge {
   from: [string, Side];    // node id + which side to leave
@@ -177,7 +177,7 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `WIDTH` | 1.6 | stroke width |
 | `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |
 | `OVERSHOOT` | 4 | how far box corners overrun |
-| `HATCH_INSET` | 4 | hatching inset from the node's box |
+| `HATCH_INSET` | 4 | hatching inset from the node's outline |
 | `LOOP_OUT` | 30 | how far a self-transition projects, when `out` is not given |
 | `LOOP_SPAN` | 40 | how far apart its two anchors sit, when `span` is not given |
 | `BRACE_DEPTH` | 26 | how far a brace's tip stands off its span, when `depth` is not given |
@@ -238,8 +238,8 @@ shading are for, and this one says so out loud in the file it lives in.
 ```js
 const incident = {
   nodes: [
-    // hatch shades the node's *box*, inset 4px, whatever outline is drawn
-    // round it, so on a pill or a diamond it reaches past the shape
+    // hatch shades inside the outline the shape is drawn with, inset 4px, so
+    // a diamond takes it on the same terms as a box does
     { id: 'paged',    shape: 'box',     x: 40,  y: 110, w: 150, h: 46, lines: ['paged'],    hatch: true },
     { id: 'triage',   shape: 'box',     x: 230, y: 110, w: 150, h: 46, lines: ['triage'],   hatch: true },
     { id: 'mitigate', shape: 'box',     x: 420, y: 110, w: 150, h: 46, lines: ['mitigate'], accent: true },

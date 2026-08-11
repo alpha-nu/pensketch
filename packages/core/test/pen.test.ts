@@ -597,6 +597,100 @@ describe('hatch()', () => {
     pen(svg).hatch(box.x, box.y, box.w, box.h, 'seagreen');
     expect(attr(nth(pathsOf(svg), 0), 'stroke')).toBe('seagreen');
   });
+
+  // A 60 x 60 box with a rectangular notch cut up into it from the bottom.
+  // Concave, and placed so that the ruled diagonals - which run x = y + c for
+  // c = -60, -49, ... 50, the box sitting at the origin - land on the two
+  // cases a vertex can present. Every coordinate is chosen against that list
+  // rather than for roundness.
+  const NOTCH: Point[] = [
+    [0, 0],
+    [60, 0],
+    [60, 60],
+    [40, 60],
+    [40, 23],
+    [20, 23],
+    [20, 60],
+    [0, 60],
+  ];
+  const notched = (clip: Point[]) => {
+    const svg = makeSvg();
+    pen(svg).hatch(0, 0, 60, 60, undefined, clip);
+    // The first of each pair of passes: the second traces the same points
+    // again with its own dice, and one span is one line either way.
+    return pathsOf(svg)
+      .filter((_, i) => i % 2 === 0)
+      .map((path) => pointsOf(path));
+  };
+
+  it('cuts each diagonal to the clip it is given, leaving a concave notch bare', () => {
+    // c = -16 enters at the left edge, leaves at the notch's left wall,
+    // re-enters at its right wall and leaves through the bottom: four
+    // crossings, so two spans with the notch between them.
+    const spans = notched(NOTCH).filter(
+      ([first]) => Math.abs((first as Point)[0] - (first as Point)[1] + 16) < 1,
+    );
+    expect(spans).toHaveLength(2);
+    const [before, after] = spans as [Point[], Point[]];
+    expectNear(nth(before, 0), [0, 16], spread(HATCH_AMP));
+    expectNear(
+      nth(before, before.length - 1),
+      [20, 36],
+      damped(HATCH_AMP) + spread(HATCH_AMP),
+    );
+    expectNear(nth(after, 0), [40, 56], spread(HATCH_AMP));
+    expectNear(
+      nth(after, after.length - 1),
+      [44, 60],
+      damped(HATCH_AMP) + spread(HATCH_AMP),
+    );
+  });
+
+  it('counts a vertex the line passes through once and one it only meets not at all', () => {
+    // c = 17 runs through the notch's inner corner at (40, 23) without
+    // leaving the shape - both edges meeting there lie on one side of it - so
+    // that corner is no crossing and the span runs on to the right edge.
+    // Reading the half-open interval from each edge's direction of travel
+    // instead reports every vertex exactly once, which is right where a line
+    // crosses and wrong where it only touches: the count goes odd, the
+    // crossings pair up shifted, and this span stops dead at (40, 23) with
+    // its true exit dropped.
+    const spans = notched(NOTCH).filter(
+      ([first]) => Math.abs((first as Point)[0] - (first as Point)[1] - 17) < 1,
+    );
+    expect(spans).toHaveLength(1);
+    const [span] = spans as [Point[]];
+    expectNear(nth(span, 0), [17, 0], spread(HATCH_AMP));
+    expectNear(nth(span, span.length - 1), [60, 43], damped(HATCH_AMP));
+  });
+
+  it('reads a clip that repeats its first point as the same outline', () => {
+    const open = notched(NOTCH);
+    const closed = notched([...NOTCH, nth(NOTCH, 0)]);
+    // Point for point, not span for span: the closing edge has no length, so
+    // it contributes no crossing and consumes none of the seeded sequence.
+    expect(closed).toEqual(open);
+  });
+
+  it('draws nothing along an edge that runs with the hatch', () => {
+    // The diagonal from (0, 0) to (60, 60) is the line c = 0 itself. It has
+    // no single crossing to report, and reporting one would divide by the
+    // zero the two ends of the edge differ by.
+    const spans = notched([
+      [0, 0],
+      [60, 60],
+      [0, 60],
+    ]).filter(
+      ([first]) => Math.abs((first as Point)[0] - (first as Point)[1]) < 1,
+    );
+    expect(spans).toHaveLength(0);
+  });
+
+  it('shades nothing where the clip has no area', () => {
+    const svg = makeSvg();
+    pen(svg).hatch(0, 0, 60, 60, undefined, []);
+    expect(pathsOf(svg)).toHaveLength(0);
+  });
 });
 
 describe('label()', () => {

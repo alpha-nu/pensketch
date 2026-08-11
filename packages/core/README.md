@@ -52,7 +52,7 @@ diagram's `raw` array.
 | `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
 | `arc(cx, cy, rx, ry, from, to, opts?)` | An elliptical arc around a centre point, swept between two angles in radians. |
 | `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
-| `hatch(x, y, w, h, color?)` | Diagonal shading across the box, clipped to it. |
+| `hatch(x, y, w, h, color?, clip?)` | Diagonal shading across the box, clipped to it — or to `clip`, a polygon of your own, which is how a pill and a diamond are shaded inside themselves. |
 | `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |
 | `wash(x, y, w, h, fill?)` | A plain rounded background rect. |
 | `rng()` | The pen's seeded PRNG; calling it advances the sequence. |
