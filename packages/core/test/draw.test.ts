@@ -46,6 +46,15 @@ const ALL_PHASES: Diagram = {
     { id: 'b', shape: 'box', x: 200, y: 40, w: 80, h: 40, lines: ['node 2'] },
   ],
   edges: [{ from: ['a', 'r'], to: ['b', 'l'], label: 'edge', lx: 150, ly: 50 }],
+  braces: [
+    {
+      from: [10, 30],
+      to: [10, 90],
+      lines: ['brace'],
+      lx: 20,
+      ly: 60,
+    },
+  ],
   notes: [
     { x: 20, y: 150, lines: ['note 1'] },
     { x: 20, y: 170, lines: ['note 2'] },
@@ -89,6 +98,7 @@ describe('draw() render order', () => {
       'edge',
       'node 1',
       'node 2',
+      'brace',
       'note 1',
       'note 2',
       'raw 1',
@@ -809,6 +819,90 @@ describe('draw() self-transitions', () => {
     const crossed = makeSvg();
     draw(crossed, JSON.parse(before) as Diagram);
     expect(serialize(crossed)).toBe(serialize(direct));
+  });
+});
+
+describe('draw() braces', () => {
+  const nodes: DiagramNode[] = [
+    { id: 'a', shape: 'box', x: 40, y: 40, w: 150, h: 46, lines: ['one'] },
+    { id: 'b', shape: 'box', x: 40, y: 110, w: 150, h: 46, lines: ['two'] },
+    { id: 'c', shape: 'box', x: 40, y: 180, w: 150, h: 46, lines: ['three'] },
+  ];
+  // The shape the change exists for: three boxes marked as a set without a
+  // rectangle drawn round them, and no `raw` callback anywhere in it.
+  const spanning: Diagram = {
+    nodes,
+    braces: [
+      {
+        from: [210, 40],
+        to: [210, 226],
+        depth: -26,
+        lines: ['the batch'],
+        lx: 250,
+        ly: 133,
+      },
+    ],
+  };
+
+  it('draws a brace over what it spans, from data alone', () => {
+    const svg = makeSvg();
+    draw(svg, spanning);
+    const bare = makeSvg();
+    draw(bare, { nodes });
+    // Two paths and no more: the brace is one stroke, and nothing draws a
+    // rectangle round the set it marks. Measured as a difference rather than
+    // as a total, so it says what the brace costs rather than what a box does.
+    expect(pathsOf(svg).length - pathsOf(bare).length).toBe(2);
+    expect(contents(svg)).toEqual(['one', 'two', 'three', 'the batch']);
+  });
+
+  it('strokes the brace and its label in theme.pen, not ink or accent', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      braces: [{ from: [0, 0], to: [0, 100], lines: ['set'], lx: 30, ly: 50 }],
+    });
+    for (const path of pathsOf(svg))
+      expect(attr(path, 'stroke')).toBe(defaultTheme.pen);
+    expect(styleOf(nth(textsOf(svg), 0))).toBe(
+      `fill:${defaultTheme.pen};font-size:${SIZE}px`,
+    );
+  });
+
+  it('refuses lines without coordinates, as an edge label is refused', () => {
+    expect(() =>
+      draw(makeSvg(), {
+        braces: [{ from: [0, 0], to: [0, 100], lines: ['set'], lx: 30 }],
+      }),
+    ).toThrowError(
+      new Error(
+        'brace 0 has lines but lx and ly are not both numbers; labels are placed by hand because text is never measured',
+      ),
+    );
+  });
+
+  // A brace is data, which is the whole reason it is not a `raw` callback.
+  it('survives a JSON boundary and draws the same on the other side', () => {
+    const before = JSON.stringify(spanning);
+    const direct = makeSvg();
+    draw(direct, spanning);
+    expect(JSON.stringify(spanning)).toBe(before);
+
+    const crossed = makeSvg();
+    draw(crossed, JSON.parse(before) as Diagram);
+    expect(serialize(crossed)).toBe(serialize(direct));
+  });
+
+  // The phase draws from the seeded sequence only when it has something to
+  // draw, so every diagram written before this change renders byte for byte
+  // as it did. The parity tests hold the same claim against goldens generated
+  // from the reference renderer; this holds it against the empty array, which
+  // those cannot reach.
+  it('consumes nothing from the sequence when there are no braces', () => {
+    const without = makeSvg();
+    const empty = makeSvg();
+    draw(without, { nodes });
+    draw(empty, { nodes, braces: [] });
+    expect(serialize(empty)).toBe(serialize(without));
   });
 });
 

@@ -13,7 +13,7 @@ import {
   TITLE_SIZE,
 } from './constants';
 import { pen } from './pen';
-import { bowPoints, loopPoints } from './sample';
+import { bowPoints, bracePoints, loopPoints } from './sample';
 import { resolveTheme } from './theme';
 import type {
   Diagram,
@@ -47,10 +47,10 @@ export function anchor(node: DiagramNode, side: Side): Point {
  *
  * Throws an `Error` naming the offender when an edge references a node the
  * diagram does not define, two nodes share an id, a node carries an unknown
- * shape, an edge has a `label` without numeric `lx` and `ly`, an edge names
- * one node at both ends but two different sides, or an edge or note describes
- * its path twice - `bow` with `via`, or either on a self-transition. Nothing
- * else is validated.
+ * shape, an edge has a `label` without numeric `lx` and `ly`, a brace has
+ * `lines` without them, an edge names one node at both ends but two different
+ * sides, or an edge or note describes its path twice - `bow` with `via`, or
+ * either on a self-transition. Nothing else is validated.
  *
  * @example
  * ```js
@@ -245,6 +245,23 @@ export function draw(
           size: n.size || SIZE,
         });
     });
+
+  // Over what it spans and under the annotation that explains it, which is the
+  // whole reason this phase sits between the shapes and the notes rather than
+  // at either end of them.
+  (diagram.braces || []).forEach((b, i) => {
+    p.stroke(bracePoints(b), { color: theme.pen });
+    if (b.lines) {
+      if (typeof b.lx !== 'number' || typeof b.ly !== 'number')
+        throw new Error(
+          `brace ${i} has lines but lx and ly are not both numbers; labels are placed by hand because text is never measured`,
+        );
+      p.label(b.lx, b.ly, b.lines, {
+        color: theme.pen,
+        anchor: b.anchor || 'start',
+      });
+    }
+  });
 
   (diagram.notes || []).forEach((nt, i) => {
     p.label(nt.x, nt.y, nt.lines, {

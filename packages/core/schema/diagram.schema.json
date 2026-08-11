@@ -16,6 +16,13 @@
       },
       "description": "Arrows, drawn over the groups and under the shapes they connect."
     },
+    "braces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DiagramBrace"
+      },
+      "description": "Braces and brackets, drawn after the shapes and before the notes: over what they span, and under the annotation that explains them. The position is part of the rendered bytes, not an implementation detail."
+    },
     "notes": {
       "type": "array",
       "items": {
@@ -244,6 +251,60 @@
       "minItems": 2,
       "maxItems": 2,
       "description": "An `[x, y]` position in the diagram's own coordinate space, which is the one the `<svg>` viewBox declares rather than screen pixels."
+    },
+    "DiagramBrace": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "#/definitions/Point",
+          "description": "Where the span starts."
+        },
+        "to": {
+          "$ref": "#/definitions/Point",
+          "description": "Where the span ends."
+        },
+        "depth": {
+          "type": "number",
+          "description": "How far the tip stands off the midpoint of the span, in px, perpendicular to it. Positive is to the right of travel, the sign convention an edge's `bow` carries, so flipping a brace to the other side of what it spans is a minus sign. Default: `26`.\n\nA starting point rather than a fitted value: nothing measures what the brace spans. `0` draws a straight line, which is legal and is not a brace."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "curly",
+            "square"
+          ],
+          "description": "`'curly'` for a brace, four quarter-arcs and two runs meeting at a point; `'square'` for a bracket, four points and no curve in it. Default: `'curly'`."
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The lines of the label, one `<text>` each, in `theme.pen`. `lines` rather than one string, as an edge's `label` is: a brace over a column of rows is exactly where a second line wants to go.\n\nRequires `lx` and `ly`, and `draw` throws without them, in the words it uses for an edge label. Nothing places the text relative to the tip — this library never measures text, and a caller who chose `depth` knows where the tip is."
+        },
+        "lx": {
+          "type": "number",
+          "description": "Where the label sits. Both are required once `lines` is given."
+        },
+        "ly": {
+          "type": "number"
+        },
+        "anchor": {
+          "type": "string",
+          "enum": [
+            "start",
+            "middle",
+            "end"
+          ],
+          "description": "Which end of the label sits on `lx`. Default: `'start'`."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false,
+      "description": "A brace or a square bracket over a span, with an optional label.\n\nWhat a group does — bounding a set and naming it — for the two cases a rectangle cannot serve: sets that overlap, and a span that should be marked without enclosing what is inside it. Drawn in `theme.pen`, the same role a group's border and a group's title carry, so a reader who has learned what that blue means here has already learned what a brace is.\n\nNothing about it is inferred from what it happens to span. `from`, `to` and `depth` are the whole of its shape, in the caller's own coordinates."
     },
     "DiagramNote": {
       "type": "object",

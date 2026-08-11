@@ -56,16 +56,17 @@ const diagram = z
     {
       nodes: z.array(z.unknown()).optional(),
       edges: z.array(z.unknown()).optional(),
+      braces: z.array(z.unknown()).optional(),
       notes: z.array(z.unknown()).optional(),
     },
     refuses(
       'A diagram',
       'field',
-      'nodes, edges and notes; read pensketch://schema for the fields inside each',
+      'nodes, edges, braces and notes; read pensketch://schema for the fields inside each',
     ),
   )
   .describe(
-    'A diagram: nodes, edges and notes as plain data. Read the pensketch://schema resource for every field. Any other top-level key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry. Fields inside a node, an edge or a note are not checked here - pensketch://schema is what describes those.',
+    'A diagram: nodes, edges, braces and notes as plain data. Read the pensketch://schema resource for every field. Any other top-level key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry. Fields inside a node, an edge, a brace or a note are not checked here - pensketch://schema is what describes those.',
   );
 
 const viewBox = z

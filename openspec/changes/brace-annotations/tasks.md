@@ -66,23 +66,39 @@ better taken before a byte is written than discovered at a gate.
 
 ## 2. The data model
 
-- [ ] 2.1 `DiagramBrace` in `types.ts`, with the JSDoc the generated schema
+- [x] 2.1 `DiagramBrace` in `types.ts`, with the JSDoc the generated schema
       will carry as its descriptions
-- [ ] 2.2 `braces` on `Diagram`, between `nodes` and `notes`, with the JSDoc
+- [x] 2.2 `braces` on `Diagram`, between `nodes` and `notes`, with the JSDoc
       saying where it sits in the draw order and why
-- [ ] 2.3 `draw` renders the phase in array order, between the non-group nodes
+- [x] 2.3 `draw` renders the phase in array order, between the non-group nodes
       and the notes
-- [ ] 2.4 `lines` without numeric `lx`/`ly` throws, in the words `draw`
+- [x] 2.4 `lines` without numeric `lx`/`ly` throws, in the words `draw`
       already uses for an edge label
-- [ ] 2.5 `npm run schema` regenerates and gains `DiagramBrace`;
+- [x] 2.5 `npm run schema` regenerates and gains `DiagramBrace`;
       `generate-schema.mjs`'s required-key assertion learns `braces`
-- [ ] 2.6 The MCP tool's accepted shape gains `braces`. With
+- [x] 2.6 The MCP tool's accepted shape gains `braces`. With
       `strict-tool-input` in the tree, forgetting this is a loud failure
       rather than a silent one — confirm that by trying it before adding it
-- [ ] 2.7 Tests: a round trip through `JSON.parse(JSON.stringify())`, since
+- [x] 2.7 Tests: a round trip through `JSON.parse(JSON.stringify())`, since
       crossing that boundary is the whole point; and a diagram with no
       `braces` rendering byte-identically, asserted against the goldens
       through the parity test rather than by regenerating anything
+
+Gate: `npm run size`. **The phase costs +260 B on `./server`**, against the
++276 design.md D2 measured from its prototype, so the budget raised before the
+group was the right size and ends it with 146 B free. The root entry moves the
+same way, 3209 -> 3468, and the README figure with it. `./check` does not move
+at all: nothing in the checker reaches a brace yet, which is group 3.
+
+2.6 confirmed its own premise before satisfying it, which is what the task
+asked for. With `strict-tool-input` in the tree the tool boundary refuses
+`braces` by name, and the test holding the tool's top level to the schema's
+fails the moment the schema gains a field the tool has not been taught. Both
+were observed failing, then fixed. Two tests in `strict-tool-input`'s own suite
+used `braces` as their example of a key that does not exist — the right example
+at the time, and this change made it wrong. They name `legend` now, with the
+reason written beside them: the key an agent invents is whichever one the data
+model has not got yet, so that test has to keep naming one of those.
 
 ## 3. The checker sees it
 

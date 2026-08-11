@@ -41,7 +41,7 @@ try {
 if (schema.properties?.raw) {
   fail('`raw` reached the schema; it holds functions and cannot be JSON');
 }
-for (const required of ['nodes', 'edges', 'notes']) {
+for (const required of ['nodes', 'edges', 'braces', 'notes']) {
   if (!schema.properties?.[required]) fail(`the schema lost \`${required}\``);
 }
 

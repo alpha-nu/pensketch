@@ -386,6 +386,12 @@ export interface Diagram {
   nodes?: DiagramNode[];
   /** Arrows, drawn over the groups and under the shapes they connect. */
   edges?: DiagramEdge[];
+  /**
+   * Braces and brackets, drawn after the shapes and before the notes: over
+   * what they span, and under the annotation that explains them. The position
+   * is part of the rendered bytes, not an implementation detail.
+   */
+  braces?: DiagramBrace[];
   /** Annotations, drawn over everything but the raw callbacks. */
   notes?: DiagramNote[];
   /**

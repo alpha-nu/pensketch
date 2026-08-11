@@ -175,12 +175,15 @@ const BOX = [0, 0, 260, 100] as [number, number, number, number];
 // nothing in the reply said so, and a caller who cannot see the picture had
 // no way to find out.
 describe('the tool boundary refuses what it cannot carry', () => {
+  // `braces` until this change added it, which is the point rather than an
+  // inconvenience: the key an agent invents is whichever one the data model
+  // has not got yet, and this test has to keep naming one of those.
   it('names an unrecognised top-level key rather than dropping it', async () => {
     const text = await refusal('render_diagram', {
-      diagram: { nodes: [NODE], braces: [{ x: 0, y: 0 }] },
+      diagram: { nodes: [NODE], legend: [{ x: 0, y: 0 }] },
       viewBox: BOX,
     });
-    expect(text).toContain('"braces"');
+    expect(text).toContain('"legend"');
   });
 
   // The common case, and the one that used to render an empty picture and
@@ -198,7 +201,7 @@ describe('the tool boundary refuses what it cannot carry', () => {
   // should have used and where the rest are written down.
   it('tells the caller what to send instead, not only what was wrong', async () => {
     const text = await refusal('check_diagram', { diagram: { node: [NODE] } });
-    expect(text).toContain('It takes nodes, edges and notes');
+    expect(text).toContain('It takes nodes, edges, braces and notes');
     expect(text).toContain('pensketch://schema');
     // The echo it must not be: an argument dump would carry the node's own
     // fields along with the offending key.
@@ -221,10 +224,10 @@ describe('the tool boundary refuses what it cannot carry', () => {
   // reads like one unless somebody looks.
   it('reads as English when more than one key is refused', async () => {
     const text = await refusal('render_diagram', {
-      diagram: { nodes: [NODE], raw: [], braces: [] },
+      diagram: { nodes: [NODE], raw: [], legend: [] },
       viewBox: BOX,
     });
-    expect(text).toContain('A diagram has no fields "raw", "braces".');
+    expect(text).toContain('A diagram has no fields "raw", "legend".');
   });
 
   it('refuses `raw`, which the description says it does not accept', async () => {
