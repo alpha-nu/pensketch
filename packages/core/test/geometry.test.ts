@@ -443,8 +443,12 @@ describe('loopPoints', () => {
     // Reach and span are independent: here the loop is shallower than it is
     // tall, the opposite of the defaults, so a rule deriving one from the
     // other lands somewhere else entirely.
+    // The apex is the sample nearest the middle of the sweep, half an angular
+    // step off it, so it falls short of `out` by that much. Read off the count
+    // that came back rather than off `ARC_STEPS`: three rules decide it, and
+    // which of them won is not what this test is about.
     expect(Math.max(...points.map(([x]) => x - mid[0]))).toBeCloseTo(
-      out * Math.cos(Math.PI / ARC_STEPS),
+      out * Math.cos(Math.PI / (2 * (points.length - 1))),
     );
   });
 });

@@ -15,7 +15,12 @@ carries the same jitter, the same damped ends and the same pressure as a
 straight line. It SHALL NOT emit a Bézier or any other smooth path command.
 Sampling SHALL be no coarser than the segmentation a straight leg receives: at
 any radius, no chord of a sampled arc SHALL be longer than that segment
-length.
+length. It SHALL also be no finer than the pen's own hand: no chord SHALL be
+shorter than the finest the look already contains, because `pass` splits every
+chord again and jitters both ends of each piece, so a chord shorter than the
+jitter is drawn as a line doubling back on itself. Sampling finer than that
+buys nothing either — a chord departs its arc by less than the jitter moves the
+point anyway — so it is loss with no gain.
 
 #### Scenario: A curve wobbles like the rest of the picture
 - **WHEN** an arc and a straight line are drawn by the same pen at the same seed
@@ -24,6 +29,10 @@ length.
 #### Scenario: Sampling is dense enough to read as a curve
 - **WHEN** a half-circle is drawn at a typical loop size
 - **THEN** its sampled points are close enough together that the result reads as an arc rather than as a polygon
+
+#### Scenario: A small arc is not drawn finer than the jitter
+- **WHEN** an arc is drawn whose radius is small enough that a fixed angle per chord would produce chords of a few px — a brace's corner and a self-transition on a node-sized box are the cases that arise
+- **THEN** it is sampled more coarsely instead, so the drawn line reads as a hand rather than as noise, and the shape it loses is less than the jitter it keeps
 
 #### Scenario: A curve is never described more coarsely than a straight line
 - **WHEN** an arc is drawn whose radius is large enough that a fixed angle per chord would produce chords longer than the renderer's own segment length — a connector bowed shallowly across a wide diagram is the case that arises

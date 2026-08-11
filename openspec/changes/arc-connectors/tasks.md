@@ -26,6 +26,28 @@ nothing, and it should not wait behind a feature.
       belongs to this group because this group is what made it stale: the
       figure was exactly right until `arc` landed, and it is the only derived
       number here that nothing regenerates and nothing asserts
+- [x] 1.6 `ARC_MIN_CHORD`, the floor 1.1 did not think to look for. 1.1 chose
+      `ARC_STEPS` by rendering a half-circle and checking it did not read as a
+      polygon — the failure mode of too *few* samples — and never checked the
+      other end. `ARC_STEPS` counts a full turn and knows nothing of the
+      radius, so a quarter turn takes its share whether the radius is 13 px or
+      130, and `pass` then splits every chord again at `MIN_STEPS` and jitters
+      both ends by up to `AMP / 2`.
+
+      Measured on what reaches the markup, as gaps between drawn points against
+      the 2.6 px of jitter thrown across each: a straight leg 25 px, a rect 25,
+      a 150 x 50 pill 6.9, a self-transition at the defaults **3.0**, a brace's
+      corners **1.5** — with a shortest realised gap of **0.19 px**. The last
+      two are the shapes this release added and they were the only two outside
+      the band the reference's own primitives occupy. Rendered at five floors
+      from 8 to 22 px before choosing 12: below it the noise is still visible,
+      above it the loop starts to read as a polygon again.
+
+      12 is where `pill` already samples — a 150 x 50 pill walks chords of 5 to
+      14 px, and a circle of radius 50 walks 12.08 at `ARC_STEPS` — so a full
+      sweep at pill sizes passes through untouched and `arc` over a full turn
+      is still the sampling `pill` uses for the same box, which a test asserts.
+      No golden moves: the reference has no arc, and `pill` samples itself
 
 Gate: `npm test`, whose parity tests re-render both fixtures through the port
 and compare them byte for byte against the goldens. Not "goldens unchanged":

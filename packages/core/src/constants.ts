@@ -53,6 +53,30 @@ export const PILL_AMP = 1.4;
  * finely so that no leg of a curve is longer than a leg of a straight line.
  */
 export const ARC_STEPS = 26;
+/**
+ * The shortest chord an arc is ever cut into, in px.
+ *
+ * `SEG_LEN` is the ceiling on a curve's chord - no leg of a curve may be
+ * longer than a leg of a straight line. This is the floor, and it exists
+ * because `ARC_STEPS` counts a full turn and knows nothing of the radius: a
+ * quarter turn takes its share whether the radius is 13 px or 130, so a small
+ * arc is cut into chords a few px long. `pass` then splits every leg again at
+ * `MIN_STEPS`, and jitters both ends of each piece by up to `AMP / 2`. At a
+ * chord of 3 px that is a wobble two thirds the length of the line it is
+ * wobbling, and it reads as noise rather than as a hand.
+ *
+ * 12 because that is where `pill` already samples: a 150 x 50 pill walks
+ * chords of 5 to 14 px, median 13.8, and a circle of radius 50 walks 12.08 at
+ * `ARC_STEPS`. So this is the finest the look has ever contained, and a full
+ * sweep at pill sizes passes through it untouched - which is what keeps `arc`
+ * over a full turn the same sampling `pill` uses for the same box.
+ *
+ * Below the floor there is nothing to gain. A chord departs its arc by
+ * `r(1 - cos(theta / 2))`, which at these sizes is already under the px the
+ * jitter moves the point anyway: sampling finer corrects an error smaller than
+ * the hand drawing it.
+ */
+export const ARC_MIN_CHORD = 12;
 /** Distance in px between hatch lines. */
 export const HATCH_GAP = 11;
 /** Stroke width in px of a hatch line. */
@@ -166,6 +190,7 @@ export const constants = Object.freeze({
   PILL_JY,
   PILL_AMP,
   ARC_STEPS,
+  ARC_MIN_CHORD,
   HATCH_GAP,
   HATCH_W,
   HATCH_AMP,

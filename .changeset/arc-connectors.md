@@ -41,6 +41,17 @@ drawing a straight line.
 connector. Angles are radians, and it samples to a polyline like everything
 else: no curve command reaches the markup.
 
+A curve is sampled between two bounds now, not one. `SEG_LEN` was already the
+ceiling — no chord of an arc longer than a leg of a straight line — and
+`ARC_MIN_CHORD` is the floor: 12 px, which is where `pill` already samples.
+Without it, `ARC_STEPS` counted a full turn and knew nothing of the radius, so
+a quarter turn took its share at any size and a small arc came out in 3 px
+chords; `pass` then halved each and threw 2.6 px of jitter across both ends, and
+the drawn line doubled back on itself. Measured on the markup, a brace's corners
+drew gaps down to 0.19 px against a straight leg's 25 and a pill's 6.9. Every
+curve now sits inside the band the reference's own primitives occupy. A full
+sweep at pill sizes is unaffected, and no golden moves.
+
 `LOOP_OUT` and `LOOP_SPAN` are 30 and 40. They were briefly 60 and 24, read off
 the freehand loop the ATM example used to draw with `raw` — but a circular arc
 through the same two anchors is not that shape, and the pair drew a dart rather

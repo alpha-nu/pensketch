@@ -111,10 +111,12 @@ describe('bracePoints()', () => {
     const six = makeSvg();
     const p = pen(six, { seed: 3 });
     const points = bracePoints(SPAN);
-    // Cut anywhere: any split into separate strokes doubles the path count,
-    // and the shared point is drawn twice at two different jitters.
+    // Cut into six wherever the list happens to end, sharing a point at each
+    // seam: any split into separate strokes doubles the path count, and the
+    // shared point is drawn twice at two different jitters.
+    const cut = Math.floor((points.length - 1) / 6);
     for (let i = 0; i < 6; i++)
-      p.stroke(points.slice(i * 5, i * 5 + 6) as Point[]);
+      p.stroke(points.slice(i * cut, i * cut + cut + 1) as Point[]);
     expect(pathsOf(six)).toHaveLength(12);
   });
 });

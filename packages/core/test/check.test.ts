@@ -595,9 +595,11 @@ describe('out-of-bounds', () => {
   //
   // By hand: `a`'s right anchor is (480, 120), and the loop is the half
   // ellipse centred there with radii LOOP_OUT 30 across and LOOP_SPAN / 2 = 20
-  // along the side, cut into ARC_STEPS / 2 = 13 chords. Point i sits at
-  // (480 + 30 sin(PI i / 13), 120 - 20 cos(PI i / 13)); the first past x = 500
-  // is i = 4, at 480 + 30 * 0.82298 = 504.69 and 120 - 20 * 0.56807 = 108.64.
+  // along the side. Its longer radius is 30 and its sweep is PI, so it runs
+  // 30 PI = 94.2 px, and the chord floor allows 94.2 / ARC_MIN_CHORD = 7
+  // chords where the angle rule would have asked for 13. Point i sits at
+  // (480 + 30 sin(PI i / 7), 120 - 20 cos(PI i / 7)); the first past x = 500
+  // is i = 2, at 480 + 30 * 0.78183 = 503.45 and 120 - 20 * 0.62349 = 107.53.
   it('reports a loop that leaves the frame off a node wholly inside it', () => {
     const findings = check(wired([box('a', 380, 100)], [selfEdge]), {
       viewBox: VIEW_BOX,
@@ -608,11 +610,11 @@ describe('out-of-bounds', () => {
     // back inside the frame whose escape it is reporting - 500.4 in a 500-wide
     // frame becomes 500, which `outside` then says is fine.
     expect(findings[0]).toMatchObject({
-      at: [expect.closeTo(504.6895), expect.closeTo(108.6387)],
+      at: [expect.closeTo(503.4549), expect.closeTo(107.5302)],
       severity: 'error',
       subjects: ['edge 0'],
       message:
-        'edge 0 reaches outside the viewBox at (505, 109), so part of it is clipped away',
+        'edge 0 reaches outside the viewBox at (503, 108), so part of it is clipped away',
     });
   });
 

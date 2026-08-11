@@ -6,10 +6,12 @@ import type {
   StrokeOptions,
 } from '../src/index';
 import { constants, defaultTheme, mulberry32, pen } from '../src/index';
+import { arcPoints } from '../src/sample';
 import { makeSvg, nth, pathsOf, pointsOf, tagsOf, textsOf } from './helpers';
 
 const {
   AMP,
+  ARC_MIN_CHORD,
   ARC_STEPS,
   DASH,
   END_DAMP,
@@ -305,16 +307,10 @@ describe('arc()', () => {
     const ry = 30;
     const from = 0.3;
     const to = 2.4;
-    const sweep = to - from;
-    const steps = Math.max(
-      MIN_STEPS,
-      Math.round((ARC_STEPS * Math.abs(sweep)) / (2 * Math.PI)),
-    );
-    const pts: Point[] = [];
-    for (let i = 0; i <= steps; i++) {
-      const a = from + sweep * (i / steps);
-      pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
-    }
+    // From the sampler, not from a copy of two of its three rules. This test
+    // is about what `arc` does with the points and with its options; which
+    // points they are is pinned below, by the tests that name each rule.
+    const pts: Point[] = arcPoints(cx, cy, rx, ry, from, to);
 
     // Options no default would produce, handed to both: arc's seventh
     // argument is forwarded or it is not, and nothing else would notice.
@@ -345,8 +341,11 @@ describe('arc()', () => {
     // Off the diagonal on purpose. With cx === cy an implementation that
     // swapped the two would place every point correctly, and the centre would
     // be tested by nothing in this file.
+    // Radius 60, where the angle rule alone decides: below about 50 the chord
+    // floor takes over and above about 108 the SEG_LEN ceiling does, and this
+    // test is about the rule between them.
     const svg = makeSvg();
-    pen(svg).arc(50, 90, 40, 40, 0, Math.PI);
+    pen(svg).arc(50, 90, 60, 60, 0, Math.PI);
 
     const paths = pathsOf(svg);
     expect(paths).toHaveLength(2);
@@ -360,7 +359,7 @@ describe('arc()', () => {
     // partial arc is the density of a whole one.
     const chords = ARC_STEPS / 2;
     const points = pointsOf(first);
-    // Every chord of a half circle of radius 40 is shorter than SEG_LEN, so
+    // Every chord of a half circle of radius 60 is shorter than SEG_LEN, so
     // each one is the MIN_STEPS floor: the vertices are the even indices.
     expect(points).toHaveLength(chords * MIN_STEPS + 1);
 
@@ -372,7 +371,7 @@ describe('arc()', () => {
       // adds no radius jitter of its own the way pill does.
       expectNear(
         nth(points, i * MIN_STEPS),
-        [50 + 40 * Math.cos(a), 90 + 40 * Math.sin(a)],
+        [50 + 60 * Math.cos(a), 90 + 60 * Math.sin(a)],
         i === 0 ? spread(AMP) : damped(AMP),
       );
     }
@@ -451,6 +450,33 @@ describe('arc()', () => {
         i === 0 ? spread(AMP) : damped(AMP),
       );
     }
+  });
+
+  // The mirror of the rule below, and the one that keeps a small arc from
+  // being drawn finer than the hand drawing it. `ARC_STEPS` counts a full turn
+  // and knows nothing of the radius, so a quarter turn takes its share at any
+  // size: at radius 13 that is a 3 px chord, which `pass` halves again and
+  // jitters 2.6 px across. Measured on the markup before this bound existed, a
+  // brace's corners drew gaps down to 0.19 px.
+  it('stops short of the angle rule rather than draw finer than the jitter', () => {
+    const svg = makeSvg();
+    // A brace's corner: a quarter turn at BRACE_R, where the angle rule alone
+    // asks for seven chords across 20 px of arc.
+    pen(svg).arc(0, 0, 13, 13, Math.PI, Math.PI / 2);
+    const points = pointsOf(nth(pathsOf(svg), 0));
+
+    const run = 13 * (Math.PI / 2);
+    expect(Math.round((ARC_STEPS * (Math.PI / 2)) / (2 * Math.PI))).toBe(7);
+    // Two, because the floor would allow one and MIN_STEPS never goes below
+    // two: a degenerate arc is still a pair of chords.
+    expect(Math.floor(run / ARC_MIN_CHORD)).toBe(1);
+    expect(points).toHaveLength(MIN_STEPS * MIN_STEPS + 1);
+
+    // And the shape survives it. A chord departs its arc by r(1 - cos(t / 2)),
+    // which here is 13 * (1 - cos(22.5 degrees)) = 0.99 px - under the 1.3 the
+    // jitter moves the point anyway, so there was nothing to buy by sampling
+    // finer and a scribble to pay for it.
+    expect(13 * (1 - Math.cos(Math.PI / 8))).toBeLessThan(AMP / 2);
   });
 
   it('samples past the angle rule rather than let a chord outrun SEG_LEN', () => {

@@ -79,6 +79,7 @@ describe('constants', () => {
       PILL_JY: 2,
       PILL_AMP: 1.4,
       ARC_STEPS: 26,
+      ARC_MIN_CHORD: 12,
       HATCH_GAP: 11,
       HATCH_W: 1,
       HATCH_AMP: 1.2,

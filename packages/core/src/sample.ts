@@ -1,4 +1,5 @@
 import {
+  ARC_MIN_CHORD,
   ARC_STEPS,
   BRACE_DEPTH,
   BRACE_R,
@@ -18,16 +19,25 @@ import type { DiagramBrace, Point, Side } from './types';
  * An elliptical arc as points, swept from angle `from` to angle `to` in
  * radians, the sign of the difference giving the direction.
  *
- * The count is whichever of two rules is denser. `ARC_STEPS` counts a full
- * turn, so a partial sweep takes its share and density does not change with
- * the angle asked for; then no chord may run longer than `SEG_LEN`, which is
- * the rule `pass` already applies to every straight leg.
+ * The count is whichever of two rules is denser, bounded by a third that says
+ * when denser stops being better. `ARC_STEPS` counts a full turn, so a partial
+ * sweep takes its share and density does not change with the angle asked for;
+ * then no chord may run longer than `SEG_LEN`, which is the rule `pass`
+ * already applies to every straight leg.
  *
- * The second rule is what keeps a shallow sweep at a large radius from being
+ * That second rule is what keeps a shallow sweep at a large radius from being
  * described more coarsely than a straight line drawn beside it. The angle
  * rule alone turns a 400 px connector bowed 30 px into two chords, because
  * the sweep is only 34 degrees - and two chords across that span depart from
  * the true arc by 7.5 px, where the pen's own jitter moves a point by 1.3.
+ *
+ * The third is `ARC_MIN_CHORD`, and it fixes the mirror-image fault: the angle
+ * rule knows the sweep and not the radius, so a quarter turn takes a quarter
+ * of `ARC_STEPS` whether the radius is 13 px or 130. At 13 that is a 3 px
+ * chord, which `pass` halves and jitters 2.6 px across, and the drawn line
+ * doubles back on itself. Measured on what reaches the markup: a brace's
+ * corners drew gaps down to 0.19 px before this bound existed, against a
+ * straight leg's 25 and a pill's 6.9.
  */
 export function arcPoints(
   cx: number,
@@ -38,13 +48,25 @@ export function arcPoints(
   to: number,
 ): Point[] {
   const sweep = to - from;
-  const steps = Math.max(
-    MIN_STEPS,
-    Math.round((ARC_STEPS * Math.abs(sweep)) / (2 * Math.PI)),
-    // An ellipse travels fastest at the end of its shorter radius, because
-    // that is where the longer one carries the whole of the movement, so the
-    // longer radius bounds every chord.
-    Math.ceil((Math.max(rx, ry) * Math.abs(sweep)) / SEG_LEN),
+  // An ellipse travels fastest at the end of its shorter radius, because that
+  // is where the longer one carries the whole of the movement, so the longer
+  // radius bounds every chord - in the ceiling below and in the floor after it,
+  // which is what lets the two be compared at all.
+  const run = Math.max(rx, ry) * Math.abs(sweep);
+  const steps = Math.min(
+    Math.max(
+      MIN_STEPS,
+      Math.round((ARC_STEPS * Math.abs(sweep)) / (2 * Math.PI)),
+      Math.ceil(run / SEG_LEN),
+    ),
+    // And no finer than `ARC_MIN_CHORD`, because `ARC_STEPS` counts a full turn
+    // and knows nothing of the radius: a quarter turn takes its share whether
+    // the radius is 13 px or 130. `pass` splits every chord again at
+    // `MIN_STEPS` and jitters both ends by up to `AMP / 2`, so a 3 px chord is
+    // drawn as two 1.5 px legs with a 2.6 px wobble across each - which is not
+    // a hand, it is noise. The floor never overrides `MIN_STEPS`: a degenerate
+    // arc is still two chords.
+    Math.max(MIN_STEPS, Math.floor(run / ARC_MIN_CHORD)),
   );
   // A radius or an angle that is not a finite number makes `steps` one too,
   // and the loop below would then allocate points until the heap gives out.
