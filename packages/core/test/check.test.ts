@@ -457,13 +457,15 @@ describe('label-collision', () => {
     expect(findings[0]?.message).toContain('lies under edge 1');
   });
 
-  // The regression this rule exists for. The OAuth example shipped with its
-  // step labels 9px above the cross-lane connectors, and all three were drawn
-  // through - found by rendering it to a PNG and looking, which is exactly
-  // what a caller generating diagrams cannot do. The coordinates below are
-  // that layout: the connectors are the ones the example still has, with the
-  // labels back where they were before they were moved into the boxes.
-  it('finds all three struck labels the OAuth example shipped with', () => {
+  // The regression this rule exists for. The React example was an OAuth flow
+  // in four lanes at the time, and it shipped with its step labels 9px above
+  // the cross-lane connectors; all three were drawn through - found by
+  // rendering it to a PNG and looking, which is exactly what a caller
+  // generating diagrams cannot do. That example has since been replaced, so
+  // the coordinates below are the only surviving copy of the layout: the
+  // connectors as it drew them, with the labels back where they were before
+  // they were moved into the boxes.
+  it('finds all three struck labels a four-lane example shipped with', () => {
     const lane = (id: string, x: number) => ({
       id,
       shape: 'group' as const,

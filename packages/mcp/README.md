@@ -52,7 +52,7 @@ below for why the picture cannot.
 |---|---|
 | `pensketch://spec` | The whole type surface, the constants worth designing around, every error the renderer throws, and the traps a type system cannot express. Read this first. |
 | `pensketch://schema` | JSON Schema for a diagram, generated from the TypeScript types. |
-| `pensketch://example/{pipeline,lifecycle,oauth,atm}` | Four complete diagrams with real coordinates — a CI pipeline, an order lifecycle, an OAuth flow, an ATM state machine. All four are whole pictures: none of them draws with `raw` any more, so none carries the `rawOmitted` line that says which stroke a served copy is missing. One that did would. |
+| `pensketch://example/{pipeline,lifecycle,incident,atm}` | Four complete diagrams with real coordinates — a CI pipeline, an order lifecycle, an incident at the stage it has reached, an ATM state machine. All four are whole pictures: none of them draws with `raw` any more, so none carries the `rawOmitted` line that says which stroke a served copy is missing. One that did would. |
 | `pensketch://constants` | Every aesthetic constant and its value, read from the installed renderer. |
 
 Each mirrors a file that exists in the repository for another reason, and a

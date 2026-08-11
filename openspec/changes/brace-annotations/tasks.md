@@ -183,9 +183,11 @@ visibly a different shape, so a reader sees the difference rather than reading
 about it.
 
 Neither is in the state machine, which already carries this release's other two
-shapes and would have become a gallery. Nothing went into the OAuth example:
-its four lanes leave no clear column, and a brace crossing a connector to reach
-one would have been a shape the picture did not want.
+shapes and would have become a gallery. Nothing went into the React example
+either: it drew an OAuth flow in four lanes at the time, which leave no clear
+column, and a brace crossing a connector to reach one would have been a shape
+the picture did not want. That example has since been replaced by one whose
+span grows, and it carries a bracket.
 
 The hero lost its note. "same seed, same bytes" was a claim about every stroke
 in the drawing with a pointer aiming it at one box, and a brace over the whole

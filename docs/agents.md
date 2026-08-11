@@ -37,13 +37,18 @@ handwriting stack: mean 0.462, max 0.515. 0.55 over-states slightly, which is
 the safe direction. All-capitals text runs near 0.99 and will overflow sooner
 than the estimate suggests.
 
+`size` shrinks the text and never the box, so it answers one question only: a
+label `check` reports as `text-overflow` that cannot be shortened or given a
+wider box. Leave it at the default until the checker names a node, then set it
+on the node it named.
+
 **3. A label sitting near a connector will be drawn through.** Labels are
 positioned by hand via `lx`/`ly`, and **`ly` is the text's vertical centre**,
 not its baseline. The drawn line also wanders from the ideal path by up to
 `AMP / 2` = 1.3 px, and the stroke is 1.6 px wide. So a 13.5 px label needs
 its centre roughly **13 px** clear of any segment. Nine is not enough — that
-mistake shipped in this repository's own OAuth example and put lines through
-three labels.
+mistake shipped in this repository's own examples and put lines through three
+labels.
 
 When space is tight, put the text in the box instead of beside the arrow.
 
@@ -216,48 +221,66 @@ as though it were empty.
 
 ## A complete example
 
-Four lanes, seven steps — an OAuth authorization code flow. Note the numbered
-steps live *in* the boxes: a cross-lane connector sits in the 34 px gap
-between one row and the next, which leaves 17 px above it — not enough for a
-13.5 px label plus the clearance rule 3 asks for.
+An incident, drawn at the stage it has reached — five stages in a row, a
+self-transition at the defaults, a reverse bowed clear of the two box outlines
+it would otherwise be drawn along, and a bracket over the span customers can
+see.
+It is the whole of what [`examples/react/`](../examples/react/) draws, at one
+of the five stages its control can put it in; the page around it computes the
+`accent`, the `dotted` flags and the bracket's right-hand end from where the
+incident has got to, and nothing else.
 
-**`size` here is not a habit to copy.** The full diagram this is taken from
-has a seventh step labelled `7. call with bearer`, which at the default 13.5
-estimates 141 px inside 139 px of box — `check` reports it as `text-overflow`.
-The rest carry `size: 12` only so one row of boxes does not draw its labels at
-two different sizes. Leave `size` alone until the checker names a node, then
-set it on what it named.
+Here `dotted` marks what has not happened — the two steps still ahead, and the
+escalation and the failed fix, which are drawn at every stage because they are
+always possible. Nothing in the renderer attaches that meaning to it; a
+diagram decides for itself what its dashes are for, and this one says so out
+loud in the file it lives in.
 
 ```js
-const OAUTH = {
+const incident = {
   nodes: [
-    { id: 'lb', shape: 'group', x: 20,  y: 20, w: 195, h: 350, lines: ['browser'] },
-    { id: 'la', shape: 'group', x: 235, y: 20, w: 185, h: 350, lines: ['your app'] },
-    { id: 'ls', shape: 'group', x: 440, y: 20, w: 185, h: 350, lines: ['auth server'] },
-
-    // size: 12 — see above. None of these four needs it; consistency with a
-    // step not shown here is the whole reason it is on them.
-    { id: 's1', shape: 'box', x: 40,  y: 60,  w: 155, h: 46, lines: ['1. click sign in'],   size: 12 },
-    { id: 's2', shape: 'box', x: 250, y: 60,  w: 155, h: 46, lines: ['2. redirect + PKCE'], size: 12 },
-    { id: 's3', shape: 'box', x: 455, y: 140, w: 155, h: 46, lines: ['3. login + consent'], size: 12 },
-    { id: 's4', shape: 'box', x: 40,  y: 220, w: 155, h: 46, lines: ['4. code comes back'], size: 12 },
+    { id: 'paged',    shape: 'pill', x: 40,  y: 130, w: 150, h: 46, lines: ['paged'] },
+    { id: 'triage',   shape: 'box',  x: 230, y: 130, w: 150, h: 46, lines: ['triage'] },
+    { id: 'mitigate', shape: 'box',  x: 420, y: 130, w: 150, h: 46, lines: ['mitigate'], accent: true },
+    { id: 'verify',   shape: 'box',  x: 610, y: 130, w: 150, h: 46, lines: ['verify'] },
+    { id: 'clear',    shape: 'pill', x: 800, y: 130, w: 150, h: 46, lines: ['all clear'] },
   ],
   edges: [
-    { from: ['s1', 'r'], to: ['s2', 'l'] },
-    // out of one lane, across the gap, into the next — corners given, never inferred
-    { from: ['s2', 'b'], to: ['s3', 't'], via: [[327, 123], [532, 123]] },
-    { from: ['s3', 'b'], to: ['s4', 't'], via: [[532, 203], [117, 203]] },
+    { from: ['paged', 'r'],    to: ['triage', 'l'] },
+    { from: ['triage', 'r'],   to: ['mitigate', 'l'] },
+    { from: ['mitigate', 'r'], to: ['verify', 'l'], dotted: true },
+    { from: ['verify', 'r'],   to: ['clear', 'l'],  dotted: true },
+
+    // a self-transition: the same node and the same side named twice. span 40
+    // puts both anchors well inside the 150 px side it hangs off, and out 30
+    // projects into empty space below the row
+    { from: ['triage', 'b'], to: ['triage', 'b'],
+      dotted: true, label: 'escalate', lx: 305, ly: 224 },
+
+    // the way back when the fix did not hold. Both anchors sit at y 176,
+    // which is the line the two boxes' own bottom edges are drawn on, so
+    // straight this arrow vanishes into them. No rule compares an edge with a
+    // node's outline: with the bow taken off, `check` finds no fault at all
+    { from: ['verify', 'b'], to: ['mitigate', 'b'], bow: -18,
+      dotted: true, label: 'still broken', lx: 590, ly: 210 },
   ],
-  notes: [
-    { x: 742, y: 150, anchor: 'middle', lines: ['the API only ever', 'sees a bearer token'] },
+  braces: [
+    // A bracket, not a brace, because this span runs from 150 px to 720 as the
+    // incident does: a curly brace turns its corners at one fixed radius and
+    // its tip at another, so widening one grows nothing but the two straight
+    // runs between them, and a wide one reads as an underline with a bump.
+    // Three straight lines look the same at any width.
+    { from: [40, 112], to: [570, 112], depth: -20, kind: 'square',
+      lines: ['customers', 'affected'], lx: 305, ly: 62, anchor: 'middle' },
   ],
 };
 ```
 
-Three more, complete and runnable, in [`examples/`](../examples/): a CI
-pipeline (`vanilla/`), an order lifecycle whose retry is a self-transition
-(`custom-pen/`), and an ATM with a self-transition at the defaults and a
-transition and its reverse bowed apart (`state-machine/`).
+Drawn into `viewBox="0 0 990 270"`. Three more, complete and runnable, in
+[`examples/`](../examples/): a CI pipeline (`vanilla/`), an order lifecycle
+whose retry is a self-transition (`custom-pen/`), and an ATM with a
+self-transition at the defaults and a transition and its reverse bowed apart
+(`state-machine/`).
 
 ## Checking your work
 
@@ -307,8 +330,11 @@ the place to look. Anything resting on the width estimate carries
 `estimated: true`.
 
 What it does not know about: group borders and note arrows are neither edges
-nor braces, so a label lying across one of those is not reported. `raw` is
-invisible to it.
+nor braces, so a label lying across one of those is not reported. No rule
+compares an edge with a node's outline either, so an arrow drawn straight
+through a box, or along the edge of one, is not reported at all — the worked
+example above carries a `bow` for exactly that reason and `check` is silent
+without it. `raw` is invisible to it.
 And it never moves anything — there is no autolayout here either.
 
 ## Theming

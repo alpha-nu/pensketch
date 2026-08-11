@@ -303,7 +303,7 @@ root provides.
 | `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, a dotted edge back to the start, and a brace marking two deploys as one build promoted. | `npx serve .`, then open `/examples/vanilla/` |
 | `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, a retry that stays where it is — a self-transition sized by `out` and `span` — and a square bracket over the states the money has moved for, plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
 | `examples/state-machine/` | **An ATM.** A decision that splits the flow, a dotted retry routed back down the left margin, a keypad loop at the default size, and a transition and its reverse bowed apart rather than drawn on one line. | `npx serve .`, then open `/examples/state-machine/` |
-| `examples/react/` | **The OAuth 2.0 authorization code flow.** Four lanes, seven steps, and a seed control: same data, a different drawing of it, on demand. | `cd examples/react && npm install && npm run dev` |
+| `examples/react/` | **An incident, stepped through.** Five stages in a row, with the accented node, the arrows already taken and the reach of the bracket over them all derived from React state — plus a seed control: the stage changes the data, the seed changes which drawing of it you get. | `cd examples/react && npm install && npm run dev` |
 
 ## Generating diagrams programmatically
 

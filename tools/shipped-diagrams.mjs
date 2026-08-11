@@ -61,25 +61,36 @@ const fromHtml = async (file) => {
   }));
 };
 
+// Which stage the served copy of the React example is drawn at. The middle
+// one, where all three of the things the stage decides are visible at once:
+// an accented node with arrows both taken and untaken either side of it, and
+// a bracket part way to the width it finishes at.
+const SERVED_STAGE = 2;
+
+// The React example draws a diagram computed from application state, so there
+// is no single object to import - and no stage that stands for the rest.
+// Every one of them is loaded, so every one of them is checked: a picture
+// correct only at stage 3 is a picture this repository would ship broken four
+// times out of five. Only one carries a `key`, and that one is served as a
+// resource; the rest carry a name and nothing else, because a name is for a
+// report and a key is for a URI.
+//
+// The frame comes from the module too, rather than out of `App.tsx` by
+// regular expression: the page and the checker read the same export.
 const fromReact = async () => {
-  const { code } = await transform(read('examples/react/src/oauth.ts'), {
+  const { code } = await transform(read('examples/react/src/incident.ts'), {
     loader: 'ts',
   });
-  const { OAUTH } = await import(
+  const { STAGES, VIEW_BOX, incident } = await import(
     `data:text/javascript,${encodeURIComponent(code)}`
   );
-  return [
-    {
-      key: 'oauth',
-      name: 'examples/react/src/oauth.ts',
-      diagram: OAUTH,
-      viewBox: read('examples/react/src/App.tsx')
-        .match(/viewBox="([^"]+)"/)?.[1]
-        ?.trim()
-        .split(/\s+/)
-        .map(Number),
-    },
-  ];
+  const viewBox = VIEW_BOX.trim().split(/\s+/).map(Number);
+  return STAGES.map((label, i) => ({
+    ...(i === SERVED_STAGE ? { key: 'incident' } : {}),
+    name: `examples/react/src/incident.ts at "${label}"`,
+    diagram: incident(i),
+    viewBox,
+  }));
 };
 
 /** Every shipped diagram, with the frame it is drawn into. */

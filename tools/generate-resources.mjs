@@ -17,7 +17,7 @@ const root = new URL('../', import.meta.url);
 const out = new URL('packages/mcp/src/resources.generated.ts', root);
 const read = (file) => readFileSync(new URL(file, root), 'utf8');
 
-const KEYS = new Set(['pipeline', 'lifecycle', 'oauth', 'atm']);
+const KEYS = new Set(['pipeline', 'lifecycle', 'incident', 'atm']);
 
 const examples = (await shippedDiagrams()).filter(({ key }) => KEYS.has(key));
 if (examples.length !== KEYS.size) {
@@ -30,7 +30,8 @@ if (examples.length !== KEYS.size) {
 const TITLES = {
   pipeline: 'A continuous integration pipeline',
   lifecycle: 'An order lifecycle, with a self-transition on payment pending',
-  oauth: 'The OAuth 2.0 authorization code flow, in four lanes',
+  incident:
+    'An incident at the stage it has reached, with a bracket over the span customers can see',
   atm: 'An ATM as a state machine, with a self-transition and a bowed pair',
 };
 

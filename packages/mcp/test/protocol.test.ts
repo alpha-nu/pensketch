@@ -110,8 +110,8 @@ describe('a client talking to the server', () => {
     expect(resources.map((r) => r.uri).sort()).toEqual([
       'pensketch://constants',
       'pensketch://example/atm',
+      'pensketch://example/incident',
       'pensketch://example/lifecycle',
-      'pensketch://example/oauth',
       'pensketch://example/pipeline',
       'pensketch://schema',
       'pensketch://spec',

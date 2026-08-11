@@ -21,7 +21,10 @@ function sketch(p: Pen) {
   p.label(
     20,
     54,
-    ['the same data every time;', 'the seed picks which drawing of it you get'],
+    [
+      'the stage changes the data;',
+      'the seed picks which drawing of it you get',
+    ],
     { size: 13, anchor: 'start', color: MUTED },
   );
 }
