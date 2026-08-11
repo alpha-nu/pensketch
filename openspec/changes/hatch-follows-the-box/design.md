@@ -98,3 +98,124 @@ A fourth was considered and rejected before measuring: insetting the outline
 properly rather than insetting the box. Offsetting a polygon inward is a
 harder problem than clipping to one, and it would not help the diamond, whose
 error is the corners rather than the inset.
+
+## D4. The prototype, as it was measured
+
+The prototype was written into the tree, built, measured, rendered, and then
+reverted with `git checkout -- .` — so the artifact behind D2's table no longer
+exists anywhere. What follows is that artifact, recorded here for the same
+reason `arc-connectors` recorded its brace geometry: a table of byte counts is
+only as good as the code that produced it, and a paraphrase is not that code.
+
+An independent implementation written from D2's prose alone, without sight of
+this listing, landed at +185/+186 and +263/+260 against the +190/+193 and
++251/+250 below. That is the useful measure of how much the prose carries: it
+reproduces the **conclusion** — 25-odd lines, a quarter of a kilobyte, does not
+fit — and not the numbers.
+
+The listing below was reapplied to a clean tree and remeasured, so that it is
+the artifact rather than a description of one: core **3748**, `./check`
+**3006**, `./server` **3769**, 346 tests green. That is D2's second row.
+
+**`sample.ts`** — the outline, reusing the sampler the arc already needs:
+
+```ts
+export function outlinePoints(
+  shape: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): Point[] {
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  if (shape === 'pill') return arcPoints(cx, cy, w / 2, h / 2, 0, 2 * Math.PI);
+  if (shape === 'diamond')
+    return [[cx, y], [x + w, cy], [cx, y + h], [x, cy], [cx, y]];
+  return [[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]];
+}
+```
+
+**`pen.ts`** — the keep-both variant, which is the one the table's second row
+measures. The `box` arm is the shipped closed form, untouched, and it returns
+before the scanline so parity cannot move:
+
+```ts
+function hatch(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string = theme.ink,
+  shape = 'box',
+) {
+  if (shape === 'box') {
+    for (let i = -h; i < w; i += HATCH_GAP)
+      stroke(
+        [
+          [Math.max(x, x + i), i < 0 ? y - i : y],
+          [Math.min(x + w, x + i + h), i + h > w ? y + (w - i) : y + h],
+        ],
+        { color, width: HATCH_W, amplitude: HATCH_AMP },
+      );
+    return;
+  }
+  const pts = outlinePoints(shape, x, y, w, h);
+  for (let c = x - y - h; c < x + w - y; c += HATCH_GAP) {
+    const hits: number[] = [];
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1] as Point;
+      const b = pts[i] as Point;
+      const d = b[0] - a[0] - (b[1] - a[1]);
+      const t = (c - a[0] + a[1]) / d;
+      if (d && t >= 0 && t < 1) hits.push(a[1] + t * (b[1] - a[1]));
+    }
+    hits.sort((p, q) => p - q);
+    for (let i = 0; i + 1 < hits.length; i += 2) {
+      const p0 = hits[i] as number;
+      const p1 = hits[i + 1] as number;
+      stroke(
+        [
+          [c + p0, p0],
+          [c + p1, p1],
+        ],
+        { color, width: HATCH_W, amplitude: HATCH_AMP },
+      );
+    }
+  }
+}
+```
+
+Delete the `box` arm and its `return` and you have the first row of the table:
+smaller by about 60 B, and two failed goldens.
+
+Three details a paraphrase loses, each of which is a bug if it is rederived
+wrongly:
+
+- **A hit is parameterised by `y`, not by a point.** On a 45° line `x = y + c`,
+  so one number identifies the crossing and the endpoint is `[c + y, y]`. There
+  is no second solve and no second sort key.
+- **`t >= 0 && t < 1` is half-open on purpose.** A crossing that lands exactly
+  on a vertex belongs to one of the two edges that meet there, not both.
+  Closing the interval double-counts every vertex, which pairs the crossings up
+  wrongly and leaves alternating gaps — the diamond's four corners are all
+  vertices, so it fails there first.
+- **`if (d && …)` guards an edge parallel to the hatch.** Such an edge has no
+  single crossing to report, and without the guard `t` is `±Infinity` or `NaN`
+  and survives the comparison in some orderings.
+
+**`draw.ts`** passes the shape through, and **`types.ts`** widens `Pen.hatch`
+by one optional argument:
+
+```ts
+p.hatch(n.x + HATCH_INSET, n.y + HATCH_INSET, n.w - HATCH_INSET * 2, n.h - HATCH_INSET * 2, theme.pen, n.shape);
+
+hatch(x: number, y: number, w: number, h: number, color?: string, shape?: string): void;
+```
+
+That signature is why the measurement is of *this* design and not of the
+alternative: adding a separate `Pen` member instead — `hatchIn(points, color)`
+— costs a name on a closed public surface, and `api.test.ts` holds `Pen` to an
+exact member list, so it is a change to a requirement rather than to a
+function. The optional sixth argument keeps `pen.hatch(x, y, w, h)` drawing
+exactly what it draws today.
