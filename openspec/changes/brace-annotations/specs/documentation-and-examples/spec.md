@@ -57,6 +57,30 @@ project publishes a rule against.
 - **WHEN** an example folder is added
 - **THEN** its diagram is checked by `npm run diagrams`, and adding it without wiring it into `tools/shipped-diagrams.mjs` leaves it unchecked, which the folder count in this requirement exists to catch
 
+### Requirement: README hero images are generated, deterministic, and committed
+`tools/render-assets.mjs` SHALL render its own hero diagram at 2× to
+`docs/assets/hero-light.png` (background `#FFFFFF`) and, under emulated
+dark `prefers-color-scheme`, `hero-dark.png` (background `#161B21`), with
+corner pixels verified against the background; the PNGs SHALL be committed
+and reproducible from the same repo state.
+
+The hero is the first drawing anyone sees, and a reader who meets the project
+there SHALL meet what it can draw. A release that adds a connector or
+annotation shape to the data model SHALL read the hero again against it and
+draw the shape where the picture is better for it. The hero is a picture
+first: a shape appears because the drawing wanted it, never so that every
+field is on display. Where the picture is better without a shape, that
+judgement SHALL be recorded, so an absence reads as a decision rather than as
+an oversight.
+
+#### Scenario: Regeneration is a no-op on an unchanged repo
+- **WHEN** the asset script re-runs with no source changes
+- **THEN** the committed PNGs are unchanged
+
+#### Scenario: The hero draws what the package can draw
+- **WHEN** a release adds a connector or annotation shape to the data model
+- **THEN** the hero draws it, or the change records why the picture is better without it
+
 ### Requirement: A reference for callers who cannot see the result
 The repository SHALL carry documentation addressed to a program generating
 diagrams rather than to a person — `docs/agents.md` — covering the whole type

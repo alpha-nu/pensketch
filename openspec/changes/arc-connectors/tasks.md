@@ -232,6 +232,16 @@ the picture needs it, never a picture built around a shape.
       which no example can reach
 - [ ] 6.7 A changeset naming the minor, and saying plainly that a documented
       impossibility is now possible
+- [ ] 6.8 The README hero shows none of this either, and it is the first
+      drawing anyone sees. Its pass is written into `brace-annotations` 4.7
+      rather than performed here, so that one render carries both changes'
+      shapes: the release is batched and no version ships between the two, the
+      PNGs are binary and a second pass is a second pair of blobs for a picture
+      nobody saw in between, and placing an arc without knowing where the brace
+      goes is a composition made blind. This task is that obligation being
+      recorded and the requirement being written, and nothing more — the hero
+      requirement is modified in `brace-annotations`' delta, where the work
+      lands
 
 ## 7. Release
 

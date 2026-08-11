@@ -96,6 +96,26 @@ the entry with the least headroom.
       would have drawn it, does its text sit clear of the tip, does the
       picture look like someone meant it. `depth` is the caller's number, so
       the default being reasonable is a claim only a drawing can settle
+- [ ] 4.7 The README hero is read again and redrawn, carrying **both** this
+      change's shapes and `arc-connectors`': a curved connector and a brace or
+      a bracket, wherever the picture is better for them. It is the first
+      drawing anyone sees and it currently shows none of what the two changes
+      added, so a reader meets a version of the project that is a release
+      behind. One pass rather than two, here rather than in `arc-connectors`
+      group 6, for three reasons: the release is batched, so no version ships
+      with the hero half-evolved either way; the PNGs are binary and a second
+      pass is a second pair of blobs in the history for a picture nobody saw
+      in between; and composition is a whole-picture judgement — an arc placed
+      without knowing where the brace goes is a placement made blind. The hero
+      is a picture first. A shape that the drawing does not want does not go
+      in, and if one is left out, 4.8 records why
+- [ ] 4.8 `node tools/render-assets.mjs` — both PNGs, then `npm run diagrams`,
+      which runs the checker over the hero like any other shipped diagram. The
+      render needs a local Google Chrome and is deliberately never run in CI,
+      so an unregenerated PNG is caught by nothing: the image and
+      `tools/hero-diagram.mjs` move in the same commit or they part company.
+      The commit body carries the before and after, and any shape 4.7 decided
+      against
 
 ## 5. Release
 
