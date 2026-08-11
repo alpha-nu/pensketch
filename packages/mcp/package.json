@@ -1,6 +1,6 @@
 {
   "name": "@pensketch/mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "An MCP server for pensketch: check, render and rasterise hand-sketched diagrams.",
   "license": "MIT",
   "repository": {
@@ -54,7 +54,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
-    "@pensketch/core": "^0.1.1",
+    "@pensketch/core": "^0.2.0",
     "@resvg/resvg-wasm": "2.6.2",
     "zod": "^4.4.3"
   }
