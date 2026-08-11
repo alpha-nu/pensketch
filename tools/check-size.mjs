@@ -39,9 +39,17 @@ const PACKAGES = [
     // against: an error message added to `draw` lands here as well as in the
     // root. Raised from 3072 for the curved connectors, deliberately and once,
     // rather than a byte at a time at each gate.
+    //
+    // 3648 from 3328 for the braces phase, and the same way. The connectors
+    // left 86 B free here; brace-annotations design.md D2 measured its
+    // prototype of the phase - the type, the render, the point generation - at
+    // +276 B on this entry, and the label refusal it did not prototype is a
+    // message on top of that. 3242 + 276 + about 30 is 3548, so this is the
+    // need plus 100 B rather than the need plus 36: a gate that fails on gzip
+    // noise is a gate somebody starts arguing with.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 3328,
+    budget: 3648,
   },
   {
     name: '@pensketch/react',
