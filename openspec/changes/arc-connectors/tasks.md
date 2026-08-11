@@ -268,12 +268,27 @@ the picture needs it, never a picture built around a shape.
 
 ## 7. Release
 
-- [ ] 7.1 `npm run size`, and record the root entry's number in the README
+- [x] 7.1 `npm run size`, and record the root entry's number in the README
       comparison table. The root is not the entry at risk: it has around 2400
       B free where `./server` has 320 and `./check` 490, and `./server`
       carries its own copy of `draw`, so every error message groups 2 and 3
       add lands in it twice over. Messages are three quarters of the checker
       entry by weight, and this change writes several long ones
+
+      Final, from a cold tree: core **3191 / 5120**, `./check` **2636 / 3072**,
+      `./server` **3243 / 3328**, react **472 / 2048**. The README figure needed
+      no edit — 1.5 gave it a gate rather than a reminder, and the gate has been
+      green since, which is the whole point of having built it.
+
+      The prediction held and then some. `./server` was the entry at risk and it
+      ends the change with **85 B free**, having been raised once from 3072 to
+      3328 before group 3 wrote a byte. `./check` was raised once from 2560 to
+      3072 before 4.2. Both raises were taken deliberately and in advance, with
+      the measured need in the commit body, which is the shape any later one
+      should take. **`brace-annotations` should read this before its group 1
+      gate**: 85 B does not hold a `braces` phase, and that change's first gate
+      is `npm run size` run before the phase is wired up precisely so the number
+      is known before anything depends on it
 - [ ] 7.2 **OWNER**: the dispatch is batched with `strict-tool-input` and
       `brace-annotations` rather than performed here, so this task is the
       changeset being ready and nothing more. When it does go out it is the
