@@ -7,6 +7,7 @@ import {
   INFLATE,
   intersects,
   labelBox,
+  pointToSegment,
 } from './geometry';
 import type { Diagram, DiagramNode, Point } from './types';
 
@@ -25,7 +26,8 @@ export type RuleId =
   | 'label-collision'
   | 'text-overflow'
   | 'group-escape'
-  | 'orphan-node';
+  | 'orphan-node'
+  | 'edge-overlap';
 
 /** One defect, in enough detail to fix it without seeing the drawing. */
 export interface Finding {
@@ -79,6 +81,7 @@ const DEFAULTS: Record<RuleId, Severity> = {
   'text-overflow': 'warning',
   'group-escape': 'warning',
   'orphan-node': 'warning',
+  'edge-overlap': 'warning',
 };
 
 // Errors first. Not alphabetical: `error` sorting before `warning` there is a
@@ -225,10 +228,58 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // amplitude and the stroke is half its width to each side. So the clearance
   // a caller asks for is measured from the ink, not from the arithmetic.
   const margin = clearance + INFLATE;
+  // A path with no points at all is an edge nothing is drawn for - a `bow`
+  // that is not a finite number samples to nothing - and no rule below has
+  // anything to say about ink that is nowhere.
   const paths: { i: number; path: Point[] }[] = [];
   edges.forEach((e, i) => {
     const path = edgePath(e, byId);
-    if (path) paths.push({ i, path });
+    if (path?.length) paths.push({ i, path });
+  });
+
+  // Two connectors drawn along one another are one line in the picture and two
+  // edges in the data, which is the defect here a caller cannot see by looking:
+  // the drawing looks deliberate. `bow` is the fix, so the message names it.
+  //
+  // "Along their whole length" is: every sampled point of each path lies within
+  // `2 * INFLATE` of some segment of the other, measured both ways round. Every
+  // point, because two paths that meet and part - a crossing, or a pair sharing
+  // one anchor - have points at the far end of each that the other never comes
+  // near. Both ways round, because one edge lying along part of a longer one
+  // leaves the rest of that one nowhere near it, and a T is not a duplicate.
+  //
+  // `2 * INFLATE` rather than the caller's `clearance`: INFLATE is half the
+  // width of the ink, jitter included, so two ideal paths closer than twice it
+  // are two strokes whose ink is the same ink. That is a fact about what the
+  // renderer lays down, not a preference about how much air a label wants, so
+  // it is not an option. A straight edge and one bowed 4 px off it still draw
+  // as one line and are reported; at 5 they are visibly two and this is quiet.
+  const along = (p: Point[], q: Point[]) =>
+    p.every((r) =>
+      q
+        .slice(1)
+        .some((s, k) => pointToSegment(r, q[k] as Point, s) < 2 * INFLATE),
+    );
+
+  // `bow` is the fix for a pair of connectors and a throw on a pair of
+  // self-transitions, whose path is already described by the side they hang
+  // off, `out` and `span`. A message naming a field `draw` refuses would send
+  // the caller from a warning to an exception, so the pair of loops - the one
+  // shape `bow` cannot separate - is told what does separate it.
+  const loops = (n: number) => edges[n]?.from[0] === edges[n]?.to[0];
+
+  paths.forEach(({ i, path }, k) => {
+    for (const b of paths.slice(k + 1))
+      if (along(path, b.path) && along(b.path, path))
+        add(
+          'edge-overlap',
+          `edges ${i} and ${b.i} are drawn one on top of the other; give one of them ${loops(i) && loops(b.i) ? 'its own out and span' : 'a bow'}`,
+          // The start of the earlier edge: on the pair this rule exists for -
+          // an edge and its reverse - it is an end both lines touch, which one
+          // leaves from and the other arrives at.
+          path[0] as Point,
+          [`edge ${i}`, `edge ${b.i}`],
+        );
   });
 
   // The first path this box is too close to, if any. An edge label sitting on

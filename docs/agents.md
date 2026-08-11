@@ -242,6 +242,7 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 | `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
+| `edge-overlap` | two edges are drawn on top of one another the whole way | warning |
 
 Findings arrive sorted by severity, then rule, then position, so the array is
 stable enough to snapshot. `at` is a point in the diagram's own coordinates —

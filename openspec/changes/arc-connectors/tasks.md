@@ -132,8 +132,18 @@ it rather than at 7.1.
       The measured cost on `./check` is 372 B, landing at 2458 — inside the
       2560 this task was written against, with 102 to spare, once review
       stopped `at` being rounded and saved 5 of it
-- [ ] 4.2 `edge-overlap`, warning: two paths within a small distance along
-      their whole length. Does not fire on a crossing.
+- [x] 4.2 `edge-overlap`, warning: two paths within a small distance along
+      their whole length. Does not fire on a crossing. The distance is
+      `2 * INFLATE` and not a fourth option: INFLATE is half the width of the
+      ink, jitter included, so two ideal paths closer than twice it are two
+      strokes laid in the same place — a fact about what the renderer draws
+      rather than a preference like `clearance`. "Whole length" is measured
+      both ways round, which is what keeps a crossing, a shared anchor and a
+      T quiet. The fix the message names is `bow` except on the one pair `bow`
+      throws for — two self-transitions, whose path is described by the side
+      they hang off, `out` and `span` — since a warning whose fix is an
+      exception is worse than one naming no fix. The measured cost on
+      `./check` is 178 B, landing at 2636 with 436 to spare
 
       **The budget was settled before this was written, and it is the same
       decision `./server` took before group 3: raise it and shorten the
@@ -147,9 +157,9 @@ it rather than at 7.1.
       refuses to make, since a caller who cannot see the drawing has nothing
       but the message. The standard still binds: which item, what is wrong, the
       one fact the caller cannot derive from those two, then stop
-- [ ] 4.3 Rule count is eight; the requirement heading that counted them is
+- [x] 4.3 Rule count is eight; the requirement heading that counted them is
       renamed, and every table listing rules is updated
-- [ ] 4.4 Tests for both, including the near-parallel case and the crossing
+- [x] 4.4 Tests for both, including the near-parallel case and the crossing
       case that must stay quiet
 
 4.1 carries a debt three shipped strings depend on. `DiagramEdge.out`'s JSDoc

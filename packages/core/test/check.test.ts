@@ -800,3 +800,129 @@ describe('orphan-node', () => {
     expect(findings).toEqual([]);
   });
 });
+
+describe('edge-overlap', () => {
+  // `a`'s right anchor is (100, 20) and `b`'s left anchor is (400, 20), so an
+  // edge between them is that 300px horizontal line and nothing else.
+  const pair = (...edges: DiagramEdge[]): Diagram => ({
+    nodes: [box('a', 0, 0), box('b', 400, 0)],
+    edges,
+  });
+  const there: DiagramEdge = { from: ['a', 'r'], to: ['b', 'l'] };
+  const back: DiagramEdge = { from: ['b', 'l'], to: ['a', 'r'] };
+
+  // The defect the rule exists for, and the reason it is worth a rule: two
+  // connectors between one pair of anchors draw a single line, so the picture
+  // looks deliberate while the data says two. Nothing a caller can see.
+  it('reports an edge and the reverse drawn over it', () => {
+    const findings = check(pair(there, back));
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'edge-overlap',
+      severity: 'warning',
+      at: [100, 20],
+      subjects: ['edge 0', 'edge 1'],
+      message:
+        'edges 0 and 1 are drawn one on top of the other; give one of them a bow',
+    });
+  });
+
+  // The case that must stay quiet. Two edges that meet and part have points at
+  // the far end of each that the other never comes near, which is the whole
+  // difference between crossing and overlapping.
+  it('says nothing about two edges that merely cross', () => {
+    expect(
+      check({
+        nodes: [
+          box('a', 0, 0),
+          box('b', 400, 0),
+          box('c', 0, 200),
+          box('d', 400, 200),
+        ],
+        edges: [
+          { from: ['a', 'r'], to: ['d', 'l'] },
+          { from: ['c', 'r'], to: ['b', 'l'] },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  // The near-parallel pair, and what fixes it. The distance is the width of
+  // the ink rather than a number of anyone's choosing: INFLATE is half of it,
+  // jitter included, so two paths within 2 * INFLATE = 4.2px are two strokes
+  // laid in the same place. The arc here is 13 points whose middle one is the
+  // apex, exactly `bow` px off the chord, so these two numbers straddle it.
+  it('reports a bow too shallow to separate the pair, and not one that clears it', () => {
+    expect(rules(check(pair(there, { ...back, bow: 4 })))).toEqual([
+      'edge-overlap',
+    ]);
+    expect(check(pair(there, { ...back, bow: 5 }))).toEqual([]);
+  });
+
+  // The commonest quiet case of all, and the one a sampled point count makes
+  // sharp: a fan-out shares an anchor, so each path has a point lying exactly
+  // on the other. "Along their whole length" is every point and not any point,
+  // which is the only reason this is silent.
+  it('says nothing about two edges leaving one anchor and parting', () => {
+    expect(
+      check({
+        nodes: [box('a', 0, 0), box('b', 400, 0), box('c', 400, 200)],
+        edges: [
+          { from: ['a', 'r'], to: ['b', 'l'] },
+          { from: ['a', 'r'], to: ['c', 'l'] },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  // Both ways round, which is what keeps a T quiet: every point of the short
+  // edge lies on the long one, and most of the long one is nowhere near the
+  // short one. A connector running past a pair of boxes is a layout, not a
+  // duplicate of the connector between them. Asserted in both edge orders,
+  // because a rule measuring one way round is quiet in one of them by luck.
+  it('says nothing about a short edge lying along part of a longer one', () => {
+    const nodes = [
+      box('a', 0, 0),
+      box('b', 400, 0),
+      box('m', 150, 0),
+      box('n', 280, 0),
+    ];
+    const long: DiagramEdge = { from: ['a', 'r'], to: ['b', 'l'] };
+    const short: DiagramEdge = { from: ['m', 'r'], to: ['n', 'l'] };
+    expect(check({ nodes, edges: [long, short] })).toEqual([]);
+    expect(check({ nodes, edges: [short, long] })).toEqual([]);
+  });
+
+  // The same defect in another shape, and the assurance that no path is
+  // compared with itself: one loop is a picture, two are one loop drawn twice.
+  // The connector in the middle is the two-paths-of-different-lengths case -
+  // 13 sampled points against 2 - and the loop is 12px off it before it has
+  // gone anywhere, 60px off by its tip.
+  it('reports two self-transitions on one side, and nothing for one alone', () => {
+    const loop: DiagramEdge = { from: ['a', 'r'], to: ['a', 'r'] };
+    expect(check({ nodes: [box('a', 0, 0)], edges: [loop] })).toEqual([]);
+    expect(check(pair(there, loop))).toEqual([]);
+    const findings = check({ nodes: [box('a', 0, 0)], edges: [loop, loop] });
+    expect(rules(findings)).toEqual(['edge-overlap']);
+    // Not `bow`, which `draw` throws on for a self-transition: a warning whose
+    // fix is an exception is worse than one that names no fix at all.
+    expect(findings[0]?.message).toBe(
+      'edges 0 and 1 are drawn one on top of the other; give one of them its own out and span',
+    );
+  });
+
+  // `check` runs on diagrams that are never drawn, which is most of the reason
+  // it exists, so it meets the ones `draw` refuses. A `bow` that is not a
+  // finite number samples to no points at all: two edges with no ink between
+  // them are not two edges drawn on top of each other.
+  it('says nothing about two edges that draw no line at all', () => {
+    expect(
+      check(
+        pair(
+          { ...there, bow: Number.POSITIVE_INFINITY },
+          { ...back, bow: Number.NaN },
+        ),
+      ),
+    ).toEqual([]);
+  });
+});
