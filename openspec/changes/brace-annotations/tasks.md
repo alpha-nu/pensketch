@@ -128,24 +128,24 @@ experiment. Measured before it was kept, and it would not have been kept at
 
 ## 4. The reference catches up
 
-- [ ] 4.1 `docs/agents.md`: the type block, the phase list in trap 6, and the
+- [x] 4.1 `docs/agents.md`: the type block, the phase list in trap 6, and the
       constants count
-- [ ] 4.2 Both READMEs: the type tables, and the phase order wherever it is
+- [x] 4.2 Both READMEs: the type tables, and the phase order wherever it is
       printed
-- [ ] 4.3 `pensketch://spec` regenerates; served bytes still equal the file
-- [ ] 4.4 A brace earns its place in a shipped example — over a group of steps
+- [x] 4.3 `pensketch://spec` regenerates; served bytes still equal the file
+- [x] 4.4 A brace earns its place in a shipped example — over a group of steps
       in a diagram that wanted one anyway, rather than one invented to show it
       off. An example is how most readers meet a feature, so a change that
       adds an annotation and leaves every picture looking the same has told
       nobody
-- [ ] 4.5 A bracket too, wherever it reads better than a brace — they are one
+- [x] 4.5 A bracket too, wherever it reads better than a brace — they are one
       enum apart and a reader should be able to see the difference rather than
       infer it from a field table
-- [ ] 4.6 Both read as a reader would read them: is the brace where a hand
+- [x] 4.6 Both read as a reader would read them: is the brace where a hand
       would have drawn it, does its text sit clear of the tip, does the
       picture look like someone meant it. `depth` is the caller's number, so
       the default being reasonable is a claim only a drawing can settle
-- [ ] 4.7 The README hero is read again and redrawn, carrying **both** this
+- [x] 4.7 The README hero is read again and redrawn, carrying **both** this
       change's shapes and `arc-connectors`': a curved connector and a brace or
       a bracket, wherever the picture is better for them. It is the first
       drawing anyone sees and it currently shows none of what the two changes
@@ -158,13 +158,36 @@ experiment. Measured before it was kept, and it would not have been kept at
       without knowing where the brace goes is a placement made blind. The hero
       is a picture first. A shape that the drawing does not want does not go
       in, and if one is left out, 4.8 records why
-- [ ] 4.8 `node tools/render-assets.mjs` — both PNGs, then `npm run diagrams`,
+- [x] 4.8 `node tools/render-assets.mjs` — both PNGs, then `npm run diagrams`,
       which runs the checker over the hero like any other shipped diagram. The
       render needs a local Google Chrome and is deliberately never run in CI,
       so an unregenerated PNG is caught by nothing: the image and
       `tools/hero-diagram.mjs` move in the same commit or they part company.
       The commit body carries the before and after, and any shape 4.7 decided
       against
+
+Where they landed, and why there rather than anywhere else. The brace went to
+`examples/vanilla/`, over `deploy staging` and `deploy prod`: one set, already
+inside the release stage, where a second rectangle would have read as a stage
+of its own. That is the case D1 says a brace exists for, in a picture that had
+it before the feature did. The bracket went to `examples/custom-pen/`, over the
+two states the money has already moved for — one enum apart from the brace and
+visibly a different shape, so a reader sees the difference rather than reading
+about it.
+
+Neither is in the state machine, which already carries this release's other two
+shapes and would have become a gallery. Nothing went into the OAuth example:
+its four lanes leave no clear column, and a brace crossing a connector to reach
+one would have been a shape the picture did not want.
+
+The hero lost its note. "same seed, same bytes" was a claim about every stroke
+in the drawing with a pointer aiming it at one box, and a brace over the whole
+group says it properly — which is 4.7's judgement rather than a deletion for
+room. It gained the edge the picture had been missing since it was drawn:
+`render` fills `cache`, bowed off the corner it would otherwise cut. So the
+hero now shows a group, all three drawn shapes, hatching, an accent, a dotted
+edge, corners given through `via`, a bow, a brace, and a `raw` block — one
+fewer feature by count and a better picture.
 
 ## 5. Release
 

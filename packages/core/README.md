@@ -104,8 +104,8 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, a point along the line an edge draws, or a label lies outside the `viewBox` | **error** |
-| `label-collision` | a label sits within `clearance` of a connector | warning |
+| `out-of-bounds` | a box, a point along the line an edge or a brace draws, or a label lies outside the `viewBox` | **error** |
+| `label-collision` | a label sits within `clearance` of a connector or a brace | warning |
 | `text-overflow` | the widest line is wider than its box allows | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
@@ -116,9 +116,9 @@ Raise, lower or silence any of them with
 touches a DOM, and never changes the diagram - a finding says where the
 problem is and leaves the fix to you.
 
-`out-of-bounds` measures the line that gets drawn: a loop and a bow are
-sampled, so a curve that swings out of the frame is reported where it leaves,
-rather than passing because both its anchors are inside.
+`out-of-bounds` measures the line that gets drawn: a loop, a bow and a brace
+are sampled, so a curve that swings out of the frame is reported where it
+leaves, rather than passing because both its ends are inside.
 
 Text is never measured, so `text-overflow` and `label-collision` rest on an
 estimate of `length × fontSize × 0.55`. It over-states on purpose, and any

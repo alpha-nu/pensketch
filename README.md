@@ -88,11 +88,11 @@ export function Flow() {
 
 ## The drawing model
 
-A diagram is a plain object with four optional arrays, and `draw` walks them in
+A diagram is a plain object with five optional arrays, and `draw` walks them in
 a fixed order: the `nodes` whose shape is `group`, then `edges`, then the rest
-of the `nodes`, then `notes`, then the `raw` callbacks. That order is the
-z-order, and since every wobble comes from one seeded sequence, it is also part
-of the rendered bytes. Coordinates are yours to choose and stay in the
+of the `nodes`, then `braces`, then `notes`, then the `raw` callbacks. That
+order is the z-order, and since every wobble comes from one seeded sequence, it
+is also part of the rendered bytes. Coordinates are yours to choose and stay in the
 diagram's own space, the one the viewBox declares: pensketch never measures
 text, never fits a box to its label, and never routes an edge around an
 obstacle.
@@ -125,6 +125,23 @@ obstacle.
 | `lx`, `ly` | `number` | none | Where the label sits. `draw` throws when `label` is set and these are not numbers. |
 | `anchor` | `'start' \| 'middle' \| 'end'` | `'middle'` | Which end of the label sits on `lx`. |
 
+### `DiagramBrace`
+
+A brace or a square bracket marking a span, with an optional label. What a
+group does — bounding a set and naming it — for the two cases a rectangle
+cannot serve: sets that overlap, and a span you want marked without enclosing
+what is inside it.
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `from` | `Point` | required | Where the span starts. |
+| `to` | `Point` | required | Where the span ends. |
+| `depth` | `number` | `26` | How far the tip stands off the midpoint of the span, perpendicular to it. Positive is to the right of travel, the sign `bow` carries, so flipping a brace to the other side is a minus sign. |
+| `kind` | `'curly' \| 'square'` | `'curly'` | A brace, or a bracket with no curve in it. |
+| `lines` | `string[]` | none | Label lines, one `<text>` each, in `--ps-pen`. Requires `lx` and `ly`. |
+| `lx`, `ly` | `number` | none | Where the label sits. `draw` throws when `lines` is set and these are not numbers. |
+| `anchor` | `'start' \| 'middle' \| 'end'` | `'start'` | Which end of the label sits on `lx`. |
+
 ### `DiagramNote`
 
 | Field | Type | Default | Meaning |
@@ -144,6 +161,7 @@ obstacle.
 |---|---|---|---|
 | `nodes` | `DiagramNode[]` | `[]` | Groups, drawn first and behind everything; the drawn shapes, after the edges. |
 | `edges` | `DiagramEdge[]` | `[]` | Arrows, over the groups and under the shapes they connect. |
+| `braces` | `DiagramBrace[]` | `[]` | Span annotations, over what they span and under the notes. |
 | `notes` | `DiagramNote[]` | `[]` | Annotations, over everything but the raw callbacks. |
 | `raw` | `Array<(pen: Pen) => void>` | `[]` | The escape hatch, run last. Each callback is handed the same pen the rest of the diagram was drawn with, mid-sequence. |
 
@@ -282,8 +300,8 @@ root provides.
 
 | Folder | Shows | Run |
 |---|---|---|
-| `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, and a dotted edge back to the start. | `npx serve .`, then open `/examples/vanilla/` |
-| `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, and a retry that stays where it is — a self-transition sized by `out` and `span` — plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
+| `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, a dotted edge back to the start, and a brace marking two deploys as one build promoted. | `npx serve .`, then open `/examples/vanilla/` |
+| `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, a retry that stays where it is — a self-transition sized by `out` and `span` — and a square bracket over the states the money has moved for, plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
 | `examples/state-machine/` | **An ATM.** A decision that splits the flow, a dotted retry routed back down the left margin, a keypad loop at the default size, and a transition and its reverse bowed apart rather than drawn on one line. | `npx serve .`, then open `/examples/state-machine/` |
 | `examples/react/` | **The OAuth 2.0 authorization code flow.** Four lanes, seven steps, and a seed control: same data, a different drawing of it, on demand. | `cd examples/react && npm install && npm run dev` |
 
@@ -324,8 +342,8 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, a point along the line an edge draws, or a label lies outside the `viewBox` | **error** |
-| `label-collision` | a label sits within `clearance` of a connector | warning |
+| `out-of-bounds` | a box, a point along the line an edge or a brace draws, or a label lies outside the `viewBox` | **error** |
+| `label-collision` | a label sits within `clearance` of a connector or a brace | warning |
 | `text-overflow` | the widest line is wider than its box allows | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
@@ -403,7 +421,7 @@ already have - none of which is true of code that draws.
 
 | | pensketch | rough.js |
 |---|---|---|
-| You supply | A diagram object: nodes, edges, notes | Drawing calls you compose yourself |
+| You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
 | Size, min+gzip | **3468 B** | 8919 B |

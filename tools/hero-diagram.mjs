@@ -86,16 +86,33 @@ export const HERO = {
       to: ['in', 'b'],
       via: [[135, 226]],
     },
-  ],
-  notes: [
+    // What a miss does after it renders, and the edge that finishes the story
+    // the other four only half told. Bowed away from the corner it would
+    // otherwise cut, which is `bow` doing the one thing a straight run and a
+    // list of corners between them could not.
     {
-      x: 690,
-      y: 95,
-      lines: ['same seed,', 'same bytes'],
+      from: ['work', 'b'],
+      to: ['store', 'r'],
+      bow: -22,
+      label: 'fill',
+      lx: 520,
+      ly: 214,
       anchor: 'start',
-      arrowFrom: [700, 122],
-      via: [[672, 152]],
-      arrowTo: [636, 128],
+    },
+  ],
+  // A brace over the whole drawing, which is what the sentence beside it is
+  // about. It replaced a note whose pointer aimed the same words at one box:
+  // "same data, same bytes" is a claim about every stroke here, and a brace
+  // marks a span without enclosing it, where a second rectangle round the
+  // group would have read as another stage.
+  braces: [
+    {
+      from: [666, 42],
+      to: [666, 258],
+      depth: -22,
+      lines: ['same data,', 'same bytes'],
+      lx: 700,
+      ly: 120,
     },
   ],
 };

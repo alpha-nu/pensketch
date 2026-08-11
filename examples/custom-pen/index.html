@@ -107,6 +107,13 @@ draw(document.getElementById('lifecycle'), {
     { from: ['paid', 'b'],    to: ['cancelled', 'r'], dotted: true, label: 'refunded', lx: 478, ly: 210, anchor: 'end',
       via: [[545, 225]] },
   ],
+  // The same annotation one enum apart: `kind: 'square'` is four points and no
+  // curve, which reads as a range where a brace reads as a set. Over the two
+  // states the money has already moved for.
+  braces: [
+    { from: [500, 82], to: [830, 82], depth: -16, kind: 'square',
+      lines: ['payment taken'], lx: 665, ly: 46, anchor: 'middle' },
+  ],
 }, { seed: 11 });
 </script>
 

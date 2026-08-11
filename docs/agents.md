@@ -11,7 +11,7 @@ this repository. For that, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 ## What it is
 
 `draw(svg, diagram, options)` renders a diagram — a plain object of nodes,
-edges and notes — as hand-sketched SVG. The wobble comes from a seeded PRNG,
+edges, braces and notes — as hand-sketched SVG. The wobble comes from a seeded PRNG,
 so the same data and seed produce the same bytes every time.
 
 ```js
@@ -70,10 +70,13 @@ nothing, so it is accepted everywhere — write the field always and fill it
 sometimes if that is easier to generate.
 
 **6. Draw order is part of the output.** Phases run `nodes` where
-`shape === 'group'` → `edges` → the remaining `nodes` → `notes` → `raw`, each
-array in its own order. Because that is also the order the seeded sequence is
-consumed in, **reordering an array changes the rendered bytes**. It is the
-z-order too: groups sit behind everything.
+`shape === 'group'` → `edges` → the remaining `nodes` → `braces` → `notes` →
+`raw`, each array in its own order. Because that is also the order the seeded
+sequence is consumed in, **reordering an array changes the rendered bytes**. It
+is the z-order too: groups sit behind everything, and a brace is drawn over
+what it spans and under the note that explains it. `braces` is new in this
+version; a caller who learned the list without it has the rest in the right
+places.
 
 **7. `raw` cannot be JSON.** It holds functions. Over any interface that
 carries data rather than code — a file, an MCP tool — it is unavailable, and
@@ -114,6 +117,17 @@ interface DiagramEdge {
   anchor?: 'start' | 'middle' | 'end';   // default 'middle'
 }
 
+interface DiagramBrace {   // a span marked and named, always --ps-pen
+  from: Point; to: Point;  // the span, in your own coordinates
+  depth?: number;          // px from the midpoint to the tip, right of travel
+                           // positive, default 26; deeper than half the span
+                           // and the arms overshoot its own two ends
+  kind?: 'curly' | 'square';   // default 'curly'; 'square' is a bracket
+  lines?: string[];        // REQUIRES lx and ly, as an edge's label does
+  lx?: number; ly?: number;
+  anchor?: 'start' | 'middle' | 'end';   // default 'start'
+}
+
 interface DiagramNote {    // free-standing annotation, always --ps-accent
   x: number; y: number;    // y is the vertical centre of the block
   lines: string[];
@@ -124,7 +138,7 @@ interface DiagramNote {    // free-standing annotation, always --ps-accent
 }
 
 interface Diagram {
-  nodes?: DiagramNode[]; edges?: DiagramEdge[];
+  nodes?: DiagramNode[]; edges?: DiagramEdge[]; braces?: DiagramBrace[];
   notes?: DiagramNote[]; raw?: Array<(pen: Pen) => void>;
 }
 
@@ -161,10 +175,11 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `HATCH_INSET` | 4 | hatching inset from the outline |
 | `LOOP_OUT` | 30 | how far a self-transition projects, when `out` is not given |
 | `LOOP_SPAN` | 40 | how far apart its two anchors sit, when `span` is not given |
+| `BRACE_DEPTH` | 26 | how far a brace's tip stands off its span, when `depth` is not given |
 | `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |
 | `SEED` | 1 | default seed |
 
-All 36 are exported as `constants`.
+All 38 are exported as `constants`.
 
 Proportions that read well, from this project's own diagrams: a labelled box
 about **150 × 46**, rows about **80** apart, a group title needing about **30 px**
@@ -189,6 +204,7 @@ the one number here that no rule can check for you.
 | `edge N names node "x" at both ends but sides "t" and "r"` | a self-transition attaches to one side; name the same side in `from` and `to` |
 | `edge N carries bow; its path is already described by via` | a path is described once — drop whichever of the two the arrow is not to take. A note pointer carrying both says `note N` and means the same |
 | `edge N carries via; its path is already described by the side it hangs off, out and span` | a self-transition's path is settled by those three, so a corner to turn at contradicts it. `bow` on one is refused the same way and says so |
+| `brace N has lines but lx and ly are not both numbers` | the same rule an edge label is held to, for the same reason: nothing measures text, so nothing can place it for you |
 
 `draw` stops at the first defect it meets, and it is not a transaction. The
 element is emptied when drawing starts and filled phase by phase, so a throw
@@ -249,9 +265,9 @@ You cannot see the result, so do not rely on having looked at it. Three
 things look for you, in increasing order of what they can tell:
 
 - **`draw` throws** on unknown ids, duplicate ids, unknown shapes, a label
-  without coordinates, a self-transition naming two different sides, and a
-  path described twice — `bow` with `via`, or either on a self-transition. It
-  stops at the first one.
+  without coordinates — a brace's `lines` counts — a self-transition naming two
+  different sides, and a path described twice: `bow` with `via`, or either on a
+  self-transition. It stops at the first one.
 - **The JSON Schema** rejects malformed data, including misspelled keys.
 - **`check` finds the rest** — every trap in the list above — and reports all
   of them at once, without drawing anything:
@@ -267,8 +283,8 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, a point along the line an edge draws, or a label lies outside the `viewBox` | **error** |
-| `label-collision` | a label sits within `clearance` (default 4) of a connector | warning |
+| `out-of-bounds` | a box, a point along the line an edge or a brace draws, or a label lies outside the `viewBox` | **error** |
+| `label-collision` | a label sits within `clearance` (default 4) of a connector or a brace | warning |
 | `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
@@ -290,8 +306,9 @@ stable enough to snapshot. `at` is a point in the diagram's own coordinates —
 the place to look. Anything resting on the width estimate carries
 `estimated: true`.
 
-What it does not know about: group borders and note arrows are not edges, so
-a label lying across one of those is not reported. `raw` is invisible to it.
+What it does not know about: group borders and note arrows are neither edges
+nor braces, so a label lying across one of those is not reported. `raw` is
+invisible to it.
 And it never moves anything — there is no autolayout here either.
 
 ## Theming

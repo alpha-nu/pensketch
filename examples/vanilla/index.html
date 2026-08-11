@@ -97,6 +97,14 @@ svg text {
       { from: ['gate', 'b'],    to: ['push', 'b'], via: [[415, 300], [110, 300]],
         dotted: true, label: 'any job red', lx: 262, ly: 286 },
     ],
+    // A brace does what a group box cannot here. These two are one set - the
+    // same artifact, deployed twice - but they already sit inside the release
+    // stage, and a second rectangle round them would read as a stage of its
+    // own. A brace marks the span without enclosing it.
+    braces: [
+      { from: [745, 75], to: [745, 228], depth: -26,
+        lines: ['one build,', 'promoted'], lx: 785, ly: 152 },
+    ],
     notes: [
       { x: 850, y: 292, lines: ['prod only from a tag'], anchor: 'end',
         arrowFrom: [770, 283], arrowTo: [700, 238] },
