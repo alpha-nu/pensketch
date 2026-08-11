@@ -1,5 +1,11 @@
-import { ARC_STEPS, MIN_STEPS, SEG_LEN } from './constants';
-import type { Point, Side } from './types';
+import {
+  ARC_STEPS,
+  BRACE_DEPTH,
+  BRACE_R,
+  MIN_STEPS,
+  SEG_LEN,
+} from './constants';
+import type { DiagramBrace, Point, Side } from './types';
 
 // Curves, cut into the straight lines everything here is actually made of.
 // Kept below both the pen and the checker rather than inside either: the
@@ -117,6 +123,73 @@ export function bowPoints(from: Point, to: Point, bow: number): Point[] {
   // the arc through the apex runs in `dir`.
   if ((a1 - a0) * dir < 0) a1 += dir * 2 * Math.PI;
   return arcPoints(cx, cy, r, r, a0, a1);
+}
+
+/**
+ * A brace or a square bracket as one point list, from the caller's `from`,
+ * `to` and `depth` and nothing else.
+ *
+ * One list, and it is the whole reason this is a function rather than six pen
+ * calls. `pass` damps a leg's final point to 40% of the jitter amplitude and
+ * carries on from it, but across two `stroke` calls the shared point is drawn
+ * twice and jittered independently, one of them at full amplitude. Measured
+ * over 400 seeds the two land a mean of 1.07 px and a maximum of 2.11 px
+ * apart, against a stroke 1.6 px wide. At a right angle that reads as a
+ * hand-drawn corner, which is why `rect` gets away with four separate sides.
+ * At the tangent join where a brace's arc meets its run it reads as a break.
+ *
+ * Measured in a frame of its own: `t` runs along the span from `from`, and `m`
+ * runs perpendicular to it, to the right of travel, so a negative `depth`
+ * flips the whole shape to the other side of the span without a second path
+ * through this function. The four arcs are quarter turns, the two runs are the
+ * straight lines between them, and the runs are not built at all: consecutive
+ * arcs simply do not share a point, and `pass` draws the gap.
+ *
+ * A curly brace's tip is a point rather than a curve, and that is correct. The
+ * two arcs that meet there arrive from opposite sides travelling in opposite
+ * directions along `m`, which is the sharp middle a brace has and a bracket
+ * does not.
+ */
+export function bracePoints(brace: DiagramBrace): Point[] {
+  const [fx, fy] = brace.from;
+  const [tx, ty] = brace.to;
+  const len = Math.hypot(tx - fx, ty - fy);
+  const ux = (tx - fx) / len;
+  const uy = (ty - fy) / len;
+  // Right of travel, in a space where y grows downward, is the direction of
+  // travel turned to `(-dy, dx)` - the same turn `bowPoints` makes, and the
+  // reason a caller who has learned one sign convention has learned both.
+  const at = (t: number, m: number): Point => [
+    fx + ux * t - uy * m,
+    fy + uy * t + ux * m,
+  ];
+  const d = brace.depth ?? BRACE_DEPTH;
+  if (brace.kind === 'square')
+    return [at(0, 0), at(0, d), at(len, d), at(len, 0)];
+
+  // The tip's pair takes whatever is left of the depth after the ends' pair
+  // has had its corner, so a deeper brace grows its point and not its corners.
+  // The ends' corner is capped at the depth itself for the shallow case: a
+  // brace 8 px deep drawn with a 13 px corner reaches 13, which is a caller's
+  // own number quietly replaced by one of ours, and this is a library whose
+  // caller cannot see the result.
+  const s = Math.sign(d);
+  const deep = Math.abs(d);
+  const r = Math.min(BRACE_R, deep);
+  const q = deep - r;
+  const half = len / 2;
+  const arc = (t: number, m: number, rad: number, a0: number, a1: number) =>
+    arcPoints(t, m, rad, s * rad, a0, a1).map(([u, v]) => at(u, v));
+  const HALF_PI = Math.PI / 2;
+  return [
+    // Out of the far end of the span, turning onto the run.
+    ...arc(r, 0, r, Math.PI, HALF_PI),
+    // Off the run and up to the tip, and back down off it.
+    ...arc(half - q, s * deep, q, 3 * HALF_PI, 4 * HALF_PI),
+    ...arc(half + q, s * deep, q, Math.PI, 3 * HALF_PI).slice(1),
+    // Onto the other run, and out of the other end.
+    ...arc(len - r, 0, r, HALF_PI, 0),
+  ];
 }
 
 /**

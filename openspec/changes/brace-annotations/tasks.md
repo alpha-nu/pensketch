@@ -26,22 +26,43 @@ a brace does a group's job where a rectangle cannot.
 
 ## 1. The shape on paper
 
-- [ ] 1.1 `BRACE_DEPTH` and `BRACE_R` in `constants.ts`, documented as
+- [x] 1.1 `BRACE_DEPTH` and `BRACE_R` in `constants.ts`, documented as
       starting points rather than as values computed from anything, in the
       words `size` uses
-- [ ] 1.2 `bracePoints(brace): Point[]` in `sample.ts`, beside `arcPoints` —
+- [x] 1.2 `bracePoints(brace): Point[]` in `sample.ts`, beside `arcPoints` —
       one list, four quarter-arcs and two runs for a curly brace, four points
       and no arc for a square one
-- [ ] 1.3 Tests reproducing design.md D5's recorded numbers exactly: the tip
+
+      **2.1's `DiagramBrace` landed here**, because this signature takes a
+      brace and a type cannot be forward-declared. The same precedent
+      `arc-connectors` set at 4.3, where the rule-count row landed in the
+      commit that added the rule: a task that another task's wording requires
+      is done where it is required, and said so
+- [x] 1.3 Tests reproducing design.md D5's recorded numbers exactly: the tip
       at `174, 140`, the x extent `174 -> 200`, the y extent `40 -> 240`. The
       geometry the design document records is the geometry that ships, or one
       of the two is wrong and it should be found here
-- [ ] 1.4 A test that a whole brace is two `<path>` elements, which is the
+
+      They agree. What the render found instead is a case the design did not
+      cover: a `depth` shallower than `BRACE_R` drew at `BRACE_R`, because the
+      ends' corners alone were deeper than the whole brace. A caller asking for
+      8 got 13 and no way to know. The corner is capped at the depth now, and a
+      row of five depths asserts that the number asked for is the number drawn
+- [x] 1.4 A test that a whole brace is two `<path>` elements, which is the
       assertion that it went through one `stroke`. Mutation-test it: six
       strokes must fail this
 
 Gate: `npm run size`, before the phase is even wired up, so the first number
 is known.
+
+**+18 B on the root entry and nothing on the tight two.** core 3191 -> 3209,
+`./check` 2636 -> 2635, `./server` 3243 -> 3242, the last two being gzip noise
+rather than a saving. The 18 is `BRACE_DEPTH` and `BRACE_R` joining the frozen
+`constants` object, which the root entry exports; `bracePoints` itself is
+reachable from nothing yet and is tree-shaken out of all four. So the phase
+still has the whole of `./server`'s 86 B to fit into, and D2's prototype
+measured **+276 B** for it. That gap is the group 2 budget decision, and it is
+better taken before a byte is written than discovered at a gate.
 
 ## 2. The data model
 

@@ -94,6 +94,8 @@ describe('constants', () => {
       EDGE_SIZE: 12.5,
       LOOP_OUT: 30,
       LOOP_SPAN: 40,
+      BRACE_DEPTH: 26,
+      BRACE_R: 13,
       NOTE_SIZE: 13,
       NOTE_AMP: 2,
       SEED: 1,

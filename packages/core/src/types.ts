@@ -326,6 +326,57 @@ export interface DiagramNote {
 }
 
 /**
+ * A brace or a square bracket over a span, with an optional label.
+ *
+ * What a group does — bounding a set and naming it — for the two cases a
+ * rectangle cannot serve: sets that overlap, and a span that should be marked
+ * without enclosing what is inside it. Drawn in `theme.pen`, the same role a
+ * group's border and a group's title carry, so a reader who has learned what
+ * that blue means here has already learned what a brace is.
+ *
+ * Nothing about it is inferred from what it happens to span. `from`, `to` and
+ * `depth` are the whole of its shape, in the caller's own coordinates.
+ */
+export interface DiagramBrace {
+  /** Where the span starts. */
+  from: Point;
+  /** Where the span ends. */
+  to: Point;
+  /**
+   * How far the tip stands off the midpoint of the span, in px, perpendicular
+   * to it. Positive is to the right of travel, the sign convention an edge's
+   * `bow` carries, so flipping a brace to the other side of what it spans is a
+   * minus sign. Default: `26`.
+   *
+   * A starting point rather than a fitted value: nothing measures what the
+   * brace spans. `0` draws a straight line, which is legal and is not a brace.
+   */
+  depth?: number;
+  /**
+   * `'curly'` for a brace, four quarter-arcs and two runs meeting at a point;
+   * `'square'` for a bracket, four points and no curve in it. Default:
+   * `'curly'`.
+   */
+  kind?: 'curly' | 'square';
+  /**
+   * The lines of the label, one `<text>` each, in `theme.pen`. `lines` rather
+   * than one string, as an edge's `label` is: a brace over a column of rows is
+   * exactly where a second line wants to go.
+   *
+   * Requires `lx` and `ly`, and `draw` throws without them, in the words it
+   * uses for an edge label. Nothing places the text relative to the tip — this
+   * library never measures text, and a caller who chose `depth` knows where
+   * the tip is.
+   */
+  lines?: string[];
+  /** Where the label sits. Both are required once `lines` is given. */
+  lx?: number;
+  ly?: number;
+  /** Which end of the label sits on `lx`. Default: `'start'`. */
+  anchor?: 'start' | 'middle' | 'end';
+}
+
+/**
  * A picture as data. The phases are drawn in the order they are declared
  * here, which is both the z-order and the order the seeded sequence is
  * consumed in, so it is part of the rendered bytes.

@@ -112,6 +112,28 @@ export const LOOP_OUT = 30;
  * is coming: relating the two is the layout this library does not do.
  */
 export const LOOP_SPAN = 40;
+/**
+ * How far a brace's tip stands off the midpoint of what it spans, in px, when
+ * the brace does not say.
+ *
+ * A starting point rather than a computed value, in the words `SIZE` uses:
+ * nothing here measures what a brace spans to decide how deep it should be,
+ * because that would be layout. A brace with no depth is a straight line,
+ * which is not a brace, so this is the difference between a field that is
+ * optional and one that is required in all but name.
+ */
+export const BRACE_DEPTH = 26;
+/**
+ * The radius of a brace's four corners, in px.
+ *
+ * Half `BRACE_DEPTH`, which is what makes a brace at the default depth four
+ * quarter-arcs of one radius: the two at its ends turn the stroke from the
+ * span onto the run, and the two at its tip turn it off the run and back. At
+ * any other depth the tip's pair takes `depth - BRACE_R` and the ends keep
+ * this, so a deeper brace grows its point rather than its corners. Fixed, like
+ * every other number here: the look is the product.
+ */
+export const BRACE_R = 13;
 /** Note font size in px. */
 export const NOTE_SIZE = 13;
 /** Jitter amplitude in px of a note's arrow. */
@@ -159,6 +181,8 @@ export const constants = Object.freeze({
   EDGE_SIZE,
   LOOP_OUT,
   LOOP_SPAN,
+  BRACE_DEPTH,
+  BRACE_R,
   NOTE_SIZE,
   NOTE_AMP,
   SEED,
