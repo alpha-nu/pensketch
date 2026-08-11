@@ -26,6 +26,22 @@ svg { display: block; width: 100%; height: auto; margin-bottom: 24px; }
    only 500 across - left alone it renders at nearly twice the scale of the
    diagram it is captioning. */
 svg[aria-label="A hand-drawn caption"] { max-width: 500px; }
+/* The play control drives the picture on its own, so it should not read as one
+   more form field standing beside the manual ones. The --ps-* variables the
+   diagram is themed with are on :root, so the page chrome can borrow them. */
+main > button {
+  font: inherit;
+  font-size: 15px;
+  display: block;
+  padding: 9px 26px;
+  margin: 0 0 20px;
+  color: var(--ps-pen, #2B5B8A);
+  background: none;
+  border: 2px solid var(--ps-pen, #2B5B8A);
+  border-radius: 999px;
+  cursor: pointer;
+}
+main > button:hover { background: var(--ps-wash, rgba(43, 91, 138, .05)); }
 fieldset { margin: 0 0 20px; }
 legend { font-size: 13px; color: #5A6572; }
 fieldset label { margin-right: 14px; }
