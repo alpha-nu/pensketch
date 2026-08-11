@@ -191,7 +191,14 @@ free and where finding messages are already three quarters of the entry.
 - [ ] 5.3 The count of exported constants, which every group before this one
       moves, and the "Numbers worth designing around" table if any constant
       added here earns a place among the numbers a caller designs against
-- [ ] 5.4 The checker rules table, in the reference and in both READMEs
+- [ ] 5.4 The checker rules table, in the reference and in both READMEs. The
+      eighth row landed with 4.3, in the commit that added the rule, so what is
+      left here is the row 4.1 changed the meaning of: `out-of-bounds` now
+      walks the drawn path, so a loop's and a bow's sampled curve are measured
+      where only a caller's corners were before. "A point between an edge's
+      anchors" is true of that and does not say it, and a reader who has just
+      been told a curve is sampled is the one who will ask. Judge whether the
+      row earns the words, or whether the curve belongs in the prose beneath it
 - [ ] 5.5 `pensketch://spec` regenerates; served bytes still equal the file
 
 ## 6. The examples stop paying for it, and start showing it off
