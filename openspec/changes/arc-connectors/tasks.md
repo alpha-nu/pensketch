@@ -173,25 +173,25 @@ free and where finding messages are already three quarters of the entry.
 
 ## 5. The reference stops being wrong
 
-- [ ] 5.1 Trap 4 in `docs/agents.md` already states the rule, as of the group 2
+- [x] 5.1 Trap 4 in `docs/agents.md` already states the rule, as of the group 2
       remediation: the false sentence went the moment it became false, on
       62f0006's precedent that a document contradicting what it documents is
       drift rather than a scheduled edit. What is left here is the narrative —
       that the rule used to be the opposite, and where the loop went — for a
       reader who learned the old one
-- [ ] 5.2 `raw` described as the hatch for what the data model still has no
+- [x] 5.2 `raw` described as the hatch for what the data model still has no
       word for, rather than for self-transitions specifically
-- [ ] 5.2a "`draw` throws on the first defect and renders nothing" is false and
+- [x] 5.2a "`draw` throws on the first defect and renders nothing" is false and
       was false before this change: `draw` empties the `<svg>` and then fills
       it phase by phase, so a throw leaves whatever was drawn before it. Six
       children after a label throw, measured at 46ad20a. Group 3 makes it more
       visible — a note refused for `bow` with `via` has already had its text
       drawn — but did not make it wrong. The same clause is in the shipped
       `diagram-checker` spec, so both move together
-- [ ] 5.3 The count of exported constants, which every group before this one
+- [x] 5.3 The count of exported constants, which every group before this one
       moves, and the "Numbers worth designing around" table if any constant
       added here earns a place among the numbers a caller designs against
-- [ ] 5.4 The checker rules table, in the reference and in both READMEs. The
+- [x] 5.4 The checker rules table, in the reference and in both READMEs. The
       eighth row landed with 4.3, in the commit that added the rule, so what is
       left here is the row 4.1 changed the meaning of: `out-of-bounds` now
       walks the drawn path, so a loop's and a bow's sampled curve are measured
@@ -199,7 +199,7 @@ free and where finding messages are already three quarters of the entry.
       anchors" is true of that and does not say it, and a reader who has just
       been told a curve is sampled is the one who will ask. Judge whether the
       row earns the words, or whether the curve belongs in the prose beneath it
-- [ ] 5.5 `pensketch://spec` regenerates; served bytes still equal the file
+- [x] 5.5 `pensketch://spec` regenerates; served bytes still equal the file
 
 ## 6. The examples stop paying for it, and start showing it off
 

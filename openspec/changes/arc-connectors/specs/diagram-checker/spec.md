@@ -25,7 +25,7 @@ because a pair on one line is sometimes meant.
 
 #### Scenario: A duplicate id is reported alongside everything else
 - **WHEN** two nodes share an `id`
-- **THEN** `check` reports `duplicate-id` as an error, naming both, together with every other finding in the diagram — where `draw` throws on the first defect it meets and renders nothing
+- **THEN** `check` reports `duplicate-id` as an error, naming both, together with every other finding in the diagram — where `draw` stops at the first defect it meets, leaving on the page whatever it had drawn before reaching it
 
 #### Scenario: A label lying on a connector is caught
 - **WHEN** an edge label's box falls within the configured clearance of any edge's path

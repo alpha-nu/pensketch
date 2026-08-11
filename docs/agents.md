@@ -53,6 +53,14 @@ size it. Naming the same node with two *different* sides throws — a loop hangs
 off one side, and a corner loop is a different shape. Those three fields settle
 the whole of its path, so a non-empty `via`, or a `bow`, on one throws as well.
 
+This trap used to say the opposite, and it is the one most likely to be
+remembered wrongly. Until this version an edge joined two *different* nodes, a
+self-transition could not be stated in data at all, and the way round it was a
+`raw` callback drawing the arc by hand — which is where this repository's own
+examples drew theirs. If that is the rule you learned, the loop has moved: the
+callback comes out, and what replaces it is the same node and the same side
+named twice.
+
 **5. `via` points are used exactly as given, in order.** The arrow walks the
 legs you describe and nothing is inferred. Orthogonal routing is three points
 you supply, not a mode you switch on. A path is described once: `via` together
@@ -70,6 +78,11 @@ z-order too: groups sit behind everything.
 **7. `raw` cannot be JSON.** It holds functions. Over any interface that
 carries data rather than code — a file, an MCP tool — it is unavailable, and
 the JSON Schema rejects it.
+
+It is the escape hatch for whatever the data model still has no word for, and
+that list is shorter than it was: the self-transition and the curved connector
+have both come out of it. Reach for `raw` when the drawing needs something no
+field describes — not because a shape looks unusual.
 
 ## Types
 
@@ -146,6 +159,8 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |
 | `OVERSHOOT` | 4 | how far box corners overrun |
 | `HATCH_INSET` | 4 | hatching inset from the outline |
+| `LOOP_OUT` | 60 | how far a self-transition projects, when `out` is not given |
+| `LOOP_SPAN` | 24 | how far apart its two anchors sit, when `span` is not given |
 | `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |
 | `SEED` | 1 | default seed |
 
@@ -154,6 +169,11 @@ All 36 are exported as `constants`.
 Proportions that read well, from this project's own diagrams: a labelled box
 about **150 × 46**, rows about **80** apart, a group title needing about **30 px**
 of clear space at the top of its box.
+
+Those two do not fit together by default. A self-transition projects `out` px
+beyond the side it hangs off — 60, against the roughly 34 px of gap that rows
+80 apart leave between one box and the next. Hang a loop off a side that faces
+empty page, or lower `out` to fit the gap you have.
 
 ## Errors you will hit, and what they mean
 
@@ -167,7 +187,13 @@ of clear space at the top of its box.
 | `edge N carries bow; its path is already described by via` | a path is described once — drop whichever of the two the arrow is not to take. A note pointer carrying both says `note N` and means the same |
 | `edge N carries via; its path is already described by the side it hangs off, out and span` | a self-transition's path is settled by those three, so a corner to turn at contradicts it. `bow` on one is refused the same way and says so |
 
-`draw` throws on the first defect and renders nothing.
+`draw` stops at the first defect it meets, and it is not a transaction. The
+element is emptied when drawing starts and filled phase by phase, so a throw
+leaves on the page whatever had been drawn before it. A note refused for
+carrying `bow` with a non-empty `via` leaves every group, edge and node above
+it standing — and its own text too, because a note's lines are drawn before
+its pointer is looked at. Fix and redraw. Do not read an element after a throw
+as though it were empty.
 
 ## A complete example
 
@@ -237,12 +263,23 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, a point between an edge's anchors, or a label lies outside the `viewBox` | **error** |
+| `out-of-bounds` | a box, a point along the line an edge draws, or a label lies outside the `viewBox` | **error** |
 | `label-collision` | a label sits within `clearance` (default 4) of a connector | warning |
 | `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
 | `edge-overlap` | two edges are drawn on top of one another the whole way | warning |
+
+`out-of-bounds` measures the line that gets drawn rather than the straight run
+between the anchors: a loop and a bow are sampled, so a curve that leaves the
+frame is caught where it leaves rather than passing on two anchors that are
+both inside. Its own two ends are left out, so that a node already reported as
+reaching outside the frame is not reported again once per edge attached to it.
+That has a cost, and it falls on one shape: a loop whose `span` is wider than
+the side it hangs off puts its anchors past the node's corners, so one can
+leave the frame while the node is wholly inside it and nothing says so. And it
+names the first point outside rather than every one, because a curve leaves in
+a run and ten findings about one bulge are one finding.
 
 Findings arrive sorted by severity, then rule, then position, so the array is
 stable enough to snapshot. `at` is a point in the diagram's own coordinates —

@@ -323,7 +323,7 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
 | `node-overlap` | two node boxes share area | **error** |
-| `out-of-bounds` | a box, a point between an edge's anchors, or a label lies outside the `viewBox` | **error** |
+| `out-of-bounds` | a box, a point along the line an edge draws, or a label lies outside the `viewBox` | **error** |
 | `label-collision` | a label sits within `clearance` of a connector | warning |
 | `text-overflow` | the widest line is wider than its box allows | warning |
 | `group-escape` | a node is half inside a group | warning |
@@ -336,7 +336,9 @@ sorted by severity, then rule, then position, so the same diagram always
 produces the same array and it can be snapshot-tested.
 
 `out-of-bounds` runs only when you pass a `viewBox` — it is the one thing not
-decidable from the diagram alone.
+decidable from the diagram alone. It measures the line that gets drawn: a loop
+and a bow are sampled, so a curve that swings out of the frame is reported
+where it leaves, rather than passing because both its anchors are inside.
 
 **Two rules rest on an estimate.** Text is never measured, so `check`
 approximates width as `length × fontSize × 0.55`, a figure measured against
