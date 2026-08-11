@@ -109,7 +109,9 @@ draw(document.getElementById('lifecycle'), {
   ],
   // The same annotation one enum apart: `kind: 'square'` is four points and no
   // curve, which reads as a range where a brace reads as a set. Over the two
-  // states the money has already moved for.
+  // states on this row that the money has moved for - `delivered` is a third,
+  // on the row below, which is the kind of thing a bracket cannot say and a
+  // reader should not be left to infer.
   braces: [
     { from: [500, 82], to: [830, 82], depth: -16, kind: 'square',
       lines: ['payment taken'], lx: 665, ly: 46, anchor: 'middle' },

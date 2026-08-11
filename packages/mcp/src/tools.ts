@@ -36,8 +36,8 @@ const refuses = (subject: string, noun: string, takes: string) => ({
   },
 });
 
-// The top-level shape only. Every field of a node, an edge or a note is
-// described by the JSON Schema this server publishes as `pensketch://schema`,
+// The top-level shape only. Every field of a node, an edge, a brace or a
+// note is described by the JSON Schema this server publishes as `pensketch://schema`,
 // which is generated from the TypeScript types - so restating it here would
 // be a second source of truth for a shape that already has one, and the two
 // would drift the first time a field moved.

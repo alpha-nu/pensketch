@@ -369,8 +369,9 @@ export interface DiagramBrace {
    * the tip is.
    */
   lines?: string[];
-  /** Where the label sits. Both are required once `lines` is given. */
+  /** Where the label sits horizontally; `anchor` says which end sits here. */
   lx?: number;
+  /** The vertical centre of the block of lines. Required once `lines` is. */
   ly?: number;
   /** Which end of the label sits on `lx`. Default: `'start'`. */
   anchor?: 'start' | 'middle' | 'end';

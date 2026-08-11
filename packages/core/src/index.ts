@@ -5,6 +5,7 @@ export { mulberry32 } from './rng';
 export { defaultTheme, type Theme } from './theme';
 export type {
   Diagram,
+  DiagramBrace,
   DiagramEdge,
   DiagramNode,
   DiagramNote,

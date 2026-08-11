@@ -284,10 +284,11 @@
         },
         "lx": {
           "type": "number",
-          "description": "Where the label sits. Both are required once `lines` is given."
+          "description": "Where the label sits horizontally; `anchor` says which end sits here."
         },
         "ly": {
-          "type": "number"
+          "type": "number",
+          "description": "The vertical centre of the block of lines. Required once `lines` is."
         },
         "anchor": {
           "type": "string",

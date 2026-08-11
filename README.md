@@ -88,11 +88,11 @@ export function Flow() {
 
 ## The drawing model
 
-A diagram is a plain object with five optional arrays, and `draw` walks them in
-a fixed order: the `nodes` whose shape is `group`, then `edges`, then the rest
-of the `nodes`, then `braces`, then `notes`, then the `raw` callbacks. That
-order is the z-order, and since every wobble comes from one seeded sequence, it
-is also part of the rendered bytes. Coordinates are yours to choose and stay in the
+A diagram is a plain object with five optional arrays, and `draw` walks them
+in a fixed order: the `nodes` whose shape is `group`, then `edges`, then the
+rest of the `nodes`, then `braces`, then `notes`, then the `raw` callbacks.
+That order is the z-order, and since every wobble comes from one seeded
+sequence, it is also part of the rendered bytes. Coordinates are yours to choose and stay in the
 diagram's own space, the one the viewBox declares: pensketch never measures
 text, never fits a box to its label, and never routes an edge around an
 obstacle.
@@ -412,8 +412,8 @@ other difference follows from that one.
 - **rough.js hands you a pen.** `line`, `rectangle`,
   `circle`, `path`, `arc` - you compose the picture stroke by stroke, and it
   will draw a great deal pensketch cannot.
-- **pensketch takes the finished description.** Nodes, edges and notes as one
-  plain object; it decides every stroke.
+- **pensketch takes the finished description.** Nodes, edges, braces and notes
+  as one plain object; it decides every stroke.
 
 Which is why a pensketch diagram is a *file* rather than a function. It reviews
 in a pull request, diffs a line at a time, and can be generated from data you

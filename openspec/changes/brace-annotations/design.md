@@ -95,9 +95,17 @@ y extent    40.0 -> 240.0
 tip         174.0, 140.0     (the vertical middle)
 ```
 
-Twenty-four points: a quarter-arc out of each end, two runs toward the middle,
-two quarter-arcs meeting at the tip. `kind: 'square'` is four points and no
-arc: out, along, back. The corner radius and the default depth become named
+A quarter-arc out of each end, two runs toward the middle, two quarter-arcs
+meeting at the tip. `kind: 'square'` is four points and no arc: out, along,
+back.
+
+The prototype counted twenty-four of them and the implementation returns
+thirty-one, which is the one number here that was not a target. The three
+above are: a caller's `depth` has to put the tip where they asked, and the
+extents are what `out-of-bounds` measures. The count is `arcPoints`' to decide,
+from `ARC_STEPS` and `SEG_LEN` and the radius it is handed, and pinning it
+would have pinned a sampler this shape does not own. Corrected here rather than
+left as a fourth number a reader would try to reproduce. The corner radius and the default depth become named
 constants, documented the way `size` is — a starting point a caller overrides,
 never a value computed from anything.
 

@@ -120,8 +120,8 @@ interface DiagramEdge {
 interface DiagramBrace {   // a span marked and named, always --ps-pen
   from: Point; to: Point;  // the span, in your own coordinates
   depth?: number;          // px from the midpoint to the tip, right of travel
-                           // positive, default 26; deeper than half the span
-                           // and the arms overshoot its own two ends
+                           // positive, default 26; past half the span plus 13
+                           // the arms overshoot the span's own two ends
   kind?: 'curly' | 'square';   // default 'curly'; 'square' is a bracket
   lines?: string[];        // REQUIRES lx and ly, as an edge's label does
   lx?: number; ly?: number;

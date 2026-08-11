@@ -38,7 +38,7 @@ command.
 
 | tool | what it does |
 |---|---|
-| `check_diagram` | Reports overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. |
+| `check_diagram` | Reports overlapping boxes, a label a connector or a brace will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. |
 | `render_diagram` | Returns SVG markup. Deterministic: same diagram, same seed, same bytes. |
 | `render_png` | Rasterises it, so it can actually be looked at. |
 

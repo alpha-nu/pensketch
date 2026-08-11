@@ -87,7 +87,7 @@ describe('anchor()', () => {
 });
 
 describe('draw() render order', () => {
-  it('renders group, then edge, then node, then note, then raw', () => {
+  it('renders group, then edge, then node, then brace, then note, then raw', () => {
     const svg = makeSvg();
     draw(svg, ALL_PHASES);
 

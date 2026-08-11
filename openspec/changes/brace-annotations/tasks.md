@@ -43,7 +43,14 @@ a brace does a group's job where a rectangle cannot.
       geometry the design document records is the geometry that ships, or one
       of the two is wrong and it should be found here
 
-      They agree. What the render found instead is a case the design did not
+      Three of the four numbers agree exactly. The fourth was never a target
+      and is corrected in the design document rather than in the code: the
+      prototype counted twenty-four points and this returns thirty-one, because
+      the count belongs to `arcPoints` and its `ARC_STEPS`, `SEG_LEN` and
+      radius, not to the brace. Pinning it would pin a sampler this shape does
+      not own.
+
+      What the render found instead is a case the design did not
       cover: a `depth` shallower than `BRACE_R` drew at `BRACE_R`, because the
       ends' corners alone were deeper than the whole brace. A caller asking for
       8 got 13 and no way to know. The corner is capped at the depth now, and a

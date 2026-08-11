@@ -19,7 +19,7 @@ Every tool's arguments are now validated strictly **at their top level**, and
 the message names what you should have sent:
 
 ```
-A diagram has no field "node". It takes nodes, edges and notes;
+A diagram has no field "node". It takes nodes, edges, braces and notes;
 read pensketch://schema for the fields inside each.
 ```
 
@@ -27,8 +27,8 @@ The schema each tool publishes in its listing declares the same restriction,
 so a client validating locally is not told it may send a key the server will
 refuse.
 
-**What this does not cover.** Fields inside a node, an edge or a note are
-unchanged: `{ nodes: [{ …, line: ['hi'] }] }` is still accepted and still
+**What this does not cover.** Fields inside a node, an edge, a brace or a note
+are unchanged: `{ nodes: [{ …, line: ['hi'] }] }` is still accepted and still
 draws an unlabelled box. Those fields are described by `pensketch://schema`,
 and restating them at the boundary would be a second source of truth. Validate
 against the schema to catch them.

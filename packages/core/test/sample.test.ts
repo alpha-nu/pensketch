@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { BRACE_DEPTH, BRACE_R } from '../src/constants';
+import type { DiagramBrace, Point } from '../src/index';
 import { pen } from '../src/pen';
 import { bracePoints } from '../src/sample';
-import type { DiagramBrace, Point } from '../src/types';
-import { makeSvg, nth, pathsOf } from './helpers';
+import { makeSvg, pathsOf } from './helpers';
 
 // The span design.md D5 recorded its prototype against, and the numbers it
 // recorded. They are asserted here rather than described: a design document
@@ -96,6 +96,13 @@ describe('bracePoints()', () => {
   // D3, and the reason this is one function rather than six pen calls. Six
   // strokes emit twelve paths, so this fails on the implementation it exists
   // to rule out - checked by drawing one, not by reasoning about it.
+  //
+  // The path count is the whole of the continuity test, and that is not a gap
+  // in it. Within one `stroke`, `pass` cuts every leg to SEG_LEN and carries
+  // the last point of each into the next, so the line cannot part; across two
+  // it re-jitters the shared point and reads as a break at a tangent join.
+  // Measuring the leg lengths in the emitted `d` would assert something `pass`
+  // guarantees for every stroke ever drawn, which is a test that cannot fail.
   it('goes through one stroke, so a whole brace is two paths', () => {
     const one = makeSvg();
     pen(one, { seed: 3 }).stroke(bracePoints(SPAN));
@@ -109,12 +116,5 @@ describe('bracePoints()', () => {
     for (let i = 0; i < 6; i++)
       p.stroke(points.slice(i * 5, i * 5 + 6) as Point[]);
     expect(pathsOf(six)).toHaveLength(12);
-
-    // And the line really is continuous: no gap between consecutive points
-    // wider than the chords the sampler is allowed to draw. A joint that
-    // parted would show up here as one long leg rather than as a wobble.
-    const drawn = pathsOf(one);
-    const d = nth(drawn, 0).getAttribute('d') ?? '';
-    expect(d.startsWith('M')).toBe(true);
   });
 });

@@ -101,16 +101,21 @@ export const HERO = {
     },
   ],
   // A brace over the whole drawing, which is what the sentence beside it is
-  // about. It replaced a note whose pointer aimed the same words at one box:
-  // "same data, same bytes" is a claim about every stroke here, and a brace
-  // marks a span without enclosing it, where a second rectangle round the
-  // group would have read as another stage.
+  // about. It replaced a note carrying these same two lines with a pointer
+  // that aimed them at one box: "same seed, same bytes" is a claim about every
+  // stroke here, and a brace marks a span without enclosing it, where a second
+  // rectangle round the group would have read as another stage.
+  //
+  // The words are the note's unchanged, deliberately. "same data" would have
+  // been a stronger claim than this project makes anywhere else: the README
+  // says same data, same seed, same version, same engine, same bytes, and a
+  // test asserts that one diagram at two seeds serializes differently.
   braces: [
     {
       from: [666, 42],
       to: [666, 258],
       depth: -22,
-      lines: ['same data,', 'same bytes'],
+      lines: ['same seed,', 'same bytes'],
       lx: 700,
       ly: 120,
     },

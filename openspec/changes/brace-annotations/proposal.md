@@ -23,7 +23,7 @@ change makes it deliberately rather than by omission.
 
 **The geometry is already solved.** It was prototyped while specifying
 `arc-connectors` and recorded in that change's design document: four
-quarter-arcs and two runs, twenty-four points, exact. A square bracket is four
+quarter-arcs and two runs, at the extents D5 records. A square bracket is four
 points and needs no arc at all. What was missing was the primitive underneath
 it, and `arc-connectors` group 1 has shipped it.
 

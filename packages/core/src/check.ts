@@ -40,7 +40,7 @@ export interface Finding {
   message: string;
   /** Where to look, in the diagram's own coordinate space. */
   at: Point;
-  /** What is involved: `node "gate"`, `edge 3`, `note 0`. */
+  /** What is involved: `node "gate"`, `edge 3`, `brace 1`, `note 0`. */
   subjects: string[];
   /**
    * Present when the finding rests on the text-width estimate. Text is never
