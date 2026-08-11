@@ -191,11 +191,23 @@ fewer feature by count and a better picture.
 
 ## 5. Release
 
-- [ ] 5.1 `npm run size` on all four entries, and the README figure with it,
+- [x] 5.1 `npm run size` on all four entries, and the README figure with it,
       which the gate now asserts rather than trusts
-- [ ] 5.2 A changeset: a **minor** for `@pensketch/core` and `@pensketch/mcp`,
+- [x] 5.2 A changeset: a **minor** for `@pensketch/core` and `@pensketch/mcp`,
       saying that the second thing `raw` could draw and JSON could not is now
       data
+
+Where the four entries end, from a cold tree: core **3468 / 5120**, `./check`
+**2989 / 3072**, `./server` **3502 / 3648**, react **472 / 2048**. The README
+figure is 3468 and the gate asserts it rather than trusting it, which caught it
+twice in this change — once at 1.1 for two constants, once at 2.3 for the
+phase.
+
+Both raises this change made were taken before the work that needed them, with
+the arithmetic recorded: `./server` 3328 -> 3648 against a measured +260, and
+`./check` not raised at all, because 437 B were free and the group spent 354.
+That is the requirement this change added to `repo-tooling`, kept by the change
+that added it.
 - [ ] 5.3 **OWNER**: dispatch `release.yml` twice. This is the batched release
       for all three changes, so the version pull request carries this
       changeset, `arc-connectors`' and `strict-tool-input`'s together — read
