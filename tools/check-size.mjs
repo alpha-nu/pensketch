@@ -47,9 +47,22 @@ const PACKAGES = [
     // message on top of that. 3242 + 276 + about 30 is 3548, so this is the
     // need plus 100 B rather than the need plus 36: a gate that fails on gzip
     // noise is a gate somebody starts arguing with.
+    //
+    // 3872 from 3648 for hatching that follows the outline it is drawn inside
+    // rather than the box the outline sits in. This entry stands at 3519 with
+    // 129 B free, and the feature is measured - built, not estimated - at
+    // 3773: a scanline clip and the shape's own inset, kept alongside the
+    // closed form the reference renderer uses rather than replacing it,
+    // because a box routed through a contour clip loses the degenerate stroke
+    // the reference opens its hatching with and parity fails structurally.
+    // 3773 plus the same 100 B of gzip headroom is 3873, taken down to 3872.
+    // The root entry lands at 3750 against 5120 and `./check` at 3008 against
+    // 3072, so neither moves; `./check` gains 2 B of gzip on identical code,
+    // esbuild having renamed some locals, which is the noise the margin above
+    // exists for.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 3648,
+    budget: 3872,
   },
   {
     name: '@pensketch/react',
