@@ -1,6 +1,10 @@
-# Design: hatch-follows-the-box
+# Design: hatch-follows-the-outline
 
-## D1. What `hatch` actually does
+## D1. What `hatch` did
+
+Everything in D1 to D4 is the state this change found and the reasoning that
+priced the fix; D5 is what shipped. Present tense below means "before this
+change".
 
 `pen.hatch(x, y, w, h, color)` walks 45° lines across the box at `HATCH_GAP`
 = 11 px and clips each to that box in closed form — the entry and exit points
@@ -76,20 +80,25 @@ than on what it does. `./check` does not move at all: the checker never
 hatches.
 
 **It does not fit.** `./server` is budgeted at 3648 with **129 B free**, and
-the shippable variant needs 250 — so the budget would have to rise by about
-140 before a byte is written, which is this project's rule. `@pensketch/core`
-has 1623 B free today and would absorb it without comment; `./server` is the
-entry that decides, as it was for `brace-annotations` group 2.
+the shippable variant needs 250 — so the budget has to rise by about 140 before
+a byte is written, which is this project's rule. `@pensketch/core` has 1623 B
+free today and would absorb it without comment; `./server` is the entry that
+decides, as it was for `brace-annotations` group 2. It rose to **3872** in a
+commit of its own, against a shipped figure of 3773 — see D5, which is 20 B
+above this table's prediction and for a version that does three things the
+prototype did not.
 
-## D3. Three ways forward, none chosen here
+## D3. Three ways forward — the second was chosen
 
-1. **Document and stop.** What this change does. Zero bytes. The diamond stays
-   wrong and says so, in the one document written for callers who cannot see
-   the result, and with the tests to keep it from moving unnoticed.
-2. **Ship the contour hatch and raise `./server` by ~140 B.** The question is
-   whether a shape nothing currently ships is worth 250 B on the entry with
-   the least headroom — measured against `brace-annotations`, which spent 260
-   B there on a whole new phase of the data model.
+1. **Document and stop.** Zero bytes. The diamond stays wrong and says so, in
+   the one document written for callers who cannot see the result, and with the
+   tests to keep it from moving unnoticed.
+2. **Ship the contour hatch and raise `./server` by ~140 B.** ← **chosen.** The
+   question was whether a shape nothing currently ships is worth 250 B on the
+   entry with the least headroom — measured against `brace-annotations`, which
+   spent 260 B there on a whole new phase of the data model. The owner's answer
+   was to ship it and make it more robust than the prototype on the way, which
+   is what D5 records.
 3. **Refuse `hatch` where it is not faithful.** Cheapest in bytes and worst for
    callers: it would break `examples/custom-pen/` and a published example
    resource, to prevent a picture some callers may want.
@@ -98,6 +107,14 @@ A fourth was considered and rejected before measuring: insetting the outline
 properly rather than insetting the box. Offsetting a polygon inward is a
 harder problem than clipping to one, and it would not help the diamond, whose
 error is the corners rather than the inset.
+
+**Half of that was wrong, and measuring is what caught it.** The corners were
+indeed the visible error, and clipping to the outline does fix them. But once
+it does, the inset becomes the *next* error rather than a non-issue: a diamond
+inscribed in an inset box stands 1.81 px inside the shipped 150 × 76 and
+nothing at all inside a 278 × 30. And offsetting is not the general problem
+here — a diamond inset perpendicular to its own edges is a similar diamond, so
+it is one scale factor. D5 has the arithmetic and the sweep.
 
 ## D4. The prototype, as it was measured
 
@@ -219,3 +236,69 @@ alternative: adding a separate `Pen` member instead — `hatchIn(points, color)`
 exact member list, so it is a change to a requirement rather than to a
 function. The optional sixth argument keeps `pen.hatch(x, y, w, h)` drawing
 exactly what it draws today.
+
+## D5. What shipped, and where it departs from D4
+
+D4 is the artifact that produced D2's table and is left as it stood. What
+shipped is not that listing, and the differences are the point of this section:
+a design document that records only the prototype leaves the next reader
+unable to tell which decisions were taken and which were inherited.
+
+**Cost, measured on the built tree** — core 3497 → **3750** (+253), `./check`
+3006 → **3008**, `./server` 3519 → **3773** (+254), react unchanged. The 2 B on
+`./check` are not code: the built file is character-for-character the same
+program with some of esbuild's short names permuted, the entry never having
+hatched anything. 353 tests, no golden moved.
+
+**1. The crossing rule.** D4 reads the half-open interval from each edge's
+direction of travel — `t >= 0 && t < 1` — which reports every vertex exactly
+once. That is right where a line crosses through a vertex and wrong where it
+only touches one, and a single stray crossing pairs the whole line up wrongly.
+Shipped instead: a crossing counts when the line falls between the edge's two
+ends taken low to high, `(c >= ca) !== (c >= cb)`, which is half-open at the
+lower end whichever way the edge runs. A test on a notched clip fails by
+**20.2 px** under D4's rule — the span stops at the notch's inner corner with
+its true exit dropped. The same comparison is false when both ends are equal,
+so it also settles an edge lying along the hatch, which D4 guarded separately
+with `if (d && …)`.
+
+**2. The inset.** D4 inherits `draw`'s existing arithmetic: the box is inset by
+`HATCH_INSET` and the outline inscribed in what is left. That is a perpendicular
+inset only on a box. Measured as ink-to-outline distance over 5566 sizes from
+60 × 30 to 300 × 120:
+
+| shape | D4's inset | shipped |
+|---|---|---|
+| `box` (untouched arm) | 3.40 px min | 3.40 px min |
+| `pill` | 1.85 px min, 3.31 median | unchanged — see below |
+| `diamond` | **0.00 px** min, 1.54 median | **3.21 px** min, 3.54 median |
+
+The diamond's failure is not exotic: 1.81 px on the 150 × 76 this repository
+ships, and zero — ink lying on the outline — at 278 × 30. A diamond inset
+properly is a similar diamond, so scaling about the centre is exact:
+`s = 1 - HATCH_INSET · hypot(a, b) / (a · b)`, clamped at 0 so a shape too small
+to hold the inset shades nothing rather than a mirrored sliver of itself.
+
+The pill is left inscribed in the inset box, deliberately. An ellipse offset by
+a constant is a curve of higher degree than an ellipse, and the worst measured
+case is 1.85 px at an aspect of 8.5:1 — half a px of daylight between strokes
+1 and 1.6 px wide, against a 3.31 px median. Buying the last half-pixel costs
+more than the fault is worth.
+
+**3. Points, not a shape name.** D4's sixth argument is a shape *name*, so an
+arbitrary outline has no way in and `raw` cannot shade inside what it traced.
+D4 priced the alternative as a new `Pen` member, which `api.test.ts` holds to
+an exact list and the requirement names — a change to the closed surface. The
+third option neither considered: make the sixth argument the *points*. It costs
+no name, `draw` computes them anyway, and `pen.hatch(x, y, w, h)` still draws
+exactly what it drew. Verified by rendering a ten-point concave star through
+`raw` and its own outline.
+
+**Declined: a minimum span length.** Where a ruled line grazes a shape the two
+crossings are close together and the stroke is nearly a dot. Priced against the
+input it really catches, it is a phantom: across the same 5566 sizes the *box*
+arm — untouched, and the reference's own behaviour — draws a span under 3 px at
+**every one of them**, because its first scanline is degenerate by construction
+and `sampler.seed7.svg.txt:76` opens the shipped hatching with a 0.58 px
+stroke. A guard would defend the two new shapes against something the shipped
+one has always done and nobody has reported.
