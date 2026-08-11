@@ -38,16 +38,24 @@ first scanline, a correct clip emits nothing there, and
 
 ## MODIFIED Requirements
 
+> Restated from the baseline as `arc-connectors` and `brace-annotations` leave
+> it, which is what is in the main spec today: both archived on 2026-08-11.
+> Only the hatching clause differs.
+
 ### Requirement: Hand-sketch primitive fidelity
-Every primitive SHALL reproduce the reference behavior exactly: double-pass
-strokes (second pass ×.75 width, opacities .92/.5, round caps), ~26 px
-segmentation with ×.4 endpoint damping, dash pattern `2 7` for dotted, corner
-overshoot `4 × rng()` per rect stroke end in the reference's stroke order,
-26-segment pills with radius jitter 3/2 at amplitude 1.4, closed-midpoint
-diamonds, 11 px-spaced hatching clipped to the rectangle it is given, per-line
-`<text>` labels with `dominant-baseline:middle` and inline fill/size style,
-and plain `rx=6` wash rects. All aesthetic constants SHALL live as named
-exports in `constants.ts` and SHALL NOT be runtime-configurable in this
+Every primitive the reference draws SHALL reproduce its behavior exactly:
+double-pass strokes (second pass ×.75 width, opacities .92/.5, round caps),
+~26 px segmentation with ×.4 endpoint damping, dash pattern `2 7` for dotted,
+corner overshoot `4 × rng()` per rect stroke end in the reference's stroke
+order, 26-segment pills with radius jitter 3/2 at amplitude 1.4,
+closed-midpoint diamonds, 11 px-spaced hatching clipped to the rectangle it is given, per-line `<text>`
+labels with `dominant-baseline:middle` and inline fill/size style, and plain
+`rx=6` wash rects. A primitive the port adds where the reference has none —
+`arc` is the first — SHALL be assembled from those same passes rather than
+from a second way of drawing, and `reference/renderer.html` SHALL NOT be
+edited to acquire it: it is the ground truth the port is measured against, and
+a target that moves measures nothing. All aesthetic constants SHALL live as
+named exports in `constants.ts` and SHALL NOT be runtime-configurable in this
 release.
 
 #### Scenario: Double-stroke structure
@@ -57,3 +65,11 @@ release.
 #### Scenario: Dotted stays dotted only on the shaft
 - **WHEN** `arrow()` renders with `dotted: true`
 - **THEN** the shaft paths carry `stroke-dasharray="2 7"` and the two arrowhead strokes carry none
+
+#### Scenario: A primitive the reference does not have
+- **WHEN** `arc()` renders
+- **THEN** it appends the same two jittered `<path>` elements every other primitive appends
+
+#### Scenario: Adding a primitive moves nothing already drawn
+- **WHEN** a diagram that calls no arc is rendered by a port that has one
+- **THEN** it still serializes byte-identical to the golden generated from the reference, since the new code draws from the seeded sequence only when it is invoked

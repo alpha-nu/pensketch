@@ -36,14 +36,21 @@ image — is authoritative about whether text fits.
 - **THEN** `render_png`'s description says the font is a stand-in and points at `check_diagram` for questions of text fit
 
 ### Requirement: Image output is bounded
-`render_png` SHALL default to a scale of 1, SHALL cap the rendered pixel
+`render_png` SHALL default to a scale of 2, SHALL cap the rendered pixel
 dimensions, and SHALL refuse a request that exceeds the cap rather than
 returning it. Images are base64-encoded into the caller's context, so an
-unbounded one costs the caller the very budget the tool exists to serve.
+unbounded one costs the caller the very budget the tool exists to serve — but
+a scale of 1 renders a diagram whose labels are the first thing to become
+unreadable, and an image a caller cannot read costs that budget for nothing.
+The default SHALL be the one the tool's own description states.
 
 #### Scenario: An oversized request is refused
 - **WHEN** a caller asks for a scale that would exceed the dimension cap
 - **THEN** the tool returns an error naming the cap, and no image
+
+#### Scenario: The stated default is the real one
+- **WHEN** a caller reads the scale argument's description and omits the argument
+- **THEN** the image is rendered at the scale that description names
 
 ### Requirement: Tool descriptions state what the caller must do themselves
 Each tool's description SHALL state that coordinates are the caller's to
@@ -60,13 +67,19 @@ the diagrams this repository ships as examples, and the frozen constants. Each
 SHALL be read from its existing single source rather than restated, and a test
 SHALL assert the served bytes match that source.
 
+An example SHALL be served as an envelope carrying the diagram, the frame to
+draw it in, and what a reader needs to know about it — and its description
+SHALL say which of those fields are the tool's arguments. The envelope is not
+itself an argument, and a description that invites it to be passed as one is
+wrong in the direction that costs a caller a wasted call.
+
 #### Scenario: A resource cannot drift from its source
 - **WHEN** the agent-facing spec file changes and the served resource is not updated
 - **THEN** the test comparing them fails
 
 #### Scenario: Examples are served as data
 - **WHEN** an example resource is read
-- **THEN** it yields a diagram object that `render_diagram` accepts unchanged
+- **THEN** its `diagram` field is a diagram `render_diagram` accepts unchanged, and its `viewBox` is the frame to pass beside it
 
 ### Requirement: Rendering needs no browser
 The server SHALL produce SVG through `@pensketch/core/server` rather than a
@@ -126,4 +139,38 @@ not a way around it.
 #### Scenario: Checking, not fixing
 - **WHEN** `check_diagram` finds a collision
 - **THEN** it reports it, and no tool offers replacement coordinates
+
+### Requirement: The tool boundary refuses what it cannot carry
+Every tool's arguments SHALL be validated strictly **at their top level**: a
+key the tool does not declare SHALL be refused, naming that key, rather than
+accepted and discarded. This SHALL apply to the diagram argument and to the
+arguments beside it, and SHALL include `raw`, which the server does not accept
+because it holds functions that JSON cannot carry.
+
+It SHALL NOT extend to the fields inside a node, an edge, a brace or a note.
+Those are
+described by `pensketch://schema`, which the server publishes and which
+forbids extras at every level, and restating them at the boundary would be a
+second source of truth for a shape that already has one. A caller that
+misspells a member field therefore still gets a drawing missing that field's
+contribution — the same defect this requirement fixes one level up — and the
+schema is what catches it.
+
+The declared top-level keys SHALL be exactly the diagram's own arrays, so that
+a field the data model gains and the boundary does not is a refusal a caller
+reads rather than a key the server drops. A test SHALL hold the tool's
+declared shape to the published schema's top level, so forgetting one is a
+failing build rather than a diagram that draws short.
+
+#### Scenario: An unrecognised top-level key is named
+- **WHEN** a diagram argument carries a key the tool does not declare
+- **THEN** the call is refused with a message naming that key and the fields it should have used
+
+#### Scenario: A member field is not checked here
+- **WHEN** a node, edge, brace or note carries a misspelled field
+- **THEN** the boundary accepts it and `pensketch://schema` is what rejects it
+
+#### Scenario: A new diagram array cannot be forgotten
+- **WHEN** the data model gains a top-level array and the tool's shape is not taught it
+- **THEN** the test holding the two together fails, rather than the server silently discarding the field
 

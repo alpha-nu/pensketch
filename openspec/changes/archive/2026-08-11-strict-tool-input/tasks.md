@@ -36,10 +36,21 @@ an earlier fix for anyone downstream.
 - [x] 2.1 A changeset: a **minor** for `@pensketch/mcp`, saying plainly that
       input which used to be accepted is now refused, and why that is the fix
       rather than the regression
-- [ ] 2.2 **OWNER**: after the batched release, send a diagram with a
+- [x] 2.2 **OWNER**: after the batched release, send a diagram with a
       misspelled field through a real client and read the error the way an
       agent would. There is no dispatch of its own here: the changeset waits
       with the others until all three changes are implemented
+
+      Read against the published `@pensketch/mcp@0.2.0`, over stdio. Sending
+      `{ noeds: [], edges: [] }` comes back as an error rather than a drawing:
+
+      > Input validation error: Invalid arguments for tool render_diagram:
+      > diagram: A diagram has no field "noeds". It takes nodes, edges, braces
+      > and notes; read pensketch://schema for the fields inside each.
+
+      It names the key the caller typed, lists the fields that exist, and says
+      where to look for what goes inside them — which is what this change was
+      for. Before it, that diagram drew an empty picture and said nothing
 
 Gate: all verification commands green, `openspec validate strict-tool-input
 --strict` green, and no golden or generated artefact moved — this changes what

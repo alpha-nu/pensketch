@@ -11,7 +11,7 @@
 the `hatch` JSDoc, the README field table and `docs/agents.md` to describe the
 box rather than "the interior", and `examples/react/src/incident.ts` codes
 around it (`shape === 'box' && i < stage`). So a reader is told. But
-`openspec/specs/core-renderer/spec.md:58` still says only "11 px-spaced
+`openspec/specs/core-renderer/spec.md:72` still says only "11 px-spaced
 clipped hatching", which does not say clipped to what — and a sentence in a
 README is not what this repository holds itself to. Four documents describing
 a behaviour no requirement states is exactly the drift this project polices.
