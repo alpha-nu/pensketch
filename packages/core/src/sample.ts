@@ -142,19 +142,17 @@ export function bowPoints(from: Point, to: Point, bow: number): Point[] {
  * the same reading. So `l` sweeps on to -3 * PI / 2 instead of turning back at
  * PI / 2, and `b` runs from PI down to 0.
  *
- * The `r` row shares its anchors and its reach with the loop drawn by hand in
- * `examples/state-machine`, which leaves [250, 184], reaches x = 310 and
- * returns to [250, 208] off a side at x = 250 whose middle is y = 196. That
- * drawing is where `LOOP_OUT` and `LOOP_SPAN` got their values, and it is the
- * only evidence those defaults look right: the two numbers on their own say
- * nothing about how a loop reads.
- *
- * The curve between those points is not the same, and the difference is
- * visible. Measured across at x = 280, where the hand-drawn loop is widest, it
- * spans 48 px against this one's 21: it was placed point by point to look like
- * a loop, where a half ellipse is widest at its anchors and tapers to the tip.
- * Whichever reads better is a question for the drawing that replaces it, not
- * for this file.
+ * A half ellipse is widest at its anchors and tapers to the tip, so the loop's
+ * extent along the side is exactly `span` and never more. That is worth saying
+ * because a loop placed point by point is not like that - the freehand one
+ * `examples/state-machine` used to draw, before this function replaced it, ran
+ * [250, 184] to [250, 208] and bulged to 48 px across at its widest, twice the
+ * 24 its anchors were apart. `LOOP_OUT` and `LOOP_SPAN` were read off that
+ * drawing as 60 and 24, which kept its anchors and its reach and lost the
+ * bulge, and 60 deep on 24 wide is a spike rather than a loop. They are 30 and
+ * 40 now. The reasoning belongs with the constants; what belongs here is why a
+ * pair of numbers taken off a freehand loop does not survive the trip: this
+ * curve cannot bulge, so `span` has to carry the width the bulge used to.
  */
 export function loopPoints(
   mid: Point,

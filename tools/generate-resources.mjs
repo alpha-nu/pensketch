@@ -29,22 +29,23 @@ if (examples.length !== KEYS.size) {
 
 const TITLES = {
   pipeline: 'A continuous integration pipeline',
-  lifecycle: 'An order lifecycle, with a self-transition drawn through raw',
+  lifecycle: 'An order lifecycle, with a self-transition on payment pending',
   oauth: 'The OAuth 2.0 authorization code flow, in four lanes',
-  atm: 'An ATM as a state machine, branching on a decision',
+  atm: 'An ATM as a state machine, with a self-transition and a bowed pair',
 };
 
 // What each diagram draws with `raw`, in the words a caller needs, because
 // what is served has had `raw` taken out of it. Saying nothing would hand an
-// agent a picture missing a piece with no way to know a piece was missing -
-// and these are the two diagrams whose most interesting stroke is the one
-// that cannot travel. Keyed by example, and required: a diagram that grows a
-// `raw` without an entry here fails the build rather than serving silently.
-const RAW_DRAWS = {
-  lifecycle:
-    'a self-transition on "payment pending" - the "retry x3" loop - because an edge joins two different nodes and cannot return to the one it left',
-  atm: 'a self-transition on "awaiting PIN" - the keypad loop labelled "digit entered" - because an edge joins two different nodes and cannot return to the one it left',
-};
+// agent a picture missing a piece with no way to know a piece was missing.
+// Keyed by example, and required: a diagram that grows a `raw` without an
+// entry here fails the build rather than serving silently.
+//
+// Empty, and that is the point. Both entries described the same thing - a
+// self-transition drawn by hand, because an edge joined two different nodes
+// and could not return to the one it left. The data model says it now, both
+// diagrams say it in data, and every served example is a whole picture. The
+// mechanism stays: the next thing `raw` has to draw will need disclosing too.
+const RAW_DRAWS = {};
 
 const undisclosed = examples.filter(
   ({ key, diagram }) => diagram.raw && !RAW_DRAWS[key],

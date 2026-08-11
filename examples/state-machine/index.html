@@ -1,22 +1,27 @@
 <!DOCTYPE html>
 <!--
-  pensketch - a state machine that branches, and one loop it cannot say.
+  pensketch - a state machine that branches, and the two curves that finish it.
 
   An ATM is the shape most state machines are: a spine of states, one decision
   that splits the flow, and an exception path that goes back the way it came.
-  Everything here is data - the diamond, the dotted retry routed down the left
-  margin, the two pill terminals - except the keypad loop.
+  Every stroke here is data - the diamond, the dotted retry routed down the
+  left margin, the two pill terminals, the keypad loop, and the pair of arrows
+  between "select transaction" and "dispensing cash" that would otherwise be
+  drawn one on top of the other.
 
-  A pensketch edge joins two *different* nodes. "Another digit, stay in
-  awaiting PIN" cannot be said in the data model, by design, so it is drawn
-  with `raw`: a callback handed the same pen mid-sequence, so the arc wobbles
-  like the rest of the picture rather than looking pasted on.
+  The keypad loop is a self-transition: `pin` named at both ends, on the same
+  side, with no `out` and no `span`. The defaults draw it, which is the point -
+  30 out and 40 apart is a loop on a box this size, and a caller who cannot see
+  the picture should not have to discover that by rendering one.
 
-  That has a consequence worth knowing. `raw` holds functions, so it cannot
-  cross a JSON boundary - the schema rejects it, `check` cannot see it, and
-  the copy `@pensketch/mcp` serves has it stripped. The seven points below are
-  verified by eye. Everything else in this file is verified by `npm run
-  diagrams`.
+  The pair below it is `bow`. Two edges between the same two nodes run down the
+  same line, and one line where the author drew two is a defect a caller
+  cannot see: `check` reports it as `edge-overlap`. A bow pushes each off the
+  chord to the right of its own direction of travel, so a transition and its
+  reverse separate without either needing a corner.
+
+  Every stroke in this file is verified by `npm run diagrams`, because there is
+  no longer anything in it that `check` cannot see.
 
   Two things have to happen before this page shows anything:
 
@@ -40,7 +45,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pensketch - a state machine that branches</title>
+<title>pensketch - a state machine that branches, and two curves</title>
 <style>
 /* Page chrome. The theming below this block is the documented snippet. */
 :root { color-scheme: light dark; }
@@ -90,6 +95,12 @@ draw(document.getElementById('atm'), {
   ],
   edges: [
     { from: ['idle', 'b'],   to: ['pin', 't'],    label: 'card inserted', lx: 170, ly: 131, anchor: 'start' },
+
+    // Another digit, stay where you are: the same node and the same side named
+    // at both ends, and nothing else. The loop reaches 30 px past the side and
+    // its anchors sit 40 apart, both from the defaults.
+    { from: ['pin', 'r'],    to: ['pin', 'r'],    label: 'digit entered', lx: 292, ly: 196, anchor: 'start' },
+
     { from: ['pin', 'b'],    to: ['verify', 't'], label: 'PIN entered',   lx: 170, ly: 261, anchor: 'start' },
     { from: ['verify', 'b'], to: ['menu', 't'],   label: 'valid',         lx: 170, ly: 432, anchor: 'start' },
     { from: ['verify', 'r'], to: ['retain', 'l'], label: '3 failures',    lx: 340, ly: 334, anchor: 'start' },
@@ -100,24 +111,17 @@ draw(document.getElementById('atm'), {
     { from: ['verify', 'l'], to: ['pin', 'l'], via: [[25, 347], [25, 196]],
       dotted: true, label: 'invalid', lx: 40, ly: 271, anchor: 'start' },
 
-    { from: ['menu', 'r'],  to: ['cash', 'l'],  label: 'withdraw',     lx: 292, ly: 483, anchor: 'start' },
+    // A transition and its reverse, between the same two nodes and the same
+    // two anchors. Drawn straight they are one line with two arrowheads, which
+    // is what `edge-overlap` warns about. `bow` is measured to the right of
+    // each arrow's own direction of travel, so the same positive number sends
+    // one below the chord and the other above it - no corner on either.
+    { from: ['menu', 'r'],  to: ['cash', 'l'],  label: 'withdraw',     lx: 320, ly: 534, bow: 18 },
+    { from: ['cash', 'l'],  to: ['menu', 'r'],  label: 'another',      lx: 320, ly: 458, bow: 18 },
+
     { from: ['cash', 't'],  to: ['eject', 'b'], label: 'cash taken',   lx: 500, ly: 290, anchor: 'start' },
     { from: ['eject', 't'], to: ['idle', 'r'],  label: 'card removed', lx: 326, ly: 53,  anchor: 'start',
       via: [[485, 66]] },
-  ],
-  raw: [
-    // The self-transition the data model has no word for: another digit, stay
-    // where you are.
-    (p) => {
-      // Seven points, not four. `stroke` jitters what it is handed and
-      // interpolates nothing between, so too few points read as a beak
-      // rather than an arc.
-      p.arrow([
-        [250, 184], [280, 172], [302, 180], [310, 196],
-        [302, 212], [280, 220], [250, 208],
-      ]);
-      p.label(326, 196, ['digit', 'entered'], { size: 12.5, anchor: 'start' });
-    },
   ],
 });
 </script>

@@ -209,30 +209,53 @@ that lifts a documented impossibility and leaves every picture looking the
 same has told nobody. Both are diagrams first — a shape that appears because
 the picture needs it, never a picture built around a shape.
 
-- [ ] 6.1 `examples/custom-pen/` — the lifecycle retry loop becomes data. The
+- [x] 6.1 `examples/custom-pen/` — the lifecycle retry loop becomes data. The
       page keeps a `raw` block only if it still demonstrates something the
       data model cannot say; if it does not, the folder's reason for existing
       is restated in its comment rather than left implied
-- [ ] 6.2 `examples/state-machine/` — the keypad loop becomes data
-- [ ] 6.3 Both `rawOmitted` disclosures disappear with the callbacks they
+- [x] 6.2 `examples/state-machine/` — the keypad loop becomes data
+- [x] 6.3 Both `rawOmitted` disclosures disappear with the callbacks they
       described, and the served examples become whole pictures
-- [ ] 6.4 A bowed pair earns its place in a shipped example. `edge-overlap`
+- [x] 6.4 A bowed pair earns its place in a shipped example. `edge-overlap`
       exists because two connectors between one pair draw one line and look
       deliberate; a reader should meet the fix in a diagram rather than in a
       rule. The state machine is the likely home — a transition and its
       reverse between the same two states is the shape that wanted this
-- [ ] 6.5 The self-transitions from 6.1 and 6.2 are read as a reader would
+- [x] 6.5 The self-transitions from 6.1 and 6.2 are read as a reader would
       read them: is the loop where a hand would have drawn it, is its label
       clear of the arc, does the picture look like someone meant it. `out` and
       `span` are the caller's numbers, so the defaults being reasonable is a
       claim only a drawing can settle
-- [ ] 6.6 `npm run resources` — the examples' entries are what move, and the
+
+      **The drawing settled it against them. `LOOP_OUT` and `LOOP_SPAN` move
+      from 60 and 24 to 30 and 40.** At 60 out and 24 apart the arc is a dart —
+      two and a half times as deep as it is wide, reading as a spike growing
+      out of the node's own outline rather than as a loop. Rendered at six
+      spans from 24 to 64, and then at six `out`/`span` pairs on a right side
+      and on a top, the shape turns on the ratio: far below half, a shallow
+      dome; far above one, a spike. 30 against 40 reads as a loop on both, and
+      40 fits inside the 46 px height of the box proportion this project's own
+      reference recommends, so a loop hanging off a left or right side keeps
+      its anchors on the side rather than past the corners.
+
+      The old pair was not arbitrary, and its provenance is what failed. 60 and
+      24 were read off the state-machine example's freehand loop, seven points
+      placed by eye — but a circular arc through the same two anchors is not
+      that shape. A freehand loop bulges past its anchors; this one cannot, its
+      height being exactly `span`. The numbers carried that drawing's anchors
+      and lost its proportions. Nothing but a render could have caught it: no
+      test, no rule and no budget has an opinion about whether a curve looks
+      like a loop, and group 2 had no example drawn with it to look at. That is
+      the argument for this task sitting at the end rather than beside the
+      constants — and the argument for it being a real gate rather than a
+      formality, since it is the only one here whose instrument is an eye
+- [x] 6.6 `npm run resources` — the examples' entries are what move, and the
       diff is reviewed rather than accepted. Not goldens: there are none for
       the examples. The two that exist are the reference's own fixtures,
       which no example can reach
-- [ ] 6.7 A changeset naming the minor, and saying plainly that a documented
+- [x] 6.7 A changeset naming the minor, and saying plainly that a documented
       impossibility is now possible
-- [ ] 6.8 The README hero shows none of this either, and it is the first
+- [x] 6.8 The README hero shows none of this either, and it is the first
       drawing anyone sees. Its pass is written into `brace-annotations` 4.7
       rather than performed here, so that one render carries both changes'
       shapes: the release is batched and no version ships between the two, the

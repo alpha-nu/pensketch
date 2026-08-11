@@ -128,14 +128,14 @@ describe('edgePath', () => {
   // line it labels with no ink within 500px of the point.
   //
   // By hand: `a`'s right anchor is (200, 80), so the loop hangs off there,
-  // LOOP_SPAN 24 along the side and LOOP_OUT 60 out from it.
+  // LOOP_SPAN 40 along the side and LOOP_OUT 30 out from it.
   it('samples a self-transition into its loop, and none of its via', () => {
     const path = edgePath(
       { from: ['a', 'r'], to: ['a', 'r'], via: [[600, 600]] },
       BY_ID,
     ) as Point[];
-    expect(nth(path, 0)).toEqual([200, 68]);
-    expect(nth(path, path.length - 1)).toEqual([200, 92]);
+    expect(nth(path, 0)).toEqual([200, 60]);
+    expect(nth(path, path.length - 1)).toEqual([200, 100]);
     expect(Math.max(...path.map(([x]) => x))).toBeGreaterThan(200);
     expect(path).not.toContainEqual([600, 600]);
   });

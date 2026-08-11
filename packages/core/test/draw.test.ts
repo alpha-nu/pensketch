@@ -652,7 +652,10 @@ describe('draw() self-transitions', () => {
     };
     // Both endpoints carry jitter, so the gap between them is good to the sum
     // of their two bounds and no better. Without the second case a renderer
-    // that ignored `span` entirely would pass the first.
+    // that ignored `span` entirely would pass the first - which is why the
+    // number it asks for has to be one `LOOP_SPAN` is not. It was 40 until
+    // `LOOP_SPAN` became 40, at which point this test passed with `span` read
+    // and with `span` ignored alike, and said so in neither.
     expect(separation({ from: ['a', 'r'], to: ['a', 'r'] })).toBeGreaterThan(
       LOOP_SPAN - 1.82,
     );
@@ -660,11 +663,11 @@ describe('draw() self-transitions', () => {
       LOOP_SPAN + 1.82,
     );
     expect(
-      separation({ from: ['a', 'r'], to: ['a', 'r'], span: 40 }),
-    ).toBeGreaterThan(40 - 1.82);
+      separation({ from: ['a', 'r'], to: ['a', 'r'], span: 64 }),
+    ).toBeGreaterThan(64 - 1.82);
     expect(
-      separation({ from: ['a', 'r'], to: ['a', 'r'], span: 40 }),
-    ).toBeLessThan(40 + 1.82);
+      separation({ from: ['a', 'r'], to: ['a', 'r'], span: 64 }),
+    ).toBeLessThan(64 + 1.82);
   });
 
   it("projects LOOP_OUT beyond the side, and out is the caller's to change", () => {
@@ -763,9 +766,11 @@ describe('draw() self-transitions', () => {
     };
     const both: DiagramEdge = { from: ['a', 'r'], to: ['a', 'r'] };
 
-    expect(reach(both)).toBeGreaterThan(50);
+    // Against the constants rather than against numbers copied out of them,
+    // so that moving a default cannot quietly stop this asserting anything.
+    expect(reach(both)).toBeGreaterThan(LOOP_OUT / 2);
     expect(reach({ ...both, out: 0 })).toBeLessThan(2);
-    expect(apart(both)).toBeGreaterThan(20);
+    expect(apart(both)).toBeGreaterThan(LOOP_SPAN / 2);
     expect(apart({ ...both, span: 0 })).toBeLessThan(3);
   });
 

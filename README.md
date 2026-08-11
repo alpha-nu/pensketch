@@ -116,8 +116,8 @@ obstacle.
 |---|---|---|---|
 | `from` | `[string, Side]` | required | The node to leave, and which side to leave from. |
 | `to` | `[string, Side]` | required | The node to reach, and which side the arrowhead lands on. |
-| `out` | `number` | `60` | Self-transitions only: how far the loop projects beyond its side. |
-| `span` | `number` | `24` | Self-transitions only: how far apart the loop's two anchors sit along that side. |
+| `out` | `number` | `30` | Self-transitions only: how far the loop projects beyond its side. |
+| `span` | `number` | `40` | Self-transitions only: how far apart the loop's two anchors sit along that side. |
 | `via` | `Point[]` | none | Corner points between the two anchors. `draw` throws when corners are given with `bow`, and on a self-transition, whose path its side, `out` and `span` already settle. An empty array names no corner and is accepted anywhere. |
 | `bow` | `number` | `0` | Bow the arrow off the straight line between its anchors, in px. Positive is to the right of travel, so an edge and its reverse bow apart rather than overlapping. Refused alongside corners in `via`, on a self-transition, and for a value that is not a finite number. |
 | `dotted` | `boolean` | `false` | Dash the line and recolor it, and its label, to `--ps-accent`. |
@@ -283,7 +283,8 @@ root provides.
 | Folder | Shows | Run |
 |---|---|---|
 | `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, and a dotted edge back to the start. | `npx serve .`, then open `/examples/vanilla/` |
-| `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, and the self-transition the data model has no word for drawn through `raw` — plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
+| `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, and a retry that stays where it is — a self-transition sized by `out` and `span` — plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
+| `examples/state-machine/` | **An ATM.** A decision that splits the flow, a dotted retry routed back down the left margin, a keypad loop at the default size, and a transition and its reverse bowed apart rather than drawn on one line. | `npx serve .`, then open `/examples/state-machine/` |
 | `examples/react/` | **The OAuth 2.0 authorization code flow.** Four lanes, seven steps, and a seed control: same data, a different drawing of it, on demand. | `cd examples/react && npm install && npm run dev` |
 
 ## Generating diagrams programmatically

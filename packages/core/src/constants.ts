@@ -84,25 +84,34 @@ export const EDGE_SIZE = 12.5;
  * the edge does not say.
  *
  * A starting point rather than a computed value: nothing here measures a node
- * to decide how far its loop should reach, because that would be layout. Both
- * this and `LOOP_SPAN` are what the state-machine example's hand-drawn loop
- * used - 60 px out from a 190 px box - which is a drawing someone looked at
- * and kept, rather than a number chosen at a desk. A caller whose node is much
- * smaller or much busier will want their own.
+ * to decide how far its loop should reach, because that would be layout. It is
+ * three quarters of `LOOP_SPAN`, and the ratio is what carries the shape: far
+ * below half of it the arc flattens into a dome, far above the whole of it the
+ * arc closes into a spike growing out of the node's own outline.
+ *
+ * It was 60, against a `LOOP_SPAN` of 24, both read off the state-machine
+ * example's hand-drawn loop - seven points placed by eye. A circular arc
+ * through the same two anchors is not that shape: a freehand loop bulges past
+ * its anchors, and this one cannot, its height being exactly `span`. So the
+ * pair kept that drawing's anchors, lost its proportions, and drew a dart.
+ * Corrected against the drawing rather than the arithmetic, which is the only
+ * thing that can settle a number like this. A caller whose node is much
+ * smaller or much busier will still want their own.
  */
-export const LOOP_OUT = 60;
+export const LOOP_OUT = 30;
 /**
  * How far apart a self-transition's two anchors sit along its side, in px,
  * when the edge does not say. Centred on the side's midpoint, so the loop
  * leaves above and returns below.
  *
- * The same drawing's 24 px, and the same caveat: on a side shorter than this
- * the anchors run past the corners, which is the caller's to notice rather
- * than the renderer's to correct. No rule measures a loop against the node it
- * hangs off, and none is coming: relating the two is the layout this library
- * does not do.
+ * Sized to fit inside the shorter side of the box this project's own diagrams
+ * settle on - about 150 x 46 - so a loop hanging off a left or right side
+ * keeps both its anchors on the side. On a side shorter than this they run
+ * past the corners, which is the caller's to notice rather than the renderer's
+ * to correct. No rule measures a loop against the node it hangs off, and none
+ * is coming: relating the two is the layout this library does not do.
  */
-export const LOOP_SPAN = 24;
+export const LOOP_SPAN = 40;
 /** Note font size in px. */
 export const NOTE_SIZE = 13;
 /** Jitter amplitude in px of a note's arrow. */

@@ -210,13 +210,19 @@ export interface DiagramEdge {
    */
   to: [string, Side];
   /**
-   * How far a self-transition projects beyond its side, in px. Default: `60`.
+   * How far a self-transition projects beyond its side, in px. Default: `30`.
    *
    * Ignored unless `from` and `to` name the same node and side. It is a
    * starting point rather than a fitted value: nothing measures the node to
    * decide how far its loop should reach, because that would be layout. On a
    * small or crowded node, choose your own: `check` reports a loop that leaves
    * the frame, and nothing reports one that lands on a neighbour.
+   *
+   * Keep it near three quarters of `span`, which is the ratio that makes the
+   * arc read as a loop. Far below half of `span` it flattens into a shallow
+   * dome; far above the whole of `span` it closes into a spike growing out of
+   * the node's own outline. No rule reports either — a shape nobody meant is
+   * still a shape, and this is the one number here you cannot check by eye.
    *
    * A loop is sampled into chords no longer than a straight line's, so the
    * number of points it costs grows with this. A value that is not a finite
@@ -226,7 +232,8 @@ export interface DiagramEdge {
   out?: number;
   /**
    * How far apart a self-transition's two anchors sit along its side, in px,
-   * centred on the side's midpoint. Default: `24`.
+   * centred on the side's midpoint. Default: `40`, which fits inside the 46 px
+   * height of the box proportion this project's own diagrams settle on.
    *
    * Ignored unless `from` and `to` name the same node and side. A value wider
    * than the side itself puts the anchors past the corners, which is the

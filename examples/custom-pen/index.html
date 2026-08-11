@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <!--
-  pensketch - a state machine, and the escape hatch that finishes it.
+  pensketch - an order lifecycle, and the pen underneath it.
 
-  An order lifecycle is nearly all data: states, transitions, and two terminal
-  states that stop the machine. One thing is not. pensketch edges connect two
-  different nodes, so a self-transition - "retry the payment, stay pending" -
-  has no way to be said in the data model, by design.
+  The whole picture is data: states, transitions, the two terminal states that
+  stop the machine, and the retry that stays where it is. That last one used
+  to be the exception. An edge joined two *different* nodes, so "retry the
+  payment, stay pending" could not be said at all, and this page drew it with
+  a `raw` callback and a hand-placed label. It is an edge now, naming the same
+  node and the same side at both ends, with `out` and `span` sizing the arc.
 
-  That is what `raw` is for. The callback is handed the very pen that drew
-  everything above it, mid-sequence, so the loop it draws wobbles like the
-  rest of the picture instead of looking pasted on.
+  What this folder is for is the second drawing. `pen()` hands you the drawing
+  surface with no diagram in front of it - the same surface `draw` uses, and
+  the same one a `raw` callback is handed mid-sequence - for the picture that
+  is not a diagram at all.
 
   Two things have to happen before this page shows anything:
 
@@ -33,7 +36,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pensketch - a state machine, and the raw pen</title>
+<title>pensketch - an order lifecycle, and the pen underneath it</title>
 <style>
 /* Page chrome. The theming below this block is the documented snippet. */
 :root { color-scheme: light dark; }
@@ -72,11 +75,6 @@ svg text {
 <script type="module">
 import { draw } from '../../packages/core/dist/index.js'; // a bare specifier needs a bundler, and this page has none
 
-// The pen writes colors as var() references, exactly as the rest of the
-// diagram does, so the raw loop below follows the page into dark mode too.
-const PEN = 'var(--ps-pen, #2B5B8A)';
-const MUTED = 'var(--ps-muted, #5A6572)';
-
 draw(document.getElementById('lifecycle'), {
   nodes: [
     { id: 'placed',    shape: 'pill', x: 40,  y: 90,  w: 140, h: 50, lines: ['placed'] },
@@ -90,6 +88,16 @@ draw(document.getElementById('lifecycle'), {
   ],
   edges: [
     { from: ['placed', 'r'],  to: ['pending', 'l'] },
+
+    // The self-transition: the same node and the same side, named twice. Its
+    // whole path is those two plus `out` and `span`, which is why a `via` or a
+    // `bow` on one is refused rather than combined. Both are set here rather
+    // than left to the 30 and 40 defaults: this side is 160 px of pill and a
+    // wider, shallower arch suits it, where the ATM's loop hangs off a 52 px
+    // side and takes the defaults as they come.
+    { from: ['pending', 't'], to: ['pending', 't'], out: 45, span: 80,
+      label: 'retry x3', lx: 330, ly: 30 },
+
     { from: ['pending', 'r'], to: ['paid', 'l'],      label: 'authorised', lx: 445, ly: 100 },
     { from: ['paid', 'r'],    to: ['shipped', 'l'],   label: 'dispatched', lx: 645, ly: 100 },
     { from: ['shipped', 'b'], to: ['delivered', 't'], label: 'signed for', lx: 765, ly: 172, anchor: 'start' },
@@ -98,13 +106,6 @@ draw(document.getElementById('lifecycle'), {
     { from: ['pending', 'b'], to: ['cancelled', 't'], dotted: true, label: 'expired',  lx: 345, ly: 172, anchor: 'start' },
     { from: ['paid', 'b'],    to: ['cancelled', 'r'], dotted: true, label: 'refunded', lx: 478, ly: 210, anchor: 'end',
       via: [[545, 225]] },
-  ],
-  raw: [
-    // The self-transition the data model has no word for.
-    (p) => {
-      p.arrow([[290, 90], [290, 45], [370, 45], [370, 88]], { color: PEN });
-      p.label(330, 32, 'retry x3', { size: 12, color: MUTED });
-    },
   ],
 }, { seed: 11 });
 </script>

@@ -103,8 +103,8 @@ type DiagramNode =
 interface DiagramEdge {
   from: [string, Side];    // node id + which side to leave
   to:   [string, Side];    // same node and same side = a self-transition
-  out?: number;            // loop only: how far it projects, default 60
-  span?: number;           // loop only: how far apart its anchors sit, default 24
+  out?: number;            // loop only: how far it projects, default 30
+  span?: number;           // loop only: how far apart its anchors sit, default 40
   via?: Point[];           // corners, used verbatim; never with bow, never on a
                            // loop, but [] is accepted anywhere
   bow?: number;            // px off the straight line, right of travel positive
@@ -159,8 +159,8 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |
 | `OVERSHOOT` | 4 | how far box corners overrun |
 | `HATCH_INSET` | 4 | hatching inset from the outline |
-| `LOOP_OUT` | 60 | how far a self-transition projects, when `out` is not given |
-| `LOOP_SPAN` | 24 | how far apart its two anchors sit, when `span` is not given |
+| `LOOP_OUT` | 30 | how far a self-transition projects, when `out` is not given |
+| `LOOP_SPAN` | 40 | how far apart its two anchors sit, when `span` is not given |
 | `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |
 | `SEED` | 1 | default seed |
 
@@ -170,10 +170,13 @@ Proportions that read well, from this project's own diagrams: a labelled box
 about **150 × 46**, rows about **80** apart, a group title needing about **30 px**
 of clear space at the top of its box.
 
-Those two do not fit together by default. A self-transition projects `out` px
-beyond the side it hangs off — 60, against the roughly 34 px of gap that rows
-80 apart leave between one box and the next. Hang a loop off a side that faces
-empty page, or lower `out` to fit the gap you have.
+A self-transition is sized to sit inside those. `span` 40 fits within the 46 a
+box is tall, so a loop on a left or right side keeps both anchors on the side
+rather than past its corners, and `out` 30 fits the roughly 34 px of gap that
+rows 80 apart leave. Change them together: `out` near three quarters of `span`
+reads as a loop, much less flattens it into a dome, and much more closes it
+into a spike growing out of the node's outline. Nothing reports either — it is
+the one number here that no rule can check for you.
 
 ## Errors you will hit, and what they mean
 
@@ -235,9 +238,10 @@ const OAUTH = {
 };
 ```
 
-Two more, complete and runnable, in [`examples/`](../examples/): a CI pipeline
-(`vanilla/`) and an order lifecycle whose self-transition is drawn through
-`raw` (`custom-pen/`).
+Three more, complete and runnable, in [`examples/`](../examples/): a CI
+pipeline (`vanilla/`), an order lifecycle whose retry is a self-transition
+(`custom-pen/`), and an ATM with a self-transition at the defaults and a
+transition and its reverse bowed apart (`state-machine/`).
 
 ## Checking your work
 
