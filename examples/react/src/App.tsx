@@ -33,8 +33,8 @@ export function App() {
       <h1>pensketch in React</h1>
       <p>
         An incident, and where it is right now. Three things in the picture are
-        derived from that: which stage is accented, which arrows have been
-        taken, and how far the bracket reaches.
+        derived from that: which stage is accented, which are shaded behind it,
+        and which arrows have been taken.
       </p>
 
       <fieldset>

@@ -182,7 +182,14 @@ interface ShapeNode extends NodeBox {
   size?: number;
   /** Stroke in `theme.pen` rather than `theme.ink`. Default: `false`. */
   accent?: boolean;
-  /** Shade the interior, inset 4 px, in `theme.pen`. Default: `false`. */
+  /**
+   * Shade the node with diagonal lines, inset 4 px, in `theme.pen`. Default:
+   * `false`.
+   *
+   * The shading follows the *box*, not the outline drawn round it, so on a
+   * pill or a diamond it reaches into the corners the box has and the shape
+   * does not.
+   */
   hatch?: boolean;
 }
 

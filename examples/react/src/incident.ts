@@ -5,13 +5,13 @@ import type { Diagram } from '@pensketch/core';
 // reason this is the React example. Three things about the picture depend on
 // how far the incident has got, and nothing else does:
 //
-//   the accented node    where it is right now
+//   the accented nodes   where it is right now - two of them at the end
+//   the shaded boxes     the stages already behind it
 //   the dotted edges     what has not happened - the steps ahead, and the two
 //                        paths nobody wants to take at all
-//   the bracket's reach  how long customers have been able to see it
 //
 // biome.json turns the formatter off for this file alone. Collapsed to one
-// field per line the table below is vertical noise; as a table you can read
+// field per line the tables below are vertical noise; as tables you can read
 // the layout straight off the page, which is most of the point of a diagram
 // being data.
 
@@ -20,90 +20,107 @@ import type { Diagram } from '@pensketch/core';
  * into four numbers - what `check` needs to run `out-of-bounds`. One string,
  * so the page and the checker cannot disagree about the frame.
  */
-export const VIEW_BOX = '0 0 990 270';
+export const VIEW_BOX = '0 0 1110 270';
 
-const X0 = 40;    // left edge of the first box, and where the brace starts
-const ROW = 130;  // top of every box
-const W = 150;    // 150 x 46 is the proportion this project's own diagrams
-const H = 46;     // settle on for a labelled box
+const W = 150;  // 150 x 46 is the proportion this project's own diagrams
+const H = 46;   // settle on for a labelled box
 
-// The five stages in order. Of the four numbers a box needs, `x` is the only
-// one that differs between them, so it is the only one written out.
-const STAGE_TABLE = [
-  { id: 'paged',    shape: 'pill', x: X0,  label: 'paged' },
-  { id: 'triage',   shape: 'box',  x: 230, label: 'triage' },
-  { id: 'mitigate', shape: 'box',  x: 420, label: 'mitigate' },
-  { id: 'verify',   shape: 'box',  x: 610, label: 'verify' },
-  { id: 'clear',    shape: 'pill', x: 800, label: 'all clear' },
+// The stages, in the order they happen. The spine stops at the decision,
+// because the last stage is two nodes rather than one - declaring it over and
+// writing it up are the same moment - and a flow that stops being sequential
+// is the reason this picture is not a row.
+//
+// The diamond is taller than the boxes and centred on the same line, so its
+// left and right anchors sit where theirs do.
+const SPINE = [
+  { id: 'paged',    shape: 'box',     x: 40,  y: 110, h: H,  label: 'paged' },
+  { id: 'triage',   shape: 'box',     x: 230, y: 110, h: H,  label: 'triage' },
+  { id: 'mitigate', shape: 'box',     x: 420, y: 110, h: H,  label: 'mitigate' },
+  { id: 'fixed',    shape: 'diamond', x: 610, y: 95,  h: 76, label: 'fixed?' },
+] as const;
+
+const OVER = [
+  { id: 'clear', shape: 'pill', x: 800, y: 40,  h: H, label: 'all clear' },
+  { id: 'post',  shape: 'box',  x: 800, y: 180, h: H, label: 'postmortem' },
 ] as const;
 
 /** The stages in order, for whatever control drives the picture. */
-export const STAGES = STAGE_TABLE.map(({ label }) => label);
+export const STAGES = [...SPINE.map(({ label }) => label), 'all clear'];
 
-// Customers stop seeing an incident when the fix is verified, not when
-// someone declares it over, so the brace stops at `verify` however far the
-// control is pushed.
-const LAST_AFFECTED = 3;
+const LAST = SPINE.length;
 
-// Two fields that are present or absent rather than true or false, so that a
+// Fields that are present or absent rather than true or false, so that a
 // diagram served as JSON carries what it draws and not a column of `false`.
 const accented = (on: boolean): { accent?: true } => (on ? { accent: true } : {});
 const unreached = (on: boolean): { dotted?: true } => (on ? { dotted: true } : {});
+// `hatch` shades the node's *box*, inset 4px, whatever outline is drawn round
+// it - so on the pill it escapes the ellipse and on the diamond it fills all
+// four corners the shape does not have. Only the spine's three boxes take it,
+// which is why the answered question keeps its plain outline. Nothing past the
+// diamond is ever shaded: the pair at the end is never behind you.
+const shaded = (on: boolean): { hatch?: true } => (on ? { hatch: true } : {});
 
 /**
  * The picture at one stage, `0` for freshly paged.
  *
  * Solid is what has happened. Everything else is dotted: the steps ahead, and
- * the escalation and the failed fix, which are drawn at every stage - they are
- * always possible - and dotted at every stage, because in this run neither
- * happened.
+ * the escalation and the failed fix, which are drawn at every stage because
+ * they are always possible and dotted at every stage, because in this run
+ * neither happened.
  */
 export function incident(stage: number): Diagram {
-  // The right edge of the furthest stage the brace covers. A fold rather than
-  // a lookup: the table above is the only place the layout is stated, and
-  // reading it back out arithmetically would be a second place to keep in step.
-  const spanEnd = STAGE_TABLE.reduce(
-    (x, s, i) => (i <= stage && i <= LAST_AFFECTED ? s.x + W : x),
-    X0 + W,
-  );
-
   return {
-    nodes: STAGE_TABLE.map(({ id, shape, x, label }, i) => ({
-      id, shape, x, y: ROW, w: W, h: H, lines: [label], ...accented(i === stage),
-    })),
+    nodes: [
+      ...SPINE.map(({ id, shape, x, y, h, label }, i) => ({
+        id, shape, x, y, w: W, h, lines: [label],
+        ...accented(i === stage), ...shaded(shape === 'box' && i < stage),
+      })),
+      ...OVER.map(({ id, shape, x, y, h, label }) => ({
+        id, shape, x, y, w: W, h, lines: [label], ...accented(stage === LAST),
+      })),
+    ],
     edges: [
       { from: ['paged',    'r'], to: ['triage',   'l'], ...unreached(stage < 1) },
       { from: ['triage',   'r'], to: ['mitigate', 'l'], ...unreached(stage < 2) },
-      { from: ['mitigate', 'r'], to: ['verify',   'l'], ...unreached(stage < 3) },
-      { from: ['verify',   'r'], to: ['clear',    'l'], ...unreached(stage < 4) },
+      { from: ['mitigate', 'r'], to: ['fixed',    'l'], ...unreached(stage < 3) },
+
+      // The fork. Both leave the same anchor and turn at the same corner, so
+      // the first 20px of the two is one line; `check` reports a pair drawn on
+      // top of one another the *whole* way, and these part company.
+      { from: ['fixed', 'r'], to: ['clear', 'l'], via: [[780, 133], [780, 63]],
+        label: 'yes', lx: 766, ly: 88, anchor: 'end', ...unreached(stage < LAST) },
+      { from: ['fixed', 'r'], to: ['post',  'l'], via: [[780, 133], [780, 203]],
+        ...unreached(stage < LAST) },
 
       // A self-transition at the defaults: the same node and the same side
       // named twice. `span` 40 puts both anchors well inside the 150 px side
       // it hangs off, and `out` 30 projects into empty space below the row.
       { from: ['triage', 'b'], to: ['triage', 'b'],
-        dotted: true, label: 'escalate', lx: 305, ly: 224 },
+        dotted: true, label: 'escalate', lx: 305, ly: 204 },
 
-      // The way back when the fix did not hold. Bowed, because both anchors
-      // sit at y 176 - which is the line the two boxes' own bottom edges are
-      // drawn on, so straight this arrow vanishes into them. Nothing reports
-      // that: no rule compares an edge with a node's outline, and with the bow
-      // taken off `check` finds no fault at all. A render is what tells you.
-      { from: ['verify', 'b'], to: ['mitigate', 'b'], bow: -18,
-        dotted: true, label: 'still broken', lx: 590, ly: 210 },
+      // The way back when the answer is no. Bowed, because straight it would
+      // run along the bottom edge of the box it arrives at and vanish into it.
+      // Nothing reports that: no rule compares an edge with a node's outline,
+      // and with the bow taken off `check` finds no fault at all. A render is
+      // what tells you.
+      { from: ['fixed', 'b'], to: ['mitigate', 'b'], bow: -20,
+        dotted: true, label: 'no', lx: 588, ly: 210 },
     ],
     braces: [
-      // A bracket rather than a brace, because this one's span goes from 150
-      // px to 720 as the incident runs. A curly brace turns its corners at a
-      // fixed radius and draws its tip at another, so both keep their size at
-      // any width and only the two straight runs between them grow: it reads
-      // as a brace at 150 px and as an underline with a bump at 720. A
-      // bracket is three straight lines and looks the same at every width.
+      // A curly brace over the pair, and vertical, which is what lets it be
+      // curly at all: the corners turn at one fixed radius and the tip at
+      // another, so a brace keeps its shape only near the 150-220 px this
+      // project's other two are drawn at. Across the row it would have been an
+      // underline with a bump; down the side of the stacked pair it is 186.
       //
-      // Nothing measures what a bracket spans, so both ends and the label are
-      // this file's own numbers - including the midpoint the label sits over,
-      // which moves as the span grows.
-      { from: [X0, 112], to: [spanEnd, 112], depth: -20, kind: 'square',
-        lines: ['customers', 'affected'], lx: (X0 + spanEnd) / 2, ly: 62, anchor: 'middle' },
+      // Nothing measures what a brace spans, so both ends and the label are
+      // this file's own numbers.
+      // `depth` is measured to the right of travel and this span travels top
+      // to bottom, so right of travel is screen *left*: a positive depth would
+      // point the tip back into the pair and leave the arms facing the label,
+      // which is a brace drawn the wrong way round.
+      { from: [970, 40], to: [970, 226], depth: -26,
+        lines: ['when it', 'is over'], lx: 1006, ly: 133, anchor: 'start' },
     ],
   };
 }

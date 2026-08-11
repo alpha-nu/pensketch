@@ -106,7 +106,7 @@ type DiagramNode =
       lines?: string[];    // omit for an unlabelled shape
       size?: number;       // label font px, default 13.5
       accent?: boolean;    // stroke in --ps-pen instead of --ps-ink
-      hatch?: boolean };   // diagonal shading, inset 4px
+      hatch?: boolean };   // diagonal shading of the node's *box*, inset 4px
 
 interface DiagramEdge {
   from: [string, Side];    // node id + which side to leave
@@ -177,7 +177,7 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `WIDTH` | 1.6 | stroke width |
 | `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |
 | `OVERSHOOT` | 4 | how far box corners overrun |
-| `HATCH_INSET` | 4 | hatching inset from the outline |
+| `HATCH_INSET` | 4 | hatching inset from the node's box |
 | `LOOP_OUT` | 30 | how far a self-transition projects, when `out` is not given |
 | `LOOP_SPAN` | 40 | how far apart its two anchors sit, when `span` is not given |
 | `BRACE_DEPTH` | 26 | how far a brace's tip stands off its span, when `depth` is not given |
@@ -221,62 +221,76 @@ as though it were empty.
 
 ## A complete example
 
-An incident, drawn at the stage it has reached — five stages in a row, a
-self-transition at the defaults, a reverse bowed clear of the two box outlines
-it would otherwise be drawn along, and a bracket over the span customers can
-see.
-It is the whole of what [`examples/react/`](../examples/react/) draws, at one
-of the five stages its control can put it in; the page around it computes the
-`accent`, the `dotted` flags and the bracket's right-hand end from where the
-incident has got to, and nothing else.
+An incident, drawn at the stage it has reached — five stages, a decision that
+forks, a self-transition at the defaults, a reverse bowed clear of the outline
+it would otherwise be drawn along, and a brace over the pair of things that
+happen when it is over. It is the whole of what
+[`examples/react/`](../examples/react/) draws, at one of the five stages its
+control can put it in; the page around it computes the `accent`, the `hatch`
+and the `dotted` flags from where the incident has got to, and nothing else.
 
-Here `dotted` marks what has not happened — the two steps still ahead, and the
-escalation and the failed fix, which are drawn at every stage because they are
-always possible. Nothing in the renderer attaches that meaning to it; a
-diagram decides for itself what its dashes are for, and this one says so out
-loud in the file it lives in.
+Here `dotted` marks what has not happened — the three steps still ahead, and
+the escalation and the failed fix, which are drawn at every stage because they
+are always possible. `hatch` marks what is behind it. Nothing in the renderer
+attaches either meaning; a diagram decides for itself what its dashes and its
+shading are for, and this one says so out loud in the file it lives in.
 
 ```js
 const incident = {
   nodes: [
-    { id: 'paged',    shape: 'pill', x: 40,  y: 130, w: 150, h: 46, lines: ['paged'] },
-    { id: 'triage',   shape: 'box',  x: 230, y: 130, w: 150, h: 46, lines: ['triage'] },
-    { id: 'mitigate', shape: 'box',  x: 420, y: 130, w: 150, h: 46, lines: ['mitigate'], accent: true },
-    { id: 'verify',   shape: 'box',  x: 610, y: 130, w: 150, h: 46, lines: ['verify'] },
-    { id: 'clear',    shape: 'pill', x: 800, y: 130, w: 150, h: 46, lines: ['all clear'] },
+    // hatch shades the node's *box*, inset 4px, whatever outline is drawn
+    // round it, so on a pill or a diamond it reaches past the shape
+    { id: 'paged',    shape: 'box',     x: 40,  y: 110, w: 150, h: 46, lines: ['paged'],    hatch: true },
+    { id: 'triage',   shape: 'box',     x: 230, y: 110, w: 150, h: 46, lines: ['triage'],   hatch: true },
+    { id: 'mitigate', shape: 'box',     x: 420, y: 110, w: 150, h: 46, lines: ['mitigate'], accent: true },
+    // taller than the boxes and centred on the same line, so its left and
+    // right anchors sit where theirs do
+    { id: 'fixed',    shape: 'diamond', x: 610, y: 95,  w: 150, h: 76, lines: ['fixed?'] },
+    { id: 'clear',    shape: 'pill',    x: 800, y: 40,  w: 150, h: 46, lines: ['all clear'] },
+    { id: 'post',     shape: 'box',     x: 800, y: 180, w: 150, h: 46, lines: ['postmortem'] },
   ],
   edges: [
     { from: ['paged', 'r'],    to: ['triage', 'l'] },
     { from: ['triage', 'r'],   to: ['mitigate', 'l'] },
-    { from: ['mitigate', 'r'], to: ['verify', 'l'], dotted: true },
-    { from: ['verify', 'r'],   to: ['clear', 'l'],  dotted: true },
+    { from: ['mitigate', 'r'], to: ['fixed', 'l'], dotted: true },
+
+    // the fork. Both leave the same anchor and turn at the same corner, so
+    // their first 20px is one line; `edge-overlap` reports a pair drawn on top
+    // of one another the *whole* way, and these part company
+    { from: ['fixed', 'r'], to: ['clear', 'l'], via: [[780, 133], [780, 63]],
+      label: 'yes', lx: 766, ly: 88, anchor: 'end', dotted: true },
+    { from: ['fixed', 'r'], to: ['post', 'l'],  via: [[780, 133], [780, 203]], dotted: true },
 
     // a self-transition: the same node and the same side named twice. span 40
     // puts both anchors well inside the 150 px side it hangs off, and out 30
     // projects into empty space below the row
     { from: ['triage', 'b'], to: ['triage', 'b'],
-      dotted: true, label: 'escalate', lx: 305, ly: 224 },
+      dotted: true, label: 'escalate', lx: 305, ly: 204 },
 
-    // the way back when the fix did not hold. Both anchors sit at y 176,
-    // which is the line the two boxes' own bottom edges are drawn on, so
-    // straight this arrow vanishes into them. No rule compares an edge with a
-    // node's outline: with the bow taken off, `check` finds no fault at all
-    { from: ['verify', 'b'], to: ['mitigate', 'b'], bow: -18,
-      dotted: true, label: 'still broken', lx: 590, ly: 210 },
+    // the way back when the answer is no. Straight, this arrow would run along
+    // the bottom edge of the box it arrives at and vanish into it. No rule
+    // compares an edge with a node's outline: with the bow taken off, `check`
+    // finds no fault at all
+    { from: ['fixed', 'b'], to: ['mitigate', 'b'], bow: -20,
+      dotted: true, label: 'no', lx: 588, ly: 210 },
   ],
   braces: [
-    // A bracket, not a brace, because this span runs from 150 px to 720 as the
-    // incident does: a curly brace turns its corners at one fixed radius and
-    // its tip at another, so widening one grows nothing but the two straight
-    // runs between them, and a wide one reads as an underline with a bump.
-    // Three straight lines look the same at any width.
-    { from: [40, 112], to: [570, 112], depth: -20, kind: 'square',
-      lines: ['customers', 'affected'], lx: 305, ly: 62, anchor: 'middle' },
+    // Vertical, which is what lets it be curly. A brace turns its corners at
+    // one fixed radius and its tip at another, so widening one grows nothing
+    // but the two straight runs between them and a wide one reads as an
+    // underline with a bump. Down the side of the stacked pair this one is
+    // 186 px, near the 150-220 the rest of this project's braces are drawn at.
+    //
+    // depth is measured to the right of travel, and this span travels top to
+    // bottom, so right of travel is screen *left*: a positive depth here would
+    // point the tip back into the pair and leave the arms facing the label
+    { from: [970, 40], to: [970, 226], depth: -26,
+      lines: ['when it', 'is over'], lx: 1006, ly: 133, anchor: 'start' },
   ],
 };
 ```
 
-Drawn into `viewBox="0 0 990 270"`. Three more, complete and runnable, in
+Drawn into `viewBox="0 0 1110 270"`. Three more, complete and runnable, in
 [`examples/`](../examples/): a CI pipeline (`vanilla/`), an order lifecycle
 whose retry is a self-transition (`custom-pen/`), and an ATM with a
 self-transition at the defaults and a transition and its reverse bowed apart

@@ -63,8 +63,7 @@ const fromHtml = async (file) => {
 
 // Which stage the served copy of the React example is drawn at. The middle
 // one, where all three of the things the stage decides are visible at once:
-// an accented node with arrows both taken and untaken either side of it, and
-// a bracket part way to the width it finishes at.
+// an accented node, shaded stages behind it, and arrows both taken and untaken.
 const SERVED_STAGE = 2;
 
 // The React example draws a diagram computed from application state, so there

@@ -31,7 +31,7 @@ const TITLES = {
   pipeline: 'A continuous integration pipeline',
   lifecycle: 'An order lifecycle, with a self-transition on payment pending',
   incident:
-    'An incident at the stage it has reached, with a bracket over the span customers can see',
+    'An incident at the stage it has reached, forking at a decision into the two things that end it',
   atm: 'An ATM as a state machine, with a self-transition and a bowed pair',
 };
 

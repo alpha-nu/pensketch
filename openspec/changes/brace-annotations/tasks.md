@@ -186,8 +186,8 @@ Neither is in the state machine, which already carries this release's other two
 shapes and would have become a gallery. Nothing went into the React example
 either: it drew an OAuth flow in four lanes at the time, which leave no clear
 column, and a brace crossing a connector to reach one would have been a shape
-the picture did not want. That example has since been replaced by one whose
-span grows, and it carries a bracket.
+the picture did not want. That example has since been replaced by one
+that forks at a decision, and it carries a brace down the side of the pair.
 
 The hero lost its note. "same seed, same bytes" was a claim about every stroke
 in the drawing with a pointer aiming it at one box, and a brace over the whole

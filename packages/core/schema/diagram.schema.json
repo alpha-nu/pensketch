@@ -133,7 +133,7 @@
             },
             "hatch": {
               "type": "boolean",
-              "description": "Shade the interior, inset 4 px, in `theme.pen`. Default: `false`."
+              "description": "Shade the node with diagonal lines, inset 4 px, in `theme.pen`. Default: `false`.\n\nThe shading follows the *box*, not the outline drawn round it, so on a pill or a diamond it reaches into the corners the box has and the shape does not."
             }
           },
           "required": [
