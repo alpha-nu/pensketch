@@ -69,9 +69,17 @@ belongs in the same requirement, which this change is already restating.
   regeneration. It runs `changeset publish` directly and pushes tags with
   `git push origin --tags`.
 
+- **The one collision that clause creates is resolved with it.**
+  `@pensketch/react` peers on any `0.x` of core, written when nothing said a
+  core minor could remove API. The range stays — a semver range cannot say
+  "compatible until a name goes", and narrowing it would refuse every future
+  core minor automatically — but `react-bindings` now states that as a decision
+  rather than leaving it inherited, and names what actually holds the minors:
+  CI running the bindings suite against the core in the same tree.
+
 ## Impact
 
-- **Affected specs**: `repo-tooling`
+- **Affected specs**: `repo-tooling`, `react-bindings`
 - **Affected code**: `.github/workflows/{version,publish}.yml` added,
   `.github/workflows/release.yml` deleted, `CONTRIBUTING.md`.
 - **Requires an owner action on npmjs, and it is a cutover.** A trusted

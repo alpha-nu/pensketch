@@ -68,6 +68,21 @@ what keeps them clear of it: `release.yml` is still the trusted publisher on
       semver clause" — and two unarchived deltas restating one requirement is
       how a stale baseline deletes the other's work at archive time
 
+- [x] 2.5 The one place the new clause collides with an existing rule, resolved
+      in the same change so the clause never lands without its qualifier.
+      `react-bindings` peers on **any `0.x`** of core, which was written when
+      nothing said a core minor could remove API. It now can, so on paper the
+      bindings promise something the release rules permit core to break.
+
+      **The range stays**, and `react-bindings` says why rather than leaving it
+      inherited: a semver range cannot express "compatible until a name goes",
+      narrowing it would refuse every future core minor in advance — and
+      automatically, `onlyUpdatePeerDependentsWhenOutOfRange` bumping and
+      rewriting the bindings on each one — and what holds the minors is not the
+      range but CI, which runs the bindings suite against the core in the same
+      tree on every push. `manifest.test.ts`'s comment gains the same reasoning,
+      since that is where the next reader will look
+
 ## 3. The cutover
 
 **Blocking, and in this order.** A trusted publisher names one workflow

@@ -49,6 +49,14 @@ describe('the dependency shape', () => {
   // a caret range: a core minor must not drag these bindings to a new major
   // for a range rewrite that changes nothing. Wide, but not open-ended.
   //
+  // It stays wide even though a core minor may now remove a published name -
+  // which is what the release rules classify as a break. A range cannot say
+  // "compatible until a name goes", so narrowing it would refuse every future
+  // minor in advance against the chance that one of them removes something
+  // these bindings call. They call `draw` and `pen`, and CI runs this suite
+  // against the core in the same tree, so a removal that reached them fails in
+  // the commit that removed it rather than at a consumer's install.
+  //
   // `onlyUpdatePeerDependentsWhenOutOfRange` leaves it alone while core stays
   // inside it, which is why it still reads as written. The day core takes a
   // major, changesets rewrites it — and it rewrites by leading operator plus
