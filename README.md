@@ -377,7 +377,7 @@ else will keep.
 four worked examples as resources:
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.2.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.3.0
 ```
 
 `render_png` matters more than it sounds: an agent handed
