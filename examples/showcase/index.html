@@ -5,8 +5,9 @@
   A logical architecture in the usual notation: layers as groups, components
   as boxes, dependencies as arrows. What makes it the showcase is that it
   reaches for nearly the whole data model in one picture - all three drawn
-  shapes, `accent` and `hatch`, every kind of connector the model has, both
-  kinds of brace, and notes with pointers - without once reaching for `raw`.
+  shapes, `accent` and `hatch`, straight connectors, orthogonal ones, a
+  self-transition, both kinds of brace, and notes whose pointers bow - without
+  once reaching for `raw`.
 
   That last part is the point. `raw` is the escape hatch for what the data
   model has no word for, and this diagram needed no escape: it is plain data
@@ -138,12 +139,17 @@ svg text {
       { from: ['server', 'b'], to: ['markup', 't'] },
 
       { from: ['draw', 'r'], to: ['pen', 'l'] },
+      // The pen reaches for three things, so the three arrows are one fan:
+      // same anchor, same drop, and the same kind of line. The last of them
+      // aimed at `theme`'s *left* clipped the corner of the box between them
+      // by a pixel and a half - no rule compares an edge with a node's
+      // outline, so only a render says so - and the first fix for that was a
+      // bow. A bow among two straight lines is three styles for one
+      // relationship. Aiming at the top anchor instead misses the corner
+      // outright and leaves the fan symmetric: -260, 0, +260 across, 58 down.
       { from: ['pen', 'b'],  to: ['sample', 't'] },
       { from: ['pen', 'b'],  to: ['rng', 't'] },
-      // Straight, this one clips the corner of the box below it by three
-      // pixels. No rule compares an edge with a node's outline, so nothing
-      // reports that - only a render does. Bowed away, it is clear.
-      { from: ['pen', 'b'],  to: ['theme', 'l'], bow: -25 },
+      { from: ['pen', 'b'],  to: ['theme', 't'] },
 
       // A self-transition: the same node and the same side named twice. The
       // defaults are sized for a 46px side; this hangs off a 220px one, so

@@ -33,6 +33,10 @@ is true about the software drawing it.
 - **`examples/showcase/`**, a vanilla HTML page under the same A4 theming as
   `vanilla/`, drawing this project's logical architecture in layered notation:
   four groups, thirteen components, fifteen connectors, two braces, two notes.
+  Connectors leaving one node are drawn alike, and where a straight run clipped
+  a corner the fix was a different anchor rather than a `bow` on one line of a
+  set — a rule the requirement now carries, since an anchor is free and a `bow`
+  is a claim about the relationship.
 - **No `raw`.** Everything it draws is expressible as data, which is what lets
   it be served whole as `pensketch://example/showcase` rather than served with
   a hole and a note explaining the hole. `custom-pen/` remains the folder for

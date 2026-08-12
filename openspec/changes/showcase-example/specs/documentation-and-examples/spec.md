@@ -30,14 +30,21 @@ and screenshot-verified at implementation time and after any API change.
 
 `showcase/` SHALL reach for the breadth of the data model in one diagram —
 every drawn shape, `accent` and `hatch`, a straight connector, an orthogonal
-one, a bowed one, a self-transition, both kinds of brace, and notes with
-pointers — and SHALL do so **without `raw`**, so that what it draws is
+one, a self-transition, both kinds of brace, and notes whose pointers bow —
+and SHALL do so **without `raw`**, so that what it draws is
 expressible as data and can be served whole rather than served with a hole in
 it. A feature that cannot be reached without `raw` SHALL be left to
 `custom-pen/`, which exists for exactly that. The diagram SHALL state what its
 own `hatch` and `dotted` mean, since the renderer attaches no meaning to
 either and a picture using both without saying so teaches a convention that
 does not exist.
+
+Connectors leaving one node together SHALL be drawn alike. Reaching for a
+`bow` to clear an obstacle one of them meets makes that one connector look
+like a different kind of relationship from its siblings, when the difference
+is only that its path was awkward. Where a straight run clips something,
+choosing a different anchor SHALL be preferred to bending one line out of a
+set: an anchor is free and a `bow` is a claim.
 
 The bundled examples SHALL demonstrate what the library can draw, not only
 what it once could not. Every connector shape the data model expresses — a

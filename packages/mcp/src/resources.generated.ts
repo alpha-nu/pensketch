@@ -1138,9 +1138,8 @@ export const EXAMPLES = {
           ],
           "to": [
             "theme",
-            "l"
-          ],
-          "bow": -25
+            "t"
+          ]
         },
         {
           "from": [

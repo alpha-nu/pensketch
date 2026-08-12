@@ -20,11 +20,19 @@ more resource.
       looked at. Six rounds, and `check` was clean from the first — every
       defect that mattered was one no rule can see
 - [x] 1.2 Breadth without `raw`: four groups, box, pill and diamond, `accent`,
-      `hatch` on two different outlines, a straight connector, orthogonal
-      `via`, a `bow`, a self-transition sized for a 220px side, both kinds of
-      brace, notes with pointers, and all three label anchors. `raw` would
-      make it unservable as data, and `custom-pen/` is the folder for what the
-      data model has no word for
+      `hatch` on two different outlines, straight connectors, orthogonal
+      `via`, a self-transition sized for a 220px side, both kinds of brace,
+      notes whose pointers bow, and all three label anchors. `raw` would make
+      it unservable as data, and `custom-pen/` is the folder for what the data
+      model has no word for
+- [x] 1.4 **Owner review, applied.** The three connectors leaving `pen` were
+      two straight and one bowed — the bow having been the first fix for the
+      last of them clipping a corner by a pixel and a half. Three arrows out of
+      one node reading as two kinds of relationship is worse than the clip.
+      Aiming at the top anchor instead of the left misses the corner outright,
+      so all three are straight and the fan is symmetric: -260, 0, +260 across,
+      58 down. The requirement gains the general form — an anchor is free and a
+      `bow` is a claim — because this will come up again
 - [x] 1.3 The page states what its own `hatch` and `dotted` mean. The renderer
       attaches no meaning to either, so a diagram using both without saying so
       teaches a convention that does not exist
