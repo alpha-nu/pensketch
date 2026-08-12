@@ -1,0 +1,142 @@
+name: Publish
+
+# Publishes to npm and pushes the tags, and does nothing else. Versioning is
+# `version.yml`. This is the irreversible half of a release, so it is its own
+# file, its own dispatch, and the only place in this repository that holds
+# `id-token: write`.
+#
+# npm's trusted publisher for @pensketch/core and @pensketch/mcp names this
+# repository and *this filename*. Renaming or moving this file breaks
+# publishing until the trusted publisher is repointed on npmjs.com, and a
+# package may have only one configured at a time.
+on:
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  # Push the git tags `changeset publish` creates.
+  contents: write
+  # Read CI's conclusion for the commit being published.
+  actions: read
+  # Mint the OIDC token npm exchanges for a short-lived publishing credential
+  # and a signed provenance attestation.
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          # Deliberately uncached: a release build should assemble what it
+          # publishes from the registry, not from a restored directory.
+          package-manager-cache: false
+
+      # The complement of `version.yml`'s guard. A pending changeset means the
+      # version pull request has not been merged, so the manifests still carry
+      # the version before the one being released.
+      - name: There is nothing left to version
+        run: |
+          # `|| true` twice: no match is not an error here, it is the answer,
+          # and the step runs under `bash -e`.
+          pending=$(ls .changeset/*.md 2>/dev/null | grep -v '/README\.md$' || true)
+          if [ -n "$pending" ]; then
+            echo "::error::Changesets are still pending, so these manifests are not the"
+            echo "ones to publish. Dispatch Version first and merge the pull request it"
+            echo "opens. Pending:"
+            echo "$pending" | sed 's/^/  /'
+            exit 1
+          fi
+          echo "No changesets pending; the manifests are the released versions."
+
+      # Everything CI proves is proved once, by CI, on this exact commit. This
+      # workflow does not repeat a subset of it: a release path that re-runs six
+      # gates and omits four is a weaker gate wearing the look of a stronger
+      # one, and keeping the two lists in step by hand is a list, which goes
+      # stale.
+      - name: CI passed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&per_page=100" \
+            --jq 'first(.workflow_runs[] | select(.status == "completed") | .conclusion) // "none"')
+          echo "CI on ${GITHUB_SHA} concluded: ${conclusion}"
+          if [ "$conclusion" != success ]; then
+            echo "::error::Refusing to publish ${GITHUB_SHA}: its CI run concluded"
+            echo "'${conclusion}'. 'none' means CI has not finished on this commit, or"
+            echo "never ran on it - wait for it rather than publishing around it."
+            exit 1
+          fi
+
+      # Trusted publishing needs npm 11.5.1 or newer; older npm has no idea
+      # what to do with the OIDC token and fails at the registry with a plain
+      # authentication error, which reads like a misconfigured secret rather
+      # than an out-of-date runner. Asserted rather than installed over: this
+      # job should not fetch an unpinned global npm. CI cannot establish this -
+      # it is a fact about this runner.
+      - name: The runner's npm can exchange an OIDC token
+        run: |
+          need=11.5.1
+          have=$(npm -v)
+          echo "npm $have, and trusted publishing needs >= $need"
+          [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | head -1)" = "$need" ]
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Both manifests ship only "dist", so publishing without this uploads a
+      # tarball with no code in it. This assembles the artefact rather than
+      # checking it, which is why it survives where the gates above it did not.
+      - name: Build
+        run: npm run build
+
+      # `changeset publish` directly, not through the changesets action. That
+      # action decides for itself which job to do - with a changeset present it
+      # versions rather than publishes, whatever inputs it is given, and it
+      # would version with the default `changeset version` rather than this
+      # repository's `npm run bump`, dropping the install-pin regeneration.
+      #
+      # No NPM_TOKEN, deliberately: each package carries a trusted publisher
+      # naming this repository and this file, so npm exchanges the OIDC token
+      # minted by `id-token: write` above for a short-lived credential of its
+      # own. That relationship could only be created once the packages existed
+      # - `npm trust` refuses a name the registry has never seen - so 0.1.0
+      # went out with a token and nothing since has needed one.
+      #
+      # An ENEEDAUTH here means npm found no trust relationship and declined to
+      # mention it: every failure branch in its `lib/utils/oidc.js` logs at
+      # verbose or below, because OIDC is optional there and the function is
+      # written never to throw. It reads exactly like a broken secret. Re-run
+      # with `--loglevel verbose` for the registry's own reason before touching
+      # anything else - and check first that the trusted publisher still names
+      # this filename.
+      #
+      # "--no" makes npx resolve the changesets CLI from the lockfile-pinned
+      # node_modules and fail rather than fetch a same-named package.
+      - name: Publish
+        env:
+          # Read by the npm publish that the changesets CLI shells out to.
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: npx --no changeset publish
+
+      # `changeset publish` writes a `pkg-name@X.X.X` tag per published package
+      # and leaves them local; the changesets action used to push them. `--tags`
+      # rather than `--follow-tags` because those tags are lightweight and
+      # `--follow-tags` pushes only annotated ones. A fresh checkout fetches no
+      # tags, so the only ones here are the ones just written and this cannot
+      # push something stale.
+      #
+      # After the publish, not before: a tag for a version the registry
+      # rejected is a tag pointing at a release that does not exist. Publishing
+      # nothing - every version already on the registry - writes no tags and
+      # this is a no-op, which is the right answer for a re-dispatch.
+      - name: Push the tags
+        run: git push origin --tags

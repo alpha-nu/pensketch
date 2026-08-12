@@ -64,10 +64,31 @@ and every push to `main`, so a local failure is a CI failure. It can also be
 dispatched by hand from the Actions tab, for a commit whose run was lost to
 something other than the commit.
 
+## Releasing
+
+Two workflows, both `workflow_dispatch`, and each refuses the other's job:
+
+1. **Version** — opens or updates the "Version Packages" pull request from the
+   pending changesets, correcting the install pin in the same breath. Refuses
+   when nothing is pending. Merge the pull request it opens.
+2. **Publish** — publishes to npm and pushes the tags. Refuses while a
+   changeset is still pending, and refuses a commit whose CI run has not
+   concluded successfully.
+
+They are separate files because one is reversible and the other is not, and a
+single control that decides for itself which it is doing cannot be read before
+it is used. Only Publish holds `id-token: write`, so the job that bumps version
+numbers cannot mint a credential that publishes.
+
+Both are owner actions. npm's trusted publisher names this repository and the
+publish workflow *by filename*, so renaming that file breaks publishing until
+the trusted publisher is repointed on npmjs.com — and a package may have only
+one configured at a time.
+
 ## Working alongside the release
 
-`main` has two writers: whoever is committing, and the release workflow, which
-lands a "Version Packages" merge of its own. Local work therefore diverges
+`main` has two writers: whoever is committing, and the versioning workflow,
+which lands a "Version Packages" merge of its own. Local work therefore diverges
 from `origin/main` the moment a release goes out, and `git pull` in its
 default configuration answers that with a merge commit — or, with
 `--ff-only`, with a refusal.

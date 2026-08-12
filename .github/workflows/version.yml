@@ -1,0 +1,93 @@
+name: Version
+
+# Opens or updates the "Version Packages" pull request, and does nothing else.
+# Publishing is `publish.yml`, dispatched separately once that pull request is
+# merged. Two files rather than one that decides for itself: opening a pull
+# request can be undone and putting bytes on a registry cannot, so which of
+# them a dispatch performs is the operator's to choose and to see.
+on:
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  # Push the version branch.
+  contents: write
+  # Open and update the pull request.
+  pull-requests: write
+  # Deliberately no `id-token: write`. Nothing here publishes, so nothing here
+  # should be able to mint the credential npm exchanges one for.
+
+jobs:
+  version:
+    name: Open the version pull request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      # The complement of `publish.yml`'s guard, so exactly one of the two is
+      # dispatchable at any moment and the wrong one names the right one. The
+      # changesets action would otherwise exit zero having done nothing, which
+      # is the ambiguity this split exists to remove.
+      - name: There is something to version
+        run: |
+          # `|| true` twice: no match is not an error here, it is the answer,
+          # and the step runs under `bash -e`.
+          pending=$(ls .changeset/*.md 2>/dev/null | grep -v '/README\.md$' || true)
+          if [ -z "$pending" ]; then
+            echo "::error::No changesets are pending, so there is nothing to version."
+            echo "If the version pull request is already merged, the next step is to"
+            echo "dispatch Publish. If a change needs releasing, add a changeset first"
+            echo "with \`npx changeset\`."
+            exit 1
+          fi
+          echo "pending changesets:"
+          echo "$pending" | sed 's/^/  /'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # No lint, typecheck, test or build here: what this produces is a pull
+      # request, and CI runs on it. Re-running gates to open a pull request that
+      # is about to be gated is work done twice and trusted once.
+      - name: Version packages
+        id: changesets
+        # Pinned by commit rather than by tag: a tag can be moved, and this
+        # action rewrites the repository's manifests. The comment records which
+        # release the commit is.
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          # `changeset version` plus the one thing it invalidates: the version
+          # the READMEs tell a reader to install. Running it here rather than
+          # afterwards puts the corrected instructions in the same pull request
+          # as the bump, so no released commit ever points at the version
+          # before it. `bump` rather than `version` as a script name because npm
+          # reserves `version` as a lifecycle hook of its own.
+          version: npm run bump
+          # No `publish:` input. Without one the action cannot take its publish
+          # branch even if the changesets were to vanish mid-run.
+
+      # The action exits zero when it does nothing, which is also what a bad
+      # bump of the pin above looks like: it renames every input and output in
+      # its next major, and Actions only warns about an input a workflow
+      # declares that the action does not.
+      - name: The dispatch opened a pull request
+        env:
+          PULL_REQUEST: ${{ steps.changesets.outputs.pullRequestNumber }}
+        run: |
+          if [[ "$PULL_REQUEST" =~ ^[0-9]+$ ]]; then
+            echo "Opened or updated version pull request #${PULL_REQUEST}."
+          else
+            echo "::error::A changeset was pending but no version pull request came back."
+            echo "The guard above proved there was something to version, so this is the"
+            echo "action rather than the repository. If its pinned version changed, check"
+            echo "every input and output name here against its action.yml at that ref."
+            exit 1
+          fi
