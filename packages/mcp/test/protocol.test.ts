@@ -113,6 +113,7 @@ describe('a client talking to the server', () => {
       'pensketch://example/incident',
       'pensketch://example/lifecycle',
       'pensketch://example/pipeline',
+      'pensketch://example/showcase',
       'pensketch://schema',
       'pensketch://spec',
     ]);

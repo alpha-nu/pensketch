@@ -47,6 +47,7 @@ describe('the resource surface', () => {
       exampleUri('incident'),
       exampleUri('lifecycle'),
       exampleUri('pipeline'),
+      exampleUri('showcase'),
       SCHEMA_URI,
       SPEC_URI,
     ]);
@@ -77,7 +78,7 @@ describe('a resource cannot drift from its source', () => {
 // Every example, from one list. Three of these blocks named their keys
 // inline and the fourth example was served, listed, and covered by none of
 // them - the one an agent is most likely to read, at that.
-const EXAMPLE_KEYS = ['pipeline', 'lifecycle', 'incident', 'atm'];
+const EXAMPLE_KEYS = ['pipeline', 'lifecycle', 'incident', 'atm', 'showcase'];
 
 describe('the examples are served as data', () => {
   it.each(EXAMPLE_KEYS)(

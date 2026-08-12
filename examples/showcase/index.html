@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<!--
+  pensketch - pensketch's own architecture, drawn by pensketch.
+
+  A logical architecture in the usual notation: layers as groups, components
+  as boxes, dependencies as arrows. What makes it the showcase is that it
+  reaches for nearly the whole data model in one picture - all three drawn
+  shapes, `accent` and `hatch`, every kind of connector the model has, both
+  kinds of brace, and notes with pointers - without once reaching for `raw`.
+
+  That last part is the point. `raw` is the escape hatch for what the data
+  model has no word for, and this diagram needed no escape: it is plain data
+  end to end, which is why it can be served to an agent as
+  `pensketch://example/showcase` exactly as it is drawn here.
+
+  Two things have to happen before this page shows anything:
+
+    1. Build the packages. From the repository root:
+
+         npm run build
+
+       The page imports packages/core/dist/index.js, which is what the build
+       produces.
+
+    2. Serve the repository over HTTP. Also from the repository root:
+
+         npx serve .              -> http://localhost:3000/examples/showcase/
+         python3 -m http.server   -> http://localhost:8000/examples/showcase/
+
+  Double-clicking the file will not work. A file:// document has the opaque
+  origin "null", ES module scripts are fetched with CORS, and an opaque origin
+  fails that check - the module never loads and the page stays blank.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pensketch - the architecture of pensketch</title>
+<style>
+/* Page chrome. The theming below this block is the documented snippet. */
+:root { color-scheme: light dark; }
+body { margin: 0; padding: 24px; }
+svg { display: block; width: 100%; height: auto; }
+</style>
+<style>
+:root {
+  --ps-ink: #232B36;
+  --ps-pen: #2B5B8A;
+  --ps-accent: #B3402E;
+  --ps-muted: #5A6572;
+  --ps-wash: rgba(43, 91, 138, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ps-ink: #D9DFE7;
+    --ps-pen: #7FA9DB;
+    --ps-accent: #DB8570;
+    --ps-muted: #93A0AD;
+    --ps-wash: rgba(127, 169, 219, .07);
+  }
+}
+/* the hand-drawn feel depends on a handwriting font for labels */
+svg text {
+  font-family: "Chalkboard SE", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+}
+</style>
+</head>
+<body>
+<svg id="showcase" viewBox="0 0 1340 800" role="img"
+     aria-label="The architecture of pensketch: what draws a diagram, the published surface, the renderer and the checker"></svg>
+<script type="module">
+  import { draw } from '../../packages/core/dist/index.js'; // a bare specifier needs a bundler, and this page has none
+
+  // The notation, stated once so the picture does not have to be guessed at:
+  //
+  //   group    a layer
+  //   box      a module
+  //   pill     something outside the package, or a value rather than a module
+  //   diamond  a decision - the only one here is the checker's rules
+  //   accent   where a drawing starts
+  //   hatch    runs with no DOM anywhere in it
+  //   dotted   a relationship no code crosses
+  //
+  // None of that is renderer behaviour. `hatch` and `dotted` mean whatever the
+  // diagram using them says they mean, and this one says so out loud.
+  draw(document.getElementById('showcase'), {
+    nodes: [
+      // Groups first, because that is the phase order, and the z-order: they
+      // are drawn behind everything and read as bands rather than as boxes
+      // around boxes. Their titles need about 30px of clear space at the top,
+      // which is why every row of nodes starts 52px into its band.
+      { id: 'g1',     shape: 'group',   x: 40,  y: 40,  w: 790,  h: 130, lines: ['what draws a diagram'] },
+      { id: 'g2',     shape: 'group',   x: 40,  y: 220, w: 1050, h: 126, lines: ['the published surface — one package, four entries'] },
+      { id: 'g3',     shape: 'group',   x: 40,  y: 400, w: 790,  h: 280, lines: ['the renderer'] },
+      { id: 'g4',     shape: 'group',   x: 880, y: 400, w: 230,  h: 280, lines: ['the checker'] },
+
+      // Three ways in. The page is a pill because it is not part of the
+      // package - it is whatever HTML you already have.
+      { id: 'page',   shape: 'pill',    x: 70,  y: 92,  w: 220, h: 46, lines: ['a page', 'and its <svg>'] },
+      { id: 'react',  shape: 'box',     x: 330, y: 92,  w: 220, h: 46, lines: ['@pensketch/react', 'PenSketch · useSketch'] },
+      { id: 'mcp',    shape: 'box',     x: 590, y: 92,  w: 220, h: 46, lines: ['@pensketch/mcp', 'three tools'] },
+
+      // One package, four entry points, each with its own byte budget. A
+      // consumer who never imports the checker ships none of it.
+      { id: 'root',   shape: 'box',     x: 70,  y: 272, w: 220, h: 46, lines: ['core', 'draw · pen · anchor'] },
+      { id: 'check',  shape: 'box',     x: 330, y: 272, w: 220, h: 46, lines: ['core/check', 'check()'] },
+      { id: 'server', shape: 'box',     x: 590, y: 272, w: 220, h: 46, lines: ['core/server', 'renderToString()'] },
+      { id: 'schema', shape: 'box',     x: 850, y: 272, w: 220, h: 46, lines: ['core/schema.json', 'generated'] },
+
+      // The renderer. `draw` is accented because it is where a drawing starts.
+      { id: 'draw',   shape: 'box',     x: 70,  y: 452, w: 220, h: 46, lines: ['draw', 'six phases in order'], accent: true },
+      { id: 'pen',    shape: 'box',     x: 330, y: 452, w: 220, h: 46, lines: ['pen', 'ten primitives'] },
+      { id: 'markup', shape: 'box',     x: 590, y: 452, w: 220, h: 46, lines: ['markup, a DOM shim'], hatch: true },
+      { id: 'sample', shape: 'box',     x: 70,  y: 556, w: 220, h: 46, lines: ['sample', 'curves as points'] },
+      { id: 'rng',    shape: 'pill',    x: 330, y: 556, w: 220, h: 46, lines: ['rng', 'one seeded sequence'] },
+      { id: 'theme',  shape: 'box',     x: 590, y: 556, w: 220, h: 46, lines: ['theme', 'CSS variables'] },
+
+      // The checker. Hatched on a diamond and on a box in the same picture,
+      // which is the shape of the feature: shading follows the outline it is
+      // drawn inside, so a diamond keeps its corners bare.
+      { id: 'rules',  shape: 'diamond', x: 900, y: 440, w: 190, h: 76, lines: ['eight rules'], hatch: true },
+      { id: 'geom',   shape: 'box',     x: 900, y: 556, w: 190, h: 46, lines: ['geometry'] },
+    ],
+    edges: [
+      // Orthogonal routing is three points you supply, not a mode. The two
+      // solid legs at y=196 meet at x=440 and read as one bus, which is why
+      // they share that y and the dotted one below does not: a line that
+      // changes style halfway along reads as one relationship, not two.
+      { from: ['page', 'b'],  to: ['root', 't'] },
+      { from: ['react', 'b'], to: ['root', 't'],   via: [[440, 196], [180, 196]] },
+      { from: ['mcp', 'b'],   to: ['check', 't'],  via: [[700, 196], [440, 196]] },
+      { from: ['mcp', 'b'],   to: ['server', 't'] },
+      { from: ['mcp', 'b'],   to: ['schema', 't'], via: [[700, 208], [960, 208]],
+        dotted: true, label: 'reads the schema', lx: 950, ly: 188, anchor: 'end' },
+
+      { from: ['root', 'b'],   to: ['draw', 't'] },
+      { from: ['check', 'b'],  to: ['rules', 't'], via: [[440, 372], [995, 372]] },
+      { from: ['server', 'b'], to: ['markup', 't'] },
+
+      { from: ['draw', 'r'], to: ['pen', 'l'] },
+      { from: ['pen', 'b'],  to: ['sample', 't'] },
+      { from: ['pen', 'b'],  to: ['rng', 't'] },
+      // Straight, this one clips the corner of the box below it by three
+      // pixels. No rule compares an edge with a node's outline, so nothing
+      // reports that - only a render does. Bowed away, it is clear.
+      { from: ['pen', 'b'],  to: ['theme', 'l'], bow: -25 },
+
+      // A self-transition: the same node and the same side named twice. The
+      // defaults are sized for a 46px side; this hangs off a 220px one, so
+      // `out` and `span` move together and keep the ratio that reads as a loop.
+      { from: ['rng', 'b'], to: ['rng', 'b'], out: 52, span: 70,
+        label: 'every call advances it', lx: 440, ly: 700, anchor: 'middle' },
+
+      { from: ['rules', 'b'], to: ['geom', 't'] },
+      // The one edge that is the architecture rather than a dependency: the
+      // checker measures the same curves the pen draws, from the same points,
+      // which is why `sample` sits below both. Routed down the 50px gutter
+      // between the two groups and under them, because straight it would cross
+      // four boxes.
+      { from: ['rules', 'l'], to: ['sample', 'b'], via: [[855, 478], [855, 740], [180, 740]],
+        label: 'measures what the pen draws', lx: 200, ly: 762, anchor: 'start' },
+    ],
+    braces: [
+      // Curly, and vertical, which is what lets it be curly: a brace turns its
+      // corners at one fixed radius and its tip at another, so a wide one is an
+      // underline with a bump. 260px down the side of two groups is in range.
+      { from: [1150, 410], to: [1150, 670], depth: -26,
+        lines: ['no layout,', 'no routing,', 'no text measured'], lx: 1186, ly: 540 },
+      // Square, and short. A bracket is four points with no curve in it, so
+      // its length is free - this one only has to span one row of boxes.
+      { from: [1130, 226], to: [1130, 340], depth: -18, kind: 'square',
+        lines: ['one package,', 'four entries'], lx: 1166, ly: 283 },
+    ],
+    notes: [
+      // A pointer with a bow: the arrow is drawn as an arc rather than a
+      // straight run, which is what a hand reaching for something looks like.
+      { x: 880, y: 120, anchor: 'start',
+        lines: ['a diagram is plain data —', 'the schema is generated', 'from the types core ships'],
+        arrowFrom: [1020, 168], arrowTo: [1020, 266], bow: 16 },
+      { x: 880, y: 706, anchor: 'start',
+        lines: ['hatched — no DOM in here'],
+        arrowFrom: [1010, 692], arrowTo: [1010, 612] },
+    ],
+  }, { seed: 7 });
+</script>
+</body>
+</html>

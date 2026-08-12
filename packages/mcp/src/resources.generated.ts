@@ -740,6 +740,540 @@ export const EXAMPLES = {
       ]
     }
   },
+  "showcase": {
+    "title": "pensketch's own architecture, and the widest use of the data model this repository ships",
+    "viewBox": [
+      0,
+      0,
+      1340,
+      800
+    ],
+    "diagram": {
+      "nodes": [
+        {
+          "id": "g1",
+          "shape": "group",
+          "x": 40,
+          "y": 40,
+          "w": 790,
+          "h": 130,
+          "lines": [
+            "what draws a diagram"
+          ]
+        },
+        {
+          "id": "g2",
+          "shape": "group",
+          "x": 40,
+          "y": 220,
+          "w": 1050,
+          "h": 126,
+          "lines": [
+            "the published surface — one package, four entries"
+          ]
+        },
+        {
+          "id": "g3",
+          "shape": "group",
+          "x": 40,
+          "y": 400,
+          "w": 790,
+          "h": 280,
+          "lines": [
+            "the renderer"
+          ]
+        },
+        {
+          "id": "g4",
+          "shape": "group",
+          "x": 880,
+          "y": 400,
+          "w": 230,
+          "h": 280,
+          "lines": [
+            "the checker"
+          ]
+        },
+        {
+          "id": "page",
+          "shape": "pill",
+          "x": 70,
+          "y": 92,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "a page",
+            "and its <svg>"
+          ]
+        },
+        {
+          "id": "react",
+          "shape": "box",
+          "x": 330,
+          "y": 92,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "@pensketch/react",
+            "PenSketch · useSketch"
+          ]
+        },
+        {
+          "id": "mcp",
+          "shape": "box",
+          "x": 590,
+          "y": 92,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "@pensketch/mcp",
+            "three tools"
+          ]
+        },
+        {
+          "id": "root",
+          "shape": "box",
+          "x": 70,
+          "y": 272,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "core",
+            "draw · pen · anchor"
+          ]
+        },
+        {
+          "id": "check",
+          "shape": "box",
+          "x": 330,
+          "y": 272,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "core/check",
+            "check()"
+          ]
+        },
+        {
+          "id": "server",
+          "shape": "box",
+          "x": 590,
+          "y": 272,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "core/server",
+            "renderToString()"
+          ]
+        },
+        {
+          "id": "schema",
+          "shape": "box",
+          "x": 850,
+          "y": 272,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "core/schema.json",
+            "generated"
+          ]
+        },
+        {
+          "id": "draw",
+          "shape": "box",
+          "x": 70,
+          "y": 452,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "draw",
+            "six phases in order"
+          ],
+          "accent": true
+        },
+        {
+          "id": "pen",
+          "shape": "box",
+          "x": 330,
+          "y": 452,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "pen",
+            "ten primitives"
+          ]
+        },
+        {
+          "id": "markup",
+          "shape": "box",
+          "x": 590,
+          "y": 452,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "markup, a DOM shim"
+          ],
+          "hatch": true
+        },
+        {
+          "id": "sample",
+          "shape": "box",
+          "x": 70,
+          "y": 556,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "sample",
+            "curves as points"
+          ]
+        },
+        {
+          "id": "rng",
+          "shape": "pill",
+          "x": 330,
+          "y": 556,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "rng",
+            "one seeded sequence"
+          ]
+        },
+        {
+          "id": "theme",
+          "shape": "box",
+          "x": 590,
+          "y": 556,
+          "w": 220,
+          "h": 46,
+          "lines": [
+            "theme",
+            "CSS variables"
+          ]
+        },
+        {
+          "id": "rules",
+          "shape": "diamond",
+          "x": 900,
+          "y": 440,
+          "w": 190,
+          "h": 76,
+          "lines": [
+            "eight rules"
+          ],
+          "hatch": true
+        },
+        {
+          "id": "geom",
+          "shape": "box",
+          "x": 900,
+          "y": 556,
+          "w": 190,
+          "h": 46,
+          "lines": [
+            "geometry"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": [
+            "page",
+            "b"
+          ],
+          "to": [
+            "root",
+            "t"
+          ]
+        },
+        {
+          "from": [
+            "react",
+            "b"
+          ],
+          "to": [
+            "root",
+            "t"
+          ],
+          "via": [
+            [
+              440,
+              196
+            ],
+            [
+              180,
+              196
+            ]
+          ]
+        },
+        {
+          "from": [
+            "mcp",
+            "b"
+          ],
+          "to": [
+            "check",
+            "t"
+          ],
+          "via": [
+            [
+              700,
+              196
+            ],
+            [
+              440,
+              196
+            ]
+          ]
+        },
+        {
+          "from": [
+            "mcp",
+            "b"
+          ],
+          "to": [
+            "server",
+            "t"
+          ]
+        },
+        {
+          "from": [
+            "mcp",
+            "b"
+          ],
+          "to": [
+            "schema",
+            "t"
+          ],
+          "via": [
+            [
+              700,
+              208
+            ],
+            [
+              960,
+              208
+            ]
+          ],
+          "dotted": true,
+          "label": "reads the schema",
+          "lx": 950,
+          "ly": 188,
+          "anchor": "end"
+        },
+        {
+          "from": [
+            "root",
+            "b"
+          ],
+          "to": [
+            "draw",
+            "t"
+          ]
+        },
+        {
+          "from": [
+            "check",
+            "b"
+          ],
+          "to": [
+            "rules",
+            "t"
+          ],
+          "via": [
+            [
+              440,
+              372
+            ],
+            [
+              995,
+              372
+            ]
+          ]
+        },
+        {
+          "from": [
+            "server",
+            "b"
+          ],
+          "to": [
+            "markup",
+            "t"
+          ]
+        },
+        {
+          "from": [
+            "draw",
+            "r"
+          ],
+          "to": [
+            "pen",
+            "l"
+          ]
+        },
+        {
+          "from": [
+            "pen",
+            "b"
+          ],
+          "to": [
+            "sample",
+            "t"
+          ]
+        },
+        {
+          "from": [
+            "pen",
+            "b"
+          ],
+          "to": [
+            "rng",
+            "t"
+          ]
+        },
+        {
+          "from": [
+            "pen",
+            "b"
+          ],
+          "to": [
+            "theme",
+            "l"
+          ],
+          "bow": -25
+        },
+        {
+          "from": [
+            "rng",
+            "b"
+          ],
+          "to": [
+            "rng",
+            "b"
+          ],
+          "out": 52,
+          "span": 70,
+          "label": "every call advances it",
+          "lx": 440,
+          "ly": 700,
+          "anchor": "middle"
+        },
+        {
+          "from": [
+            "rules",
+            "b"
+          ],
+          "to": [
+            "geom",
+            "t"
+          ]
+        },
+        {
+          "from": [
+            "rules",
+            "l"
+          ],
+          "to": [
+            "sample",
+            "b"
+          ],
+          "via": [
+            [
+              855,
+              478
+            ],
+            [
+              855,
+              740
+            ],
+            [
+              180,
+              740
+            ]
+          ],
+          "label": "measures what the pen draws",
+          "lx": 200,
+          "ly": 762,
+          "anchor": "start"
+        }
+      ],
+      "braces": [
+        {
+          "from": [
+            1150,
+            410
+          ],
+          "to": [
+            1150,
+            670
+          ],
+          "depth": -26,
+          "lines": [
+            "no layout,",
+            "no routing,",
+            "no text measured"
+          ],
+          "lx": 1186,
+          "ly": 540
+        },
+        {
+          "from": [
+            1130,
+            226
+          ],
+          "to": [
+            1130,
+            340
+          ],
+          "depth": -18,
+          "kind": "square",
+          "lines": [
+            "one package,",
+            "four entries"
+          ],
+          "lx": 1166,
+          "ly": 283
+        }
+      ],
+      "notes": [
+        {
+          "x": 880,
+          "y": 120,
+          "anchor": "start",
+          "lines": [
+            "a diagram is plain data —",
+            "the schema is generated",
+            "from the types core ships"
+          ],
+          "arrowFrom": [
+            1020,
+            168
+          ],
+          "arrowTo": [
+            1020,
+            266
+          ],
+          "bow": 16
+        },
+        {
+          "x": 880,
+          "y": 706,
+          "anchor": "start",
+          "lines": [
+            "hatched — no DOM in here"
+          ],
+          "arrowFrom": [
+            1010,
+            692
+          ],
+          "arrowTo": [
+            1010,
+            612
+          ]
+        }
+      ]
+    }
+  },
   "incident": {
     "title": "An incident at the stage it has reached, forking at a decision into the two things that end it",
     "viewBox": [

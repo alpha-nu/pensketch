@@ -17,7 +17,13 @@ const root = new URL('../', import.meta.url);
 const out = new URL('packages/mcp/src/resources.generated.ts', root);
 const read = (file) => readFileSync(new URL(file, root), 'utf8');
 
-const KEYS = new Set(['pipeline', 'lifecycle', 'incident', 'atm']);
+const KEYS = new Set([
+  'pipeline',
+  'lifecycle',
+  'incident',
+  'atm',
+  'showcase',
+]);
 
 const examples = (await shippedDiagrams()).filter(({ key }) => KEYS.has(key));
 if (examples.length !== KEYS.size) {
@@ -33,6 +39,8 @@ const TITLES = {
   incident:
     'An incident at the stage it has reached, forking at a decision into the two things that end it',
   atm: 'An ATM as a state machine, with a self-transition and a bowed pair',
+  showcase:
+    "pensketch's own architecture, and the widest use of the data model this repository ships",
 };
 
 // What each diagram draws with `raw`, in the words a caller needs, because

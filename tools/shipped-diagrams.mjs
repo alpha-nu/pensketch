@@ -98,6 +98,7 @@ export async function shippedDiagrams() {
     ...(await fromHtml('examples/vanilla/index.html')),
     ...(await fromHtml('examples/custom-pen/index.html')),
     ...(await fromHtml('examples/state-machine/index.html')),
+    ...(await fromHtml('examples/showcase/index.html')),
     ...(await fromReact()),
     {
       key: 'hero',
