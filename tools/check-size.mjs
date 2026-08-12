@@ -75,7 +75,21 @@ const PACKAGES = [
     // code the feature never reaches - gzip noise again, in the other
     // direction this time.
     //
-    // Worth stating plainly, because the number is large: +372 B on the root
+    // 4300 from 4240, same change, because calibration replaced the mechanism.
+    // The bow the proposal described cannot be drawn by this pen: displacing a
+    // line perpendicular to itself moves the apex *along* whatever it crosses
+    // at a right angle, so the bump lands on the line it is meant to bridge,
+    // and ARC_MIN_CHORD flattens an arc that small into two chords, making the
+    // apex a vertex. Rendered at four sizes it read as a junction every time.
+    // What replaced it is a break in the line underneath.
+    //
+    // The break costs *more* than the bow, not less: 4196 here against the
+    // bow's 4134. A splice is one polyline and one `arrow` call; a break is a
+    // list of runs, a loop, and a `stroke` for each of them but the last. 4196
+    // plus the usual 100 B is 4296, taken up to 4300. The root entry lands at
+    // 4179 against 5120 and still does not move.
+    //
+    // Worth stating plainly, because the number is large: +429 B on the root
     // entry is about a tenth of it, and every consumer carries it whether or
     // not any diagram ever sets `hop`. That is a departure from what the
     // subpath budgets exist to enforce - a consumer who never imports the
@@ -83,7 +97,7 @@ const PACKAGES = [
     // is a behaviour of `draw` rather than an entry point somebody imports.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 4240,
+    budget: 4300,
   },
   {
     name: '@pensketch/react',

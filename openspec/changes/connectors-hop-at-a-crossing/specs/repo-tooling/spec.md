@@ -1,6 +1,6 @@
 # repo-tooling — Delta Specification
 
-> One number moves. `@pensketch/core/server` goes from 3872 to 4240 bytes,
+> One number moves. `@pensketch/core/server` goes from 3872 to 4300 bytes,
 > because the requirement names every budget literally and a figure in a
 > requirement is as stale as any other derived number when the thing it
 > describes changes.
@@ -8,7 +8,7 @@
 ## MODIFIED Requirements
 
 > Restated from the live baseline in full, with all five of its scenarios
-> carried word for word and none added. The only edit is `3872` to `4240` in
+> carried word for word and none added. The only edit is `3872` to `4300` in
 > the first sentence; every other clause — the self-contained-entry rule, the
 > README comparison gate, the `@pensketch/mcp` exemption, and the paragraph
 > requiring a budget to move before the code — is unchanged, that last one
@@ -18,7 +18,7 @@
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
 `@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 3072
-bytes, `@pensketch/core/server` exceeds 4240 bytes, or `@pensketch/react`
+bytes, `@pensketch/core/server` exceeds 4300 bytes, or `@pensketch/react`
 exceeds 2048 bytes min+gzip. Each published entry SHALL be a self-contained
 file: build-time code splitting SHALL be off, because a shared chunk makes an
 entry's budget measure a re-export rather than the code it stands for. It
