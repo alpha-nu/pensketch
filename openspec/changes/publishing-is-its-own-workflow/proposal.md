@@ -31,6 +31,15 @@ it does not, four gates are missing.
 what npm exchanges for a publishing credential. Today the versioning path runs
 under it too, because it is the same job.
 
+**The semver clause classifies one axis and is silent on the other.** patch and
+minor are defined by rendered bytes: patch guarantees byte-identity, minor may
+move output or add API. Neither mentions removing or narrowing. So a change
+that deletes a published name, or refuses input it used to accept, renders
+byte-identically for everything that still works and qualifies as a patch by
+the letter — and `^0.3.0` means `>=0.3.0 <0.4.0`, so a patch arrives on a
+consumer's next install without being chosen. The rule that would prevent it
+belongs in the same requirement, which this change is already restating.
+
 ## What changes
 
 - **`version.yml`** — opens or updates the version pull request, and nothing
@@ -45,6 +54,12 @@ under it too, because it is the same job.
   keeps only the steps that assemble the artefact (`npm ci`, `npm run build`)
   and the precondition whose failure is otherwise unreadable (the runner's npm
   being new enough to exchange an OIDC token).
+- **The compatibility axis is written down**, in the same requirement and in
+  `CONTRIBUTING.md`: removing or renaming a published name, narrowing a type,
+  or refusing input previously accepted is a minor whatever it does to bytes,
+  because pre-1.0 the minor slot is the boundary a caret range stops at. Said
+  rather than left to convention because nothing gates it — the test pinning
+  the public surface is edited by the same commit that changes the surface.
 - **`publish.yml` does not use the changesets action.** The action's mode
   selection is internal — documented as "if a publish script exists without
   changesets, it proceeds to publish; if changesets with releases are present,

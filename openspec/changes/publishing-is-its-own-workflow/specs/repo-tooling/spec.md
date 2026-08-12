@@ -57,7 +57,20 @@ Version semantics
 pre-1.0: **patch** guarantees byte-identical rendered output; **minor** may
 change rendered output or add API, and its changeset SHALL say so and describe
 what shifts; every user-visible change SHALL carry a changeset; the
-implementing agent SHALL never publish, tag, or push. The versioning workflow
+implementing agent SHALL never publish, tag, or push.
+
+Compatibility is a second axis, and the clause above governs only the first. A
+change that removes or renames a published name, narrows a type, or refuses
+input it previously accepted SHALL be a **minor**, whatever it does to rendered
+bytes. A caret range on a 0.x version stops at the minor — `^0.3.0` is
+`>=0.3.0 <0.4.0` — so a patch reaches a consumer on their next install without
+being chosen and a minor does not: pre-1.0 the minor slot is the compatibility
+boundary, and the patch slot SHALL NOT carry a break. This SHALL be stated
+rather than left to convention because nothing gates it. A byte-moving change
+misfiled as a patch is at least partly caught by the goldens and the parity
+tests; an API break misfiled as a patch is caught by nothing, the test pinning
+the public surface to an exact list being edited by the same commit that
+changes that surface. The versioning workflow
 SHALL assert its own outcome and fail when a dispatch opens no version pull
 request: the changesets action is pinned by commit, renames every input in its
 next major, and Actions only warns about an input a workflow declares that the
@@ -76,6 +89,10 @@ SHALL be read as applying to the SVG its `render_diagram` tool returns.
 #### Scenario: Publishing a commit CI has not passed is refused
 - **WHEN** a publish is dispatched for a commit whose CI run failed or has not finished
 - **THEN** the job fails before publishing, rather than proceeding on the strength of the checks it happens to repeat
+
+#### Scenario: A break that renders identically is still not a patch
+- **WHEN** a change removes a published name, narrows a type, or refuses input it previously accepted, while every diagram that still renders renders byte-identically
+- **THEN** it is released as a minor, because a caret range would deliver a patch to consumers without their choosing it
 
 #### Scenario: Visual change is classified
 - **WHEN** a commit alters any aesthetic constant or PRNG consumption order

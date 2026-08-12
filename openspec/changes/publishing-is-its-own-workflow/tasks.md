@@ -53,7 +53,20 @@ what keeps them clear of it: `release.yml` is still the trusted publisher on
       CI runs on pull requests — gating a thing that is about to be gated is
       work done twice and trusted once
 - [x] 2.3 The `repo-tooling` delta, restated in full from the live baseline
-      with all four of its existing scenarios carried and two added
+      with all four of its existing scenarios carried and three added
+
+- [x] 2.4 The semver clause gains its second axis. patch and minor were defined
+      by rendered bytes alone, so removing a published name or refusing input
+      previously accepted qualified as a patch by the letter — and a caret
+      range on 0.x stops at the minor, so a patch arrives without the consumer
+      choosing it. Now stated in the requirement and in `CONTRIBUTING.md`:
+      pre-1.0 the minor slot is the compatibility boundary and the patch slot
+      carries no break.
+
+      Folded into this change rather than given one of its own, because it
+      edits the same requirement — "Releases are owner-triggered with a visual
+      semver clause" — and two unarchived deltas restating one requirement is
+      how a stale baseline deletes the other's work at archive time
 
 ## 3. The cutover
 

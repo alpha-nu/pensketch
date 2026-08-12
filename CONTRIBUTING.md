@@ -150,6 +150,20 @@ random number generator is consumed, changes the rendered bytes. That makes it
 a minor, even when the diagram looks identical to the eye. Reordering draw
 operations is such a change.
 
+Compatibility is a second axis, and the split above governs only the first. A
+change that **removes or renames a published name, narrows a type, or refuses
+input it previously accepted is a minor**, whatever it does to rendered bytes.
+A caret range on a 0.x version stops at the minor: `^0.3.0` means
+`>=0.3.0 <0.4.0`, so a patch reaches a consumer on their next install without
+being chosen and a minor does not. Pre-1.0 the minor slot is the compatibility
+boundary, and the patch slot never carries a break.
+
+Nothing gates that one, which is why it is written here. A byte-moving change
+misfiled as a patch is at least partly caught by the goldens and the parity
+tests. An API break misfiled as a patch is caught by nothing: the test that
+pins the public surface to an exact list is edited by the same commit that
+changes the surface, and no gate then has an opinion about the version number.
+
 ## Project invariants
 
 These hold regardless of what a change is trying to do.
