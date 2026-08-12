@@ -17,13 +17,7 @@ const root = new URL('../', import.meta.url);
 const out = new URL('packages/mcp/src/resources.generated.ts', root);
 const read = (file) => readFileSync(new URL(file, root), 'utf8');
 
-const KEYS = new Set([
-  'pipeline',
-  'lifecycle',
-  'incident',
-  'atm',
-  'showcase',
-]);
+const KEYS = new Set(['pipeline', 'lifecycle', 'incident', 'atm', 'showcase']);
 
 const examples = (await shippedDiagrams()).filter(({ key }) => KEYS.has(key));
 if (examples.length !== KEYS.size) {
