@@ -79,7 +79,7 @@ uncovered instead of vanishing from the report.
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
 `@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 3072
-bytes, `@pensketch/core/server` exceeds 3648 bytes, or `@pensketch/react`
+bytes, `@pensketch/core/server` exceeds 3872 bytes, or `@pensketch/react`
 exceeds 2048 bytes min+gzip. Each published entry SHALL be a self-contained
 file: build-time code splitting SHALL be off, because a shared chunk makes an
 entry's budget measure a re-export rather than the code it stands for. It

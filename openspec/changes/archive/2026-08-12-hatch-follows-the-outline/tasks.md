@@ -135,8 +135,12 @@ cheque.
 
 ### 3.4 Left for the owner
 
-- [ ] 3.9 **OWNER**: release. A changeset is in the tree marking
+- [x] 3.9 **OWNER**: release. A changeset is in the tree marking
       `@pensketch/core` and `@pensketch/mcp` **minor** — rendered output moves
       for a hatched pill or diamond, and that is the fix rather than a side
       effect. Archiving this change follows the release, as it did for the
       three before it
+
+      Done: `@pensketch/core` and `@pensketch/mcp` are **0.3.0** on the
+      registry, tagged, via `Version Packages (#4)`. `@pensketch/react` stays
+      at 0.1.0, its peer range on core admitting the bump
