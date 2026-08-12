@@ -10,17 +10,28 @@ consequence.
 
 ## 1. The budget, before the code that needs it
 
-- [ ] 1.1 Prototype the detection pass and the splice far enough to measure
+- [x] 1.1 Prototype the detection pass and the splice far enough to measure
       what they cost min+gzip on `./core` (1370 B of headroom, 3750/5120) and
       on `./server` (**99 B**, 3773/3872, and it carries `draw`). Record both
       figures in the commit message — a prototype that is reverted without its
       measurement written down turns a fact into a claim nobody can check
-- [ ] 1.2 Move whichever budgets the measurement says must move, in their own
+
+      Measured, built rather than estimated, and reverted:
+      `./core` 3750 → **4122** (+372), `./server` 3773 → **4134** (+361),
+      `./check` 3008 → **3006** (−2, gzip noise on code it never reaches),
+      `./react` unchanged. Proved live before the numbers were trusted: hops
+      changed the rendered output, and `hop: false` on one edge of a crossing
+      moved the arc onto the other rather than removing it
+- [x] 1.2 Move whichever budgets the measurement says must move, in their own
       commit, with the arithmetic stated: measured figure plus the gzip
       headroom the existing entries are given. `repo-tooling` names 5120, 3072,
       3872 and 2048 literally, so its requirement is restated with the new
       number in the same commit. A budget corrected after the fact records only
       that something grew
+
+      Only `./server` moves: 4134 + 100 = 4234, taken up to **4240**. `./core`
+      lands at 4122 against 5120 and needs nothing. `CONTRIBUTING.md` quotes
+      the figure too, so it moves in the same commit
 
 ## 2. The data model and the geometry
 

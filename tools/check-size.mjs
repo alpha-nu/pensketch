@@ -60,9 +60,30 @@ const PACKAGES = [
     // 3072, so neither moves; `./check` gains 2 B of gzip on identical code,
     // esbuild having renamed some locals, which is the noise the margin above
     // exists for.
+    //
+    // 4240 from 3872 for connectors that hop where they cross. This entry
+    // stands at 3773 with 99 B free, and a built prototype of the whole
+    // feature - the two fields, the all-pairs detection, the splice through
+    // `bowPoints`, and collecting every path before drawing any of them, which
+    // an edge needs in order to see the others - measures 4134 here. Not an
+    // estimate: it rendered, hops changed the output, and `hop: false` moved
+    // the arc to the other edge of the crossing. 4134 plus the same 100 B of
+    // gzip headroom is 4234, taken up to 4240.
+    //
+    // The root entry lands at 4122 against 5120, so it does not move, and
+    // `./check` at 3006 against 3072, 2 B *below* where it stands today on
+    // code the feature never reaches - gzip noise again, in the other
+    // direction this time.
+    //
+    // Worth stating plainly, because the number is large: +372 B on the root
+    // entry is about a tenth of it, and every consumer carries it whether or
+    // not any diagram ever sets `hop`. That is a departure from what the
+    // subpath budgets exist to enforce - a consumer who never imports the
+    // checker ships none of it - and it is unavoidable here, because hopping
+    // is a behaviour of `draw` rather than an entry point somebody imports.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 3872,
+    budget: 4240,
   },
   {
     name: '@pensketch/react',
