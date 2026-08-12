@@ -57,11 +57,14 @@ schema` and `npm run resources` clean, and `openspec validate --strict`.
       prototype on the way. That turns this change from one that documents a
       limitation into one that removes it, which is what group 3 is and what
       the note under group 1 is about
-- [ ] 2.2 **OWNER**: whether `examples/custom-pen/`'s hatched pills stay. The
-      15.5 px overshoot that made this worth asking is gone — group 3 removes
-      it, and the pills are now shaded inside their ellipses. Re-read the
-      render; the answer is most likely "they are fine now", and the item is
-      here so that it is answered rather than assumed
+- [x] 2.2 ~~**OWNER**: whether `examples/custom-pen/`'s hatched pills stay.~~
+      Closed without a decision, because there is no longer one to take. It
+      was asked because that example is served to agents as
+      `pensketch://example/lifecycle` while its two terminal states shed ink up
+      to 15.5 px outside their outlines — 82 of 340 sampled points on
+      `delivered`, 86 of 360 on `cancelled`. Group 3 takes both to **zero**,
+      with 3.41 px of clearance, and the render was re-read to confirm it. A
+      question whose whole premise has been removed is answered, not pending
 
 ## 3. Ship it
 
