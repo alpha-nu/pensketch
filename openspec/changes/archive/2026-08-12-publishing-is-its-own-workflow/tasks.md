@@ -8,11 +8,11 @@ This change touches no package source and moves no byte of any published
 entry. What it changes is which button does what, and who may mint a
 publishing credential.
 
-**It is sequenced behind the release in flight.** `Version Packages (#4)` is
-merged and the manifests say 0.3.0, but the registry is still on 0.2.0, so the
-publish dispatch has not run. These commits are local and unpushed, which is
-what keeps them clear of it: `release.yml` is still the trusted publisher on
-`origin/main` until the owner pushes.
+**The cutover is complete.** 0.3.0 reached the registry through the old
+`release.yml` on 2026-08-12, the commits are pushed — `origin/main` carries
+`version.yml` and `publish.yml` and no `release.yml` — and the trusted
+publisher is repointed. What is not yet proven is the one path no rehearsal
+reaches: see 3.4.
 
 ## 1. The split
 
@@ -52,8 +52,16 @@ what keeps them clear of it: `release.yml` is still the trusted publisher on
 - [x] 2.2 Version runs no gates at all. What it produces is a pull request, and
       CI runs on pull requests — gating a thing that is about to be gated is
       work done twice and trusted once
-- [x] 2.3 The `repo-tooling` delta, restated in full from the live baseline
-      with all four of its existing scenarios carried and three added
+- [x] 2.3 The `repo-tooling` delta, restated in full from the live baseline:
+      three of its four scenarios carried word for word, five added, and one
+      **deliberately retired** — "a dispatch that released nothing goes red"
+      names a single workflow that no longer exists, and its two halves are
+      now separate scenarios. Its publish half is inverted rather than moved:
+      a Publish dispatch with nothing to publish is green by design, which is
+      what lets the release path be rehearsed without a release. That
+      inversion gets a scenario of its own, because archiving deletes the old
+      rule and a reader diffing the spec would otherwise see a safety check
+      vanish with no record of why
 
 - [x] 2.4 The semver clause gains its second axis. patch and minor were defined
       by rendered bytes alone, so removing a published name or refusing input
@@ -90,12 +98,18 @@ filename and a package may have exactly one at a time, so there is no staging
 this. Between 3.2 and 3.3 the repository cannot publish; that window is
 unavoidable and is the reason this is a task rather than a note.
 
-- [ ] 3.1 **OWNER**: finish the release in flight — dispatch the existing
+- [x] 3.1 **OWNER**: finish the release in flight — dispatch the existing
       `release.yml` from `origin/main` and let 0.3.0 reach the registry. It is
       still the trusted publisher and these commits are unpushed, so nothing
       here affects it
-- [ ] 3.2 **OWNER**: push these commits, retiring `release.yml`
-- [ ] 3.3 **OWNER**: repoint the trusted publisher for both published packages
+
+      Done: `Release` dispatched on `6fdb02c`, and the registry carries
+      `@pensketch/core` and `@pensketch/mcp` at 0.3.0
+- [x] 3.2 **OWNER**: push these commits, retiring `release.yml`
+
+      Done: `origin/main` carries `ci.yml`, `version.yml` and `publish.yml`,
+      and no `release.yml`
+- [x] 3.3 **OWNER**: repoint the trusted publisher for both published packages
       on npmjs.com, mirroring how they were first configured:
 
       ```sh
@@ -112,6 +126,21 @@ unavoidable and is the reason this is a task rather than a note.
 - [ ] 3.4 **OWNER**: the first release through the new pair is the proof. A
       Version dispatch with nothing pending should refuse, and a Publish
       dispatch with a changeset pending should refuse and name Version
+
+      **Partly proven, and the untested part is the one that matters.**
+      `Publish` was dispatched on `3c2f4d9` and went green end to end: the
+      guard, the CI-conclusion assertion, the npm-version assertion, `npm ci`,
+      `npm run build` and `git push origin --tags`. But `changeset publish`
+      reported *"No unpublished projects to publish"*, so **the npm upload and
+      the OIDC exchange never ran** — which is exactly the step 3.3 changed and
+      the step whose failure mode this change spent a paragraph describing.
+      `Version` has never been dispatched at all, and neither refusal path has
+      been exercised as a dispatch rather than against the local tree.
+
+      Two of the three are cheap to close now: dispatching `Version` with
+      nothing pending must go red, and once a changeset exists, dispatching
+      `Publish` must go red naming Version. Only the OIDC exchange has to wait
+      for a real release
 
 ## 4. Considered and declined
 

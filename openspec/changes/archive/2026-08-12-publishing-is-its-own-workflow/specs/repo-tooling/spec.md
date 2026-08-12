@@ -86,6 +86,11 @@ SHALL be read as applying to the SVG its `render_diagram` tool returns.
 - **WHEN** a versioning dispatch opens no version pull request
 - **THEN** the job fails, so versioning nothing cannot pass for a quiet success
 
+#### Scenario: A publish dispatch with nothing to publish is a rehearsal, not a failure
+- **WHEN** the publishing workflow is dispatched with no changeset pending and nothing unpublished
+- **THEN** it runs its guard, its CI-conclusion assertion, the install, the build and the tag push, and succeeds — so the release path can be exercised end to end without a release, every step but the npm upload and the OIDC exchange
+- **AND** this deliberately inverts the single workflow's rule that a dispatch releasing nothing goes red: that rule existed because one dispatch could not say which of two jobs it meant to do, which is the ambiguity the split removes
+
 #### Scenario: Publishing a commit CI has not passed is refused
 - **WHEN** a publish is dispatched for a commit whose CI run failed or has not finished
 - **THEN** the job fails before publishing, rather than proceeding on the strength of the checks it happens to repeat
