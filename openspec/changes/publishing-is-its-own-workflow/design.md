@@ -98,9 +98,13 @@ mention of trusted publishing at all, and reads exactly like a revoked secret.
 `--loglevel verbose` gets the registry's own reason.
 
 An environment gate — `environment: npm` with a required reviewer, so a human
-approves before anything reaches the registry — was considered and is not in
-this change. npm's configuration carries an optional environment field, and
-whether the registry rejects a token asserting an environment when none is
-configured is not stated in its documentation. That is a question to answer
-against the registry rather than in a design document, and it is separable:
-once publishing is its own file, adding an approval to it is a two-line change.
+approves before anything reaches the registry — was raised and **declined by
+the owner**. The approval it would add is one the dispatch already is:
+publishing is `workflow_dispatch` and owner-only, so the required reviewer
+would be the same person approving the button they just pressed. That is a
+click, not a decision, and this repository does not buy ceremony with it.
+
+It also retires the open question that came with it — npm's trusted publisher
+carries an optional environment field, and whether the registry rejects a token
+asserting an environment when none is configured is not stated in its
+documentation. Unasked, because nothing now depends on the answer.

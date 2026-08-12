@@ -85,13 +85,13 @@ unavoidable and is the reason this is a task rather than a note.
       Version dispatch with nothing pending should refuse, and a Publish
       dispatch with a changeset pending should refuse and name Version
 
-## 4. Left open deliberately
+## 4. Considered and declined
 
-- [ ] 4.1 **OWNER**: whether Publish should sit behind an `environment:` with a
-      required reviewer, so a human approves before anything reaches the
-      registry. Not in this change because the answer depends on the registry
-      rather than on us: npm's trusted publisher carries an optional
-      environment field, and whether it rejects a token asserting an
-      environment when none is configured is not stated in its documentation.
-      Cheap to add once the answer is known — the publish path is now one file
-      with one job
+- [x] 4.1 ~~**OWNER**: whether Publish should sit behind an `environment:` with
+      a required reviewer.~~ **Declined: the approval flow stays as it is.**
+      Publishing is already `workflow_dispatch` and owner-only, so a required
+      reviewer would be the same person approving their own dispatch — a click
+      rather than a decision. The question about npm's optional environment
+      field is moot with it, and not worth answering against the registry to
+      buy ceremony. Recorded rather than dropped so it is not re-proposed as an
+      oversight
