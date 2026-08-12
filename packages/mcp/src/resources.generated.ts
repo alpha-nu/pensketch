@@ -1152,7 +1152,7 @@ export const EXAMPLES = {
           ],
           "out": 52,
           "span": 70,
-          "label": "every call advances it",
+          "label": "every call advances the sequence",
           "lx": 440,
           "ly": 700,
           "anchor": "middle"
