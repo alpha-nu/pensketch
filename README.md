@@ -1,6 +1,6 @@
 # pensketch
 
-> Hand-sketched SVG diagrams from plain data. Tiny, seeded, zero dependencies.
+> Hand-sketched SVG diagrams from plain data. Tiny, seeded, zero-dependency core.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
@@ -14,8 +14,8 @@
 - **Determinism is the contract.** Same data, same seed, same package version,
   same engine, same bytes - so a diagram can be snapshot-tested like anything
   else.
-- **Tiny and dependency-free.** The core is about 3 KB minified and gzipped,
-  and adds nothing else to your lockfile.
+- **The core is tiny and dependency-free.** About 3 KB minified and gzipped,
+  and it adds nothing to your lockfile.
 - **Themed with CSS variables.** Colors are `var(--ps-*)` references, so dark
   mode is a variable the page redefines rather than a diagram it redraws.
 
@@ -420,7 +420,7 @@ Which is why a pensketch diagram is a *file* rather than a function. It reviews
 in a pull request, diffs a line at a time, and can be generated from data you
 already have - none of which is true of code that draws.
 
-| | pensketch | rough.js |
+| | @pensketch/core | rough.js |
 |---|---|---|
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
