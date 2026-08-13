@@ -57,11 +57,11 @@ const PACKAGES = [
     // mechanism. That prototype *replaced* the whole-length test with the
     // shared-run one; the spec keeps both, and the rule as built has to. What
     // forced it was not the spec on paper but the existing tests: an unguarded
-    // run test reports a pair bowed 5 px apart as a 93 px run and needs a bow
-    // of about 20 before it goes quiet, so the rule would name `bow` as the
-    // fix and then reject the fix, against a separation this repository had
-    // already measured at 4 firing and 5 not. It also reported a short edge
-    // lying inside a longer one, which the baseline keeps quiet on purpose.
+    // run test reports a pair bowed 5 px apart as a 93 px run, so the rule
+    // would name `bow` as the fix and then go on reporting the pair that took
+    // it, against a separation this repository had already measured at 4
+    // firing and 5 not. It also reported a short edge lying inside a longer
+    // one, which the baseline keeps quiet on purpose.
     //
     // So the shipped rule keeps `along` and adds a run measured only for a
     // pair sharing exactly one end - a trunk two connectors leave or arrive on

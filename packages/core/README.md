@@ -109,7 +109,7 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 | `text-overflow` | the widest line is wider than its box allows | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
-| `edge-overlap` | two edges are drawn on top of one another the whole way | warning |
+| `edge-overlap` | two edges draw as one line: the whole way, or along a run of 40px out of a shared anchor | warning |
 
 Raise, lower or silence any of them with
 `check(diagram, { rules: { 'orphan-node': 'off' } })`. It never renders, never

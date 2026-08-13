@@ -114,16 +114,25 @@ const OVERLAP_MIN = 40;
 // the floor is set by what a coarse grid misses, not by what it rounds.
 //
 // 4 rather than 2 because the decision this feeds is `>= OVERLAP_MIN`, whose
-// nearest evidence either side is 16 and 22 px away, and halving the step
-// doubles the walk. The length in the message says "about" for the same
-// reason. Measured on the showcase, the largest diagram here at 15 edges,
-// `check` costs 2.99 ms at a step of 4 and 5.69 at 2, against 0.24 before this
-// rule existed. That 12x is the price of the rule itself, not of the step: the
-// walk is all-pairs with no index. A bounding-box reject was built and
-// measured - 0.69 ms at 4, 1.20 at 2 - and not kept, because it cost 72 B of
-// the 77 this entry has left to take an imperceptible 3 ms down to an
-// imperceptible 0.7. Recorded so the trade can be revisited with numbers
-// rather than re-derived; the scaling is O(pairs x length) either way.
+// nearest evidence either side is 16 and 22 px away. The length in the message
+// says "about" for the same reason.
+//
+// The walk is cheap in practice and the reason is `oneEnd`, not the step: a
+// pair that shares no anchor is rejected before any sampling, which on an
+// ordinary diagram is nearly all of them. Measured on the showcase, the
+// largest here at 15 edges, `check` costs 0.209 ms against 0.221 before this
+// rule - inside the noise. An earlier unguarded draft cost 2.99, and a
+// bounding-box reject built against *that* took it to 0.69; neither number
+// describes what ships, and the reject is worse than useless here, because
+// every pair surviving `oneEnd` shares an endpoint and so has an overlapping
+// box by construction.
+//
+// Where it does bite is fan-out at one anchor, which is quadratic in that
+// fan and in nothing else. Measured, against the same diagrams before the
+// rule: 10 edges off one anchor 2.27 ms (was 0.03), 20 edges 17.6 (was 0.13),
+// 40 edges 150 (was 0.32). A 40-edge diagram whose edges do not share anchors
+// stays under a millisecond. So the shape to index, if one is ever needed, is
+// a hub - not all pairs, and not a bounding box.
 const OVERLAP_STEP = 4;
 
 // Errors first. Not alphabetical: `error` sorting before `warning` there is a
@@ -331,17 +340,31 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // about whether the pair reads as two. What says it is how far apart they
   // get in the middle, which is what `bow` moves and what the whole-length
   // test above measures - a bow of 4 is reported and 5 is not. Measured, an
-  // unguarded run test reports a bow of 5 as 93 px and needs about 20 before
-  // it goes quiet, so it would name `bow` as the fix and then reject the fix.
+  // unguarded run test reports a bow of 5 as a 93 px run - so it would name
+  // `bow` as the fix and then go on reporting the pair that took it.
   //
   // Sharing *neither* end is a connector drawn past something rather than
   // along it: a short edge lying inside a longer one is a layout, and the
   // longer one has most of its length nowhere near the short one. That pair
   // stays with the whole-length test, which is false for it in one direction.
+  // "Same end" to within a millionth of a pixel rather than exactly. A bow
+  // does not end on its anchor as an equality: `bowPoints` reaches it through
+  // `cx + Math.cos(a) * r`, which lands an ulp or two away, and whether either
+  // end of a given bow compares equal is decided by chord arithmetic. Exact
+  // `===` therefore counted a bowed pair as sharing 0, 1 or 2 ends at random -
+  // and at 1 it ran the very test this guard exists to keep off it. Measured on
+  // the edge-and-reverse pair: quiet at bow 5, reported at 6 as a 72 px run and
+  // at 9 as 44, and the 5 that is quiet is quiet only for that fixture's
+  // geometry - moving the far node from x=400 to 403 makes it fire. A tolerance
+  // this small cannot merge two anchors a caller meant to keep apart; nothing
+  // in a diagram is a millionth of a pixel wide.
   const ends = (p: Point[]) => [p[0] as Point, p[p.length - 1] as Point];
   const oneEnd = (p: Point[], q: Point[]) =>
-    ends(p).filter((a) => ends(q).some((b) => a[0] === b[0] && a[1] === b[1]))
-      .length === 1;
+    ends(p).filter((a) =>
+      ends(q).some(
+        (b) => Math.abs(a[0] - b[0]) < 1e-6 && Math.abs(a[1] - b[1]) < 1e-6,
+      ),
+    ).length === 1;
 
   const sharedRun = (p: Point[], q: Point[]) => {
     let best = 0;
