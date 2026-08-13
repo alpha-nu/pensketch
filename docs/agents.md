@@ -117,6 +117,10 @@ interface DiagramEdge {
                            // loop, but [] is accepted anywhere
   bow?: number;            // px off the straight line, right of travel positive
   dotted?: boolean;        // dashes it and recolours it to --ps-accent
+  hop?: boolean;           // this one goes over: the line it crosses is broken
+                           // where they meet, and this one runs through. Only a
+                           // real crossing counts - arrows sharing an anchor, or
+                           // drawn along one another, are left whole
   label?: string;          // one line; REQUIRES lx and ly
   lx?: number; ly?: number;
   anchor?: 'start' | 'middle' | 'end';   // default 'middle'
@@ -149,6 +153,9 @@ interface Diagram {
 
 draw(svg: SVGSVGElement, diagram: Diagram, options?: {
   seed?: number;              // default 1 — picks which drawing you get
+  hops?: boolean;             // default false — every arrow goes over the ones
+                              // it crosses. An edge's own `hop` wins either way,
+                              // so `hop: false` opts one arrow out
   theme?: Partial<Theme>;
   label?: string;             // sets role="img" + aria-label
 }): void;
@@ -178,6 +185,7 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |
 | `OVERSHOOT` | 4 | how far box corners overrun |
 | `HATCH_INSET` | 4 | hatching inset from the node's outline |
+| `HOP_GAP` | 10 | the break left in a line where another crosses over it |
 | `LOOP_OUT` | 30 | how far a self-transition projects, when `out` is not given |
 | `LOOP_SPAN` | 40 | how far apart its two anchors sit, when `span` is not given |
 | `BRACE_DEPTH` | 26 | how far a brace's tip stands off its span, when `depth` is not given |

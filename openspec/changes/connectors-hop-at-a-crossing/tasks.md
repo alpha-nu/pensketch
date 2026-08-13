@@ -89,19 +89,28 @@ consequence.
 - [x] 3.1 `packages/core/schema/diagram.schema.json` and
       `packages/mcp/src/resources.generated.ts` regenerate from the JSDoc, so
       the JSDoc is the thing that gets written carefully
-- [ ] 3.2 `docs/agents.md`: the edge field table, `hops` beside `seed` in the
+- [x] 3.2 `docs/agents.md`: the edge field table, `hops` beside `seed` in the
       draw options, the constants table (`HOP_GAP`), and whichever worked
       example is closest
 - [x] 3.3 `README.md`: the edge field row, the draw-options row, and the size
       claim if 1.2 moved it
-- [ ] 3.4 `render_diagram` and `render_png` accept `hops` beside `seed`, so an
+- [x] 3.4 `render_diagram` and `render_png` accept `hops` beside `seed`, so an
       agent can ask for the diagram-wide default without setting `hop` on every
       edge it writes. An argument beside the diagram, not a key inside it, so
       the strict top-level-key rule is untouched
-- [ ] 3.5 `check_diagram` does **not** accept it, and its existing strict-key
+- [x] 3.5 `check_diagram` does **not** accept it, and its existing strict-key
       handling refuses it by name. `check` walks the unbroken path, so the
       argument would change no finding — accepting and ignoring it is the
       silent fallback this project refuses everywhere else
+
+      Both halves have a test that crosses the transport, which is the only
+      place a declared schema is consulted. Worth writing down, because the
+      asymmetry looks like an oversight and is not: `check_diagram` accepts
+      `hop` on an edge and does nothing with it, while refusing `hops`. A
+      diagram is one object handed to several tools, so refusing a *member*
+      field because this tool does not act on it would stop a caller using one
+      diagram with both. An argument is chosen per call, so declaring it only
+      where it means something costs nothing
 
 ## 4. Applying it
 

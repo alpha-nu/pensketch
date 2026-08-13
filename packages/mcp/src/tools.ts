@@ -175,6 +175,12 @@ export function registerTools(server: McpServer): void {
             .describe(
               'Picks which drawing of the same data you get. Default 1.',
             ),
+          hops: z
+            .boolean()
+            .optional()
+            .describe(
+              'Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge\'s own `hop` wins over this either way. Default false.',
+            ),
           label: z
             .string()
             .optional()
@@ -183,15 +189,15 @@ export function registerTools(server: McpServer): void {
         refuses(
           'render_diagram',
           'argument',
-          'a diagram, a viewBox, and an optional seed and label',
+          'a diagram, a viewBox, and an optional seed, hops and label',
         ),
       ),
     },
-    async ({ diagram: d, viewBox: box, seed, label }) => {
+    async ({ diagram: d, viewBox: box, seed, hops, label }) => {
       try {
         return {
           content: [
-            { type: 'text' as const, text: svgFor(d, box, seed, label) },
+            { type: 'text' as const, text: svgFor(d, box, seed, label, false, hops) },
           ],
         };
       } catch (error) {
@@ -210,6 +216,13 @@ export function registerTools(server: McpServer): void {
           diagram,
           viewBox,
           seed: z.number().int().optional(),
+          hops: z
+            .boolean()
+            .optional()
+            .describe(
+              'Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge\'s own `hop` wins over this either way. Default false.',
+            ),
+
           scale: z
             .number()
             .optional()
@@ -218,13 +231,13 @@ export function registerTools(server: McpServer): void {
         refuses(
           'render_png',
           'argument',
-          'a diagram, a viewBox, and an optional seed and scale',
+          'a diagram, a viewBox, and an optional seed, hops and scale',
         ),
       ),
     },
-    async ({ diagram: d, viewBox: box, seed, scale = 2 }) => {
+    async ({ diagram: d, viewBox: box, seed, hops, scale = 2 }) => {
       try {
-        const png = await renderPng(svgFor(d, box, seed, undefined, true), {
+        const png = await renderPng(svgFor(d, box, seed, undefined, true, hops), {
           width: box[2],
           height: box[3],
           scale,
@@ -257,12 +270,14 @@ export function svgFor(
   seed?: number,
   label?: string,
   forRaster = false,
+  hops?: boolean,
 ): string {
   // The rasterizer resolves no CSS custom properties, so it is given the
   // palette already resolved. `render_diagram` keeps the `var()` defaults,
   // because its SVG goes to a page that restyles it by redefining them.
   const inner = renderToString(d as Parameters<typeof renderToString>[0], {
     ...(seed === undefined ? {} : { seed }),
+    ...(hops === undefined ? {} : { hops }),
     ...(forRaster ? { theme: RASTER_THEME } : {}),
   });
   const font = forRaster

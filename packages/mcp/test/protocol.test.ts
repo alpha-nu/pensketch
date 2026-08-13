@@ -209,6 +209,30 @@ describe('the tool boundary refuses what it cannot carry', () => {
     expect(text).not.toContain('"shape"');
   });
 
+  // `hops` is a rendering concern, so the two rendering tools take it and the
+  // checker does not. Left undeclared there, the strict boundary refuses it by
+  // name - which tells a caller that hops are not something `check` models,
+  // where accepting it and returning findings computed as though it had been
+  // applied would tell them the opposite.
+  it('refuses hops on check_diagram, which does not model them', async () => {
+    const text = await refusal('check_diagram', {
+      diagram: { nodes: [NODE] },
+      hops: true,
+    });
+    expect(text).toContain('"hops"');
+  });
+
+  it('takes hops on the tools that render', async () => {
+    for (const name of ['render_diagram', 'render_png']) {
+      const result = await called(name, {
+        diagram: { nodes: [NODE] },
+        viewBox: BOX,
+        hops: true,
+      });
+      expect(result.isError, `${name} refused hops`).toBeFalsy();
+    }
+  });
+
   // Each tool names itself and its own arguments. One shared message would
   // send a caller who mistyped `scale` off to read about diagrams.
   it('names the tool and its arguments when the stray key is an argument', async () => {
@@ -218,7 +242,7 @@ describe('the tool boundary refuses what it cannot carry', () => {
       quality: 'high',
     });
     expect(text).toContain('render_png has no argument "quality"');
-    expect(text).toContain('an optional seed and scale');
+    expect(text).toContain('an optional seed, hops and scale');
   });
 
   // Plural is a different sentence, and a message assembled by concatenation
