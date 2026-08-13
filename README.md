@@ -21,16 +21,52 @@
 
 ## Install
 
+**For a coding agent**, the MCP server is the whole of it — three tools and the
+reference, the schema and five worked examples served as resources, so the agent
+reads the data model instead of guessing at it:
+
+```sh
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.3.0
+```
+
+That is the one to reach for first if an agent is drawing. `check_diagram`
+answers the questions a rendered image answers badly — whether two boxes overlap
+by three pixels, whether a label runs wider than its box — and
+[the section below](#for-an-agent-the-mcp-server) says why that matters more
+than it sounds.
+
+**For a page**, the renderer on its own:
+
 ```sh
 npm install @pensketch/core
 ```
 
-The React bindings are a separate package. `react` is a peer dependency
-(`^18 || ^19`), so the bindings draw with the copy your app already has:
+**For React**, the bindings are a separate package. `react` is a peer dependency
+(`^18 || ^19`), so they draw with the copy your app already has:
 
 ```sh
 npm install @pensketch/react @pensketch/core
 ```
+
+## The architecture, drawn by the thing it describes
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/showcase-dark.png">
+  <img alt="pensketch's own architecture: three consumers above one package with four entry points, over a renderer and a checker that stand on the same geometry" src="docs/assets/showcase-light.png">
+</picture>
+
+Three ways in, one package with four entry points, and a renderer and a checker
+that stand on the same geometry — which is why `sample` sits under both. Every
+byte of that picture came out of `draw`, from a plain object, with no `raw`
+callback in it: it is the diagram at
+[examples/showcase/](examples/showcase/), and an agent can read the same data
+back as `pensketch://example/showcase`.
+
+It is also the widest use of the data model this repository ships — all three
+drawn shapes, `accent` and `hatch`, straight connectors and orthogonal ones, a
+self-transition, both kinds of brace, notes whose pointers bow, and a break
+where two connectors cross. If you want to know what pensketch can draw before
+reading how, that is the answer.
 
 ## Quickstart: vanilla
 
@@ -376,7 +412,7 @@ else will keep.
 
 `@pensketch/mcp` puts all of this behind three tools — `check_diagram`,
 `render_diagram`, `render_png` — and serves the reference, the schema and
-four worked examples as resources:
+five worked examples as resources:
 
 ```sh
 claude mcp add pensketch -- npx -y @pensketch/mcp@0.3.0
