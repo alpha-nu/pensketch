@@ -139,14 +139,19 @@ consequence.
 
 ## 5. Left for the owner
 
-- [ ] 5.1 **OWNER**: 3.4, the MCP surface question
+- [x] 5.1 3.4, the MCP surface question — answered: the two rendering tools
+      take `hops`, the checker refuses it
 - [x] 5.2 A changeset. `@pensketch/core` gains two optional fields —
       additive and user-visible, so a **minor**. `@pensketch/mcp` follows only
       if 3.4 says the tools grow an argument
-- [ ] 5.3 **OWNER**: widening `edge-overlap` to report *partial* overlap. Its
+- [x] 5.3 Widening `edge-overlap` to report *partial* overlap, raised as its
+      own change — `edge-overlap-sees-a-shared-trunk` — because it edits a
+      different capability and needs a budget move of its own. Its
       test is that every sampled point of each path lies near the other, which a
       pair sharing a trunk and then diverging never satisfies — so it was silent
       on all 262 px in `showcase`, and the gate reporting zero warnings on that
       file was not reassurance. The routing fix landed in 4.1; teaching the
       checker to catch the next one is a change to an entry with 64 B of
-      headroom, and is not scoped here
+      headroom, and is not scoped here. Proposed rather than implemented: the
+      threshold has to be calibrated against the ten shipped diagrams before
+      any of it is written
