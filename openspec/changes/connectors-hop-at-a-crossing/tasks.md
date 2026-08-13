@@ -140,7 +140,7 @@ consequence.
 ## 5. Left for the owner
 
 - [ ] 5.1 **OWNER**: 3.4, the MCP surface question
-- [ ] 5.2 **OWNER**: a changeset. `@pensketch/core` gains two optional fields —
+- [x] 5.2 A changeset. `@pensketch/core` gains two optional fields —
       additive and user-visible, so a **minor**. `@pensketch/mcp` follows only
       if 3.4 says the tools grow an argument
 - [ ] 5.3 **OWNER**: widening `edge-overlap` to report *partial* overlap. Its
