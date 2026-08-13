@@ -123,20 +123,34 @@ svg text {
       { id: 'geom',   shape: 'box',     x: 900, y: 556, w: 190, h: 46, lines: ['geometry'] },
     ],
     edges: [
-      // Orthogonal routing is three points you supply, not a mode. The two
-      // solid legs at y=196 meet at x=440 and read as one bus, which is why
-      // they share that y and the dotted one below does not: a line that
-      // changes style halfway along reads as one relationship, not two.
-      { from: ['page', 'b'],  to: ['root', 't'] },
-      { from: ['react', 'b'], to: ['root', 't'],   via: [[440, 196], [180, 196]] },
-      { from: ['mcp', 'b'],   to: ['check', 't'],  via: [[700, 196], [440, 196]] },
+      // Orthogonal routing is corners you supply, not a mode - which means the
+      // anchors are yours too, and that is what keeps these five apart. Two
+      // arrows sharing a run of one line are one line in the picture and two in
+      // the data, and no rule reports it: `edge-overlap` asks that *every*
+      // point of each path lie near the other, which a pair that shares a
+      // trunk and then diverges never satisfies. So it is placed rather than
+      // checked. `mcp` reaches three things and leaves by three different
+      // sides; `react` arrives at core's left rather than descending the column
+      // `page` already occupies. Measured: no two of these share any length.
+      //
+      // `hop` on the first: `react` crosses `page`'s drop at (180, 196), and
+      // the straight line is the one that stays whole.
+      { from: ['page', 'b'],  to: ['root', 't'], hop: true },
+      { from: ['react', 'b'], to: ['root', 'l'],   via: [[440, 196], [26, 196], [26, 295]] },
+      { from: ['mcp', 'l'],   to: ['check', 't'],  via: [[570, 115], [570, 210], [440, 210]] },
       { from: ['mcp', 'b'],   to: ['server', 't'] },
-      { from: ['mcp', 'b'],   to: ['schema', 't'], via: [[700, 208], [960, 208]],
-        dotted: true, label: 'reads the schema', lx: 950, ly: 188, anchor: 'end' },
+      { from: ['mcp', 'r'],   to: ['schema', 't'], via: [[845, 115], [845, 200], [960, 200]],
+        dotted: true, label: 'reads the schema', lx: 880, ly: 182, anchor: 'start' },
 
       { from: ['root', 'b'],   to: ['draw', 't'] },
       { from: ['check', 'b'],  to: ['rules', 't'], via: [[440, 372], [995, 372]] },
-      { from: ['server', 'b'], to: ['markup', 't'] },
+      // The one place two connectors genuinely cross, at (700, 372), in the
+      // open between two groups. `hop` says this one goes over, so the run
+      // beneath it is broken rather than drawn through - which is the only way
+      // a reader can tell which of the two lines is continuous. Stated on the
+      // edge rather than as a draw option, because an option is not part of
+      // the diagram and would not reach an agent reading this as data.
+      { from: ['server', 'b'], to: ['markup', 't'], hop: true },
 
       { from: ['draw', 'r'], to: ['pen', 'l'] },
       // The pen reaches for three things, so the three arrows are one fan:

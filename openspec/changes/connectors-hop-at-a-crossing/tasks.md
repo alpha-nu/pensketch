@@ -105,12 +105,28 @@ consequence.
 
 ## 4. Applying it
 
-- [ ] 4.1 `examples/showcase/index.html` opts in. Measured, this draws exactly
-      **one** divot — `check→rules` × `server→markup` at (700, 372) — and the
-      showcase golden shifts once, deliberately
-- [ ] 4.2 Look at the render. The one crossing is in open space between two
-      groups, which is the easiest case a hop will ever get; if it does not
+- [x] 4.1 `examples/showcase/index.html` opts in, as a field on the edge rather
+      than a draw option: the MCP serves that file as *diagram data*, so an
+      option would give an agent a picture that renders differently from the
+      page
+
+      **The routing was reworked in the same breath, and had to be.** Turning
+      the feature on drew one break, in a diagram whose three most confusing
+      places it could not touch — 262 px of line drawn *along* other line, which
+      a break is skipped on by construction. Fixed under a rule already in this
+      spec, *an anchor is free*: `mcp` reaches three things and now leaves by
+      three different sides, `react` arrives at core's left rather than
+      descending the column `page` occupies. Not one connection changed, only
+      which side each line leaves and lands on. Measured 262 px → **0**, and the
+      two crossings that remain are both marked
+- [x] 4.2 Look at the render. The one crossing is in open space between two
+      groups, which is the easiest case a break will ever get; if it does not
       read there it will not read anywhere
+
+      Rendered through real Chrome at the page's own font, full frame and at
+      10×. Both crossings read: the line underneath stops, the one over runs
+      through. `npm run diagrams` clean — and it was clean before the rework
+      too, which is the point: none of what was wrong is a rule
 
 ## 5. Left for the owner
 
@@ -118,8 +134,10 @@ consequence.
 - [ ] 5.2 **OWNER**: a changeset. `@pensketch/core` gains two optional fields —
       additive and user-visible, so a **minor**. `@pensketch/mcp` follows only
       if 3.4 says the tools grow an argument
-- [ ] 5.3 **OWNER**: the 262 px of collinear overlap in `showcase` is not
-      touched by this change and is what makes that picture hard to read.
-      Separating the trunks is an edit to the diagram; widening `edge-overlap`
-      to catch partial overlap is a change to a checker with 64 B of headroom.
-      Both are real and neither is scoped here
+- [ ] 5.3 **OWNER**: widening `edge-overlap` to report *partial* overlap. Its
+      test is that every sampled point of each path lies near the other, which a
+      pair sharing a trunk and then diverging never satisfies — so it was silent
+      on all 262 px in `showcase`, and the gate reporting zero warnings on that
+      file was not reassurance. The routing fix landed in 4.1; teaching the
+      checker to catch the next one is a change to an entry with 64 B of
+      headroom, and is not scoped here
