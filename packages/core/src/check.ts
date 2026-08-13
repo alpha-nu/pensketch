@@ -85,6 +85,47 @@ const DEFAULTS: Record<RuleId, Severity> = {
   'edge-overlap': 'warning',
 };
 
+// How much line two connectors may share before it is reported, in px.
+//
+// Calibrated at both ends against every diagram this repository ships, and
+// against the four pairs the showcase carried before its routing was fixed -
+// not chosen and then checked one way round. Below it, the longest run any
+// shipped diagram draws deliberately: `examples/react/src/incident.ts` forks
+// twice from one anchor and turns at one corner, which this reports at 24 px,
+// and its own source says so in as many words. Every other shipped run is a
+// fan-out artefact of 10 px or less. Above it, the shortest run that was a
+// real defect: the showcase's `mcp` trunk, reported at 62. Nothing anywhere in
+// this repository lands between 24 and 62, so the number separates two
+// populations rather than splitting one, and 40 sits near the middle of that
+// empty band - 16 px clear of the deliberate fork, 22 clear of the defect.
+//
+// Not an option on `CheckOptions`. `rules` already switches this rule off for
+// a caller who disagrees, and a threshold nobody can calibrate against their
+// own diagrams is a knob that reports a different picture to every reader.
+const OVERLAP_MIN = 40;
+
+// How finely a segment is walked when measuring that run, in px.
+//
+// A reported run is quantised to this, so it bounds the error on the length in
+// the message. Measured by rebuilding at 8, 4, 2, 1, 0.5 and 0.25: every pair
+// is stable from 2 downward, 4 differs from the converged value by at most 4
+// px, and 8 is not merely coarse but wrong - it steps clean over six of the
+// pairs the finer walks report, including three the showcase draws today. So
+// the floor is set by what a coarse grid misses, not by what it rounds.
+//
+// 4 rather than 2 because the decision this feeds is `>= OVERLAP_MIN`, whose
+// nearest evidence either side is 16 and 22 px away, and halving the step
+// doubles the walk. The length in the message says "about" for the same
+// reason. Measured on the showcase, the largest diagram here at 15 edges,
+// `check` costs 2.99 ms at a step of 4 and 5.69 at 2, against 0.24 before this
+// rule existed. That 12x is the price of the rule itself, not of the step: the
+// walk is all-pairs with no index. A bounding-box reject was built and
+// measured - 0.69 ms at 4, 1.20 at 2 - and not kept, because it cost 72 B of
+// the 77 this entry has left to take an imperceptible 3 ms down to an
+// imperceptible 0.7. Recorded so the trade can be revisited with numbers
+// rather than re-derived; the scaling is O(pairs x length) either way.
+const OVERLAP_STEP = 4;
+
 // Errors first. Not alphabetical: `error` sorting before `warning` there is a
 // coincidence of English, and the day a third severity appears it would put
 // it in the wrong place.
@@ -243,12 +284,16 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // edges in the data, which is the defect here a caller cannot see by looking:
   // the drawing looks deliberate. `bow` is the fix, so the message names it.
   //
-  // "Along their whole length" is: every sampled point of each path lies within
-  // `2 * INFLATE` of some segment of the other, measured both ways round. Every
-  // point, because two paths that meet and part - a crossing, or a pair sharing
-  // one anchor - have points at the far end of each that the other never comes
-  // near. Both ways round, because one edge lying along part of a longer one
-  // leaves the rest of that one nowhere near it, and a T is not a duplicate.
+  // What is measured is the longest *stretch* the two share, not whether they
+  // coincide from end to end. The whole-length test this replaced asked that
+  // every sampled point of each path lie near the other, which a pair that
+  // shares a trunk and then separates never satisfies: each has points at its
+  // far end the other never comes near, so one failing sample made the whole
+  // test false. That is not a threshold set too high - the quantity it
+  // measured was "do these coincide entirely", and a trunk answers no. It was
+  // silent on all 262 px of it in this repository's own showcase, and the gate
+  // reported zero warnings on that file before the routing was fixed and
+  // after. Length changes how much of the picture lies, not whether it does.
   //
   // `2 * INFLATE` rather than the caller's `clearance`: INFLATE is half the
   // width of the ink, jitter included, so two ideal paths closer than twice it
@@ -256,12 +301,66 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // renderer lays down, not a preference about how much air a label wants, so
   // it is not an option. A straight edge and one bowed 4 px off it still draw
   // as one line and are reported; at 5 they are visibly two and this is quiet.
-  const along = (p: Point[], q: Point[]) =>
-    p.every((r) =>
-      q
-        .slice(1)
-        .some((s, k) => pointToSegment(r, q[k] as Point, s) < 2 * INFLATE),
-    );
+  //
+  // Both ways round, and the longer wins. A run is one stretch of picture, so
+  // its length should not depend on which edge the caller happened to write
+  // first - and where one path wanders and the other does not, the two walks
+  // do not agree. Measured, the symmetry costs 9 B.
+  //
+  // The band also makes every reported run about 4 px longer than the drawing:
+  // a parting path goes on counting until it is `2 * INFLATE` clear, so a run
+  // is reported at 24 where 20 was drawn. That is why the message says "about"
+  // and why `OVERLAP_MIN` is calibrated against reported figures rather than
+  // against the numbers a ruler would give.
+  const near = (r: Point, q: Point[]) => {
+    for (let k = 0; k + 1 < q.length; k++)
+      if (pointToSegment(r, q[k] as Point, q[k + 1] as Point) < 2 * INFLATE)
+        return true;
+    return false;
+  };
+
+  const along = (p: Point[], q: Point[]) => p.every((r) => near(r, q));
+
+  // A shared trunk is two connectors that leave one anchor together, or arrive
+  // at one together, and draw as a single line before parting - which is why
+  // the run below is only measured for a pair sharing exactly one end.
+  //
+  // Sharing *both* ends is a different shape with a different fix already
+  // measured: two edges between one pair of anchors must meet at each end
+  // whatever they do between, so a run there is unavoidable and says nothing
+  // about whether the pair reads as two. What says it is how far apart they
+  // get in the middle, which is what `bow` moves and what the whole-length
+  // test above measures - a bow of 4 is reported and 5 is not. Measured, an
+  // unguarded run test reports a bow of 5 as 93 px and needs about 20 before
+  // it goes quiet, so it would name `bow` as the fix and then reject the fix.
+  //
+  // Sharing *neither* end is a connector drawn past something rather than
+  // along it: a short edge lying inside a longer one is a layout, and the
+  // longer one has most of its length nowhere near the short one. That pair
+  // stays with the whole-length test, which is false for it in one direction.
+  const ends = (p: Point[]) => [p[0] as Point, p[p.length - 1] as Point];
+  const oneEnd = (p: Point[], q: Point[]) =>
+    ends(p).filter((a) => ends(q).some((b) => a[0] === b[0] && a[1] === b[1]))
+      .length === 1;
+
+  const sharedRun = (p: Point[], q: Point[]) => {
+    let best = 0;
+    let run = 0;
+    for (let k = 0; k + 1 < p.length; k++) {
+      const a = p[k] as Point;
+      const b = p[k + 1] as Point;
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy);
+      const steps = Math.max(1, Math.ceil(len / OVERLAP_STEP));
+      for (let s = 1; s <= steps; s++) {
+        const t = s / steps;
+        run = near([a[0] + dx * t, a[1] + dy * t], q) ? run + len / steps : 0;
+        if (run > best) best = run;
+      }
+    }
+    return best;
+  };
 
   // `bow` is the fix for a pair of connectors and a throw on a pair of
   // self-transitions, whose path is already described by the side they hang
@@ -271,17 +370,22 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   const loops = (n: number) => edges[n]?.from[0] === edges[n]?.to[0];
 
   paths.forEach(({ i, path }, k) => {
-    for (const b of paths.slice(k + 1))
-      if (along(path, b.path) && along(b.path, path))
+    for (const b of paths.slice(k + 1)) {
+      const whole = along(path, b.path) && along(b.path, path);
+      const run = oneEnd(path, b.path)
+        ? Math.max(sharedRun(path, b.path), sharedRun(b.path, path))
+        : 0;
+      if (whole || run >= OVERLAP_MIN)
         add(
           'edge-overlap',
-          `edges ${i} and ${b.i} are drawn one on top of the other; give one of them ${loops(i) && loops(b.i) ? 'its own out and span' : 'a bow'}`,
+          `edges ${i} and ${b.i} are drawn ${whole ? 'one on top of the other' : `along one another for about ${Math.round(run)} px`}; give one of them ${loops(i) && loops(b.i) ? 'its own out and span' : 'a bow'}`,
           // The start of the earlier edge: on the pair this rule exists for -
           // an edge and its reverse - it is an end both lines touch, which one
           // leaves from and the other arrives at.
           path[0] as Point,
           [`edge ${i}`, `edge ${b.i}`],
         );
+    }
   });
 
   // Every line the picture actually lays down, named the way a finding names

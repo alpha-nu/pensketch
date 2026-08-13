@@ -263,8 +263,9 @@ const incident = {
     { from: ['mitigate', 'r'], to: ['fixed', 'l'], dotted: true },
 
     // the fork. Both leave the same anchor and turn at the same corner, so
-    // their first 20px is one line; `edge-overlap` reports a pair drawn on top
-    // of one another the *whole* way, and these part company
+    // their first 20px is one line. `edge-overlap` reports a shared run of
+    // 40px or more, and 20 is deliberately under it: a fork is how a
+    // decision is drawn, and the threshold is calibrated to leave it alone
     { from: ['fixed', 'r'], to: ['clear', 'l'], via: [[780, 133], [780, 63]],
       label: 'yes', lx: 766, ly: 88, anchor: 'end', dotted: true },
     { from: ['fixed', 'r'], to: ['post', 'l'],  via: [[780, 133], [780, 203]], dotted: true },
@@ -333,7 +334,7 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 | `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
-| `edge-overlap` | two edges are drawn on top of one another the whole way | warning |
+| `edge-overlap` | two edges draw as one line: the whole way, or along a shared run of 40px before they part | warning |
 
 `out-of-bounds` measures the line that gets drawn rather than the straight run
 between the anchors: a loop and a bow are sampled, so a curve that leaves the

@@ -86,8 +86,10 @@ export function incident(stage: number): Diagram {
       { from: ['mitigate', 'r'], to: ['fixed',    'l'], ...unreached(stage < 3) },
 
       // The fork. Both leave the same anchor and turn at the same corner, so
-      // the first 20px of the two is one line; `check` reports a pair drawn on
-      // top of one another the *whole* way, and these part company.
+      // the first 20px of the two is one line. `check` reports a shared run
+      // once it reaches 40px, and this is the longest one any diagram here
+      // draws on purpose - which is why the threshold sits above it. A fork is
+      // how a decision is drawn, not two connectors laid in the same place.
       { from: ['fixed', 'r'], to: ['clear', 'l'], via: [[780, 133], [780, 63]],
         label: 'yes', lx: 766, ly: 88, anchor: 'end', ...unreached(stage < LAST) },
       { from: ['fixed', 'r'], to: ['post',  'l'], via: [[780, 133], [780, 203]],

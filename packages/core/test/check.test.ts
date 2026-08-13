@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as subpath from '../src/check';
 import { check } from '../src/check';
+import { INFLATE } from '../src/geometry';
 import type { Diagram, DiagramEdge, DiagramNode } from '../src/index';
 
 const box = (id: string, x: number, y: number): DiagramNode => ({
@@ -913,6 +914,158 @@ describe('edge-overlap', () => {
     expect(findings[0]?.message).toBe(
       'edges 0 and 1 are drawn one on top of the other; give one of them its own out and span',
     );
+  });
+
+  // The case this rule was widened for, and the shape the whole-length test
+  // could never see: two connectors leave one anchor, draw as a single line
+  // down to a corner, and only then go different ways. Every point at the far
+  // end of each is nowhere near the other, so `along` is false both ways and
+  // the old rule was silent however long the trunk ran.
+  it('reports a trunk two connectors share before parting', () => {
+    const trunk: Diagram = {
+      nodes: [box('s', 250, 0), box('l', 100, 300), box('r', 400, 300)],
+      edges: [
+        {
+          from: ['s', 'b'],
+          to: ['l', 't'],
+          via: [
+            [300, 240],
+            [150, 240],
+          ],
+        },
+        {
+          from: ['s', 'b'],
+          to: ['r', 't'],
+          via: [
+            [300, 240],
+            [450, 240],
+          ],
+        },
+      ],
+    };
+    const findings = check(trunk);
+    expect(rules(findings)).toEqual(['edge-overlap']);
+    // The trunk is drawn from (300, 40) to (300, 240), so 200px, and the run
+    // is reported a little longer than that: a parting path goes on counting
+    // until it is `2 * INFLATE` clear. Asserted as a range rather than a
+    // figure, because the exact overshoot is a property of the walk and not
+    // something a caller should be able to pin.
+    const px = Number(/about (\d+) px/.exec(findings[0]?.message ?? '')?.[1]);
+    expect(px).toBeGreaterThanOrEqual(200);
+    expect(px).toBeLessThan(200 + 3 * 2 * INFLATE);
+    // Naming the length is the point of the finding: "these two overlap" and
+    // "these two share 200px" are different amounts of help when the fix is to
+    // move one of them.
+    expect(findings[0]?.message).toContain('drawn along one another for about');
+    expect(findings[0]?.message).toContain('give one of them a bow');
+  });
+
+  // The lower bound of the calibration, held as a test rather than left in a
+  // comment. `examples/react/src/incident.ts` forks twice from one anchor and
+  // turns at one corner, sharing 20px, and says so in its own source. It is
+  // the longest run any diagram this repository ships draws deliberately, so
+  // it is the thing `OVERLAP_MIN` has to stay above.
+  //
+  // Asserted against a control at the same anchors, because on its own an
+  // assertion of silence is green for any reason at all - including the run
+  // never being measured. The two differ only in where the corner sits, so
+  // what they hold between them is the threshold rather than the geometry.
+  it('says nothing about a fork shorter than the threshold, and does above it', () => {
+    const fork = (turn: number): Diagram => ({
+      nodes: [box('s', 250, 0), box('l', 100, 300), box('r', 400, 300)],
+      edges: [
+        {
+          from: ['s', 'b'],
+          to: ['l', 't'],
+          via: [
+            [300, turn],
+            [150, turn],
+          ],
+        },
+        {
+          from: ['s', 'b'],
+          to: ['r', 't'],
+          via: [
+            [300, turn],
+            [450, turn],
+          ],
+        },
+      ],
+    });
+    // The anchor is at (300, 40), so the trunk is `turn - 40` px long.
+    expect(check(fork(60))).toEqual([]);
+    expect(rules(check(fork(160)))).toEqual(['edge-overlap']);
+  });
+
+  // The upper bound, and the four pairs that raised this change. This is the
+  // showcase's own geometry as it stood before its routing was fixed, where
+  // `npm run diagrams` reported zero warnings on 262px of connector drawn
+  // along other connector. Each pair shares one anchor - three leaving `mcp`,
+  // two arriving at `root` - which is exactly what the run is measured for.
+  it('reports each pair the showcase drew before its routing was fixed', () => {
+    const wide = (id: string, x: number, y: number): DiagramNode => ({
+      id,
+      shape: 'box',
+      x,
+      y,
+      w: 220,
+      h: 46,
+    });
+    const findings = check({
+      nodes: [
+        wide('page', 70, 92),
+        wide('react', 330, 92),
+        wide('mcp', 590, 92),
+        wide('root', 70, 272),
+        wide('check', 330, 272),
+        wide('server', 590, 272),
+        wide('schema', 850, 272),
+      ],
+      edges: [
+        { from: ['page', 'b'], to: ['root', 't'] },
+        {
+          from: ['react', 'b'],
+          to: ['root', 't'],
+          via: [
+            [440, 196],
+            [180, 196],
+          ],
+        },
+        {
+          from: ['mcp', 'b'],
+          to: ['check', 't'],
+          via: [
+            [700, 196],
+            [440, 196],
+          ],
+        },
+        { from: ['mcp', 'b'], to: ['server', 't'] },
+        {
+          from: ['mcp', 'b'],
+          to: ['schema', 't'],
+          via: [
+            [700, 208],
+            [960, 208],
+          ],
+        },
+      ],
+    });
+    // All four, and nothing else: the two `mcp` legs that cross `check`'s
+    // column are not reported as a fifth, and no node in the row trips a rule.
+    expect(
+      findings.map(
+        (f) => `${f.subjects.join('+')} ${/about (\d+)/.exec(f.message)?.[1]}`,
+      ),
+    ).toEqual([
+      'edge 0+edge 1 84',
+      'edge 2+edge 3 62',
+      'edge 2+edge 4 62',
+      'edge 3+edge 4 74',
+    ]);
+    // Measured by hand off the coordinates above: 76, 58, 58 and 70, each
+    // reported one band longer. 262px of picture the gate had nothing to say
+    // about.
+    expect(rules(findings)).toEqual(Array(4).fill('edge-overlap'));
   });
 
   // `check` runs on diagrams that are never drawn, which is most of the reason
