@@ -141,6 +141,16 @@ and every finding from a self-review of the diff is fixed. Items marked
 
 ## 4. Left for the owner
 
-- [ ] 4.1 **OWNER**: a changeset. `@pensketch/core/check` reports a finding it
+- [x] 4.1 **OWNER**: a changeset. `@pensketch/core/check` reports a finding it
       did not before, which is user-visible — a **minor**, and its changeset
       says which diagrams start reporting
+
+      Written at the owner's explicit request rather than by them. Both
+      packages at **minor**: core because `check` reports what it did not, and
+      `@pensketch/mcp` because `check_diagram` returns those findings and the
+      reference it serves describes the rule. The minor is forced by the
+      compatibility axis rather than by rendered output, which does not move —
+      a caret range on a 0.x version stops at the minor, so a release that can
+      turn a green pipeline red must be chosen rather than arrive on the next
+      install. It answers "which diagrams start reporting" with **none of the
+      ten shipped**, and names the shape that does
