@@ -192,7 +192,7 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |
 | `SEED` | 1 | default seed |
 
-All 39 are exported as `constants`.
+All 40 are exported as `constants`.
 
 Proportions that read well, from this project's own diagrams: a labelled box
 about **150 × 46**, rows about **80** apart, a group title needing about **30 px**
@@ -359,6 +359,19 @@ through a box, or along the edge of one, is not reported at all — the worked
 example above carries a `bow` for exactly that reason and `check` is silent
 without it. `raw` is invisible to it.
 And it never moves anything — there is no autolayout here either.
+
+`edge-overlap` has limits of its own worth knowing before you rely on it. It
+measures a shared run only for two edges that share exactly one anchor, so two
+connectors routed down the same corridor without sharing an end are not
+reported unless they coincide the whole way: proximity alone cannot tell that
+pair from a shallow crossing, which stays inside the same distance for an
+arbitrarily long run. The 40px threshold is in diagram units while the distance
+that counts as "one line" is a fixed 4.2px of ink, so the rule is not
+scale-free — a diagram drawn at twice these proportions reports forks that this
+one leaves alone. Two edges leaving one anchor at less than about 6° are
+reported at any scale, because a band that thin takes that long to escape. And
+the length in the message is the path's own arc length, so a connector that
+doubles back on itself inside the band has that stretch counted twice.
 
 ## Theming
 
