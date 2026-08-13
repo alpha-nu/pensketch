@@ -179,7 +179,7 @@ export function registerTools(server: McpServer): void {
             .boolean()
             .optional()
             .describe(
-              'Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge\'s own `hop` wins over this either way. Default false.',
+              "Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge's own `hop` wins over this either way. Default false.",
             ),
           label: z
             .string()
@@ -197,7 +197,10 @@ export function registerTools(server: McpServer): void {
       try {
         return {
           content: [
-            { type: 'text' as const, text: svgFor(d, box, seed, label, false, hops) },
+            {
+              type: 'text' as const,
+              text: svgFor(d, box, seed, label, false, hops),
+            },
           ],
         };
       } catch (error) {
@@ -220,7 +223,7 @@ export function registerTools(server: McpServer): void {
             .boolean()
             .optional()
             .describe(
-              'Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge\'s own `hop` wins over this either way. Default false.',
+              "Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge's own `hop` wins over this either way. Default false.",
             ),
 
           scale: z
@@ -237,11 +240,14 @@ export function registerTools(server: McpServer): void {
     },
     async ({ diagram: d, viewBox: box, seed, hops, scale = 2 }) => {
       try {
-        const png = await renderPng(svgFor(d, box, seed, undefined, true, hops), {
-          width: box[2],
-          height: box[3],
-          scale,
-        });
+        const png = await renderPng(
+          svgFor(d, box, seed, undefined, true, hops),
+          {
+            width: box[2],
+            height: box[3],
+            scale,
+          },
+        );
         return {
           content: [
             {
