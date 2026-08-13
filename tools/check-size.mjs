@@ -27,9 +27,34 @@ const PACKAGES = [
     // `loopPoints` - 377 B it had been tree-shaking away, of which the
     // rewritten rule is 5. Raised once, before the rule that needed the room
     // was written, rather than a byte at a time at each gate.
+    //
+    // 3264 from 3072 for `edge-overlap` reporting a shared run rather than
+    // only a whole-length overlap. This entry stands at 3008 with 64 B free -
+    // the tightest in the repository - and the rule does not fit in 64. A
+    // built prototype of it - the point-to-path proximity test, the walk that
+    // accumulates the longest near-stretch along a segment, the two thresholds
+    // and the length in the message - measured 3161, so +153. 3161 plus the
+    // same 100 B of gzip headroom is 3261, taken up to 3264. The prototype was
+    // reverted once it had been measured: nothing it declared is in the tree,
+    // and this comment is the surviving record in code of what was weighed.
+    //
+    // Two figures, because both were built and the cheaper was rejected on 9
+    // bytes. Taking the shared run as `max(run(a,b), run(b,a))` measured 3161;
+    // taking it one way round only measured 3152. The symmetric form is what a
+    // run means when one path wanders and the other does not, and 9 B is not a
+    // reason to carry an asymmetry whose answer depends on which edge the
+    // caller happened to write first.
+    //
+    // The root entry and `./server` were measured on the same prototype and
+    // did not move at all - 4179 and 4196, both unchanged - which is the check
+    // that the rule landed in the checker rather than in shared code. That
+    // holds wherever the two thresholds end up living: this entry imports
+    // named constants and tree-shakes the frozen `constants` object away
+    // entirely, so only joining that object - which the root entry and
+    // `./server` do carry - would move them. Whether they join it is open.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 3072,
+    budget: 3264,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries

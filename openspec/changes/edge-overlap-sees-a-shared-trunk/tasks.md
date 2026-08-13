@@ -6,15 +6,41 @@ and every finding from a self-review of the diff is fixed. Items marked
 
 ## 1. The budget, before the code that needs it
 
-- [ ] 1.1 Prototype the shared-run test far enough to measure it min+gzip on
+- [x] 1.1 Prototype the shared-run test far enough to measure it min+gzip on
       `./check` (**64 B** of headroom, 3008/3072) and on `./core` and
       `./server`, which do not carry the checker and should not move at all —
       if either does, the rule has landed in shared code and the prototype is
       wrong. Record every figure in the commit message
-- [ ] 1.2 Move the budget the measurement says must move, in its own commit,
+
+      Built, measured from a cold tree, then reverted. `./check` **3008 →
+      3161**, so **+153**, taking the shared run as `max(run(a,b), run(b,a))`;
+      one direction only measured **3152**, so the symmetry costs **9 B** and
+      was kept. The root entry **4179 → 4179** and `./server` **4196 → 4196**,
+      neither moving a byte, which is the diagnostic this task asks for. Run
+      against the historical showcase the prototype reports all four pairs —
+      84, 62, 62 and 74 px against the 76, 58, 58 and 70 measured by hand.
+
+      The prototype walked each segment at a sub-sampling step of **4 px**,
+      adding one step per sample that lay within `2 * INFLATE` of the other
+      path, so a reported run is quantised to that step and the four overshoots
+      are one step, one, one and two. That is recorded as an observation and
+      not explained. The `2 * INFLATE` band alone does not account for it: the
+      band keeps counting until a parting path is 4.2 px clear, which is *at
+      least* 4.2 px per parting end and unboundedly more as the parting angle
+      narrows — so it predicts overshoots larger than these, not smaller, and
+      three of the four sit below its floor. 2.1 has to separate the step from
+      the band before it can place `OVERLAP_MIN` against a 58 px target, since
+      an error of the order of the step is not small next to it. A coincident
+      pair reports its whole length, so the case 2.2 protects still fires
+- [x] 1.2 Move the budget the measurement says must move, in its own commit,
       with the arithmetic: measured plus the 100 B of gzip headroom the other
       entries are given. `repo-tooling` names 3072 literally, so its
       requirement is restated with the new number in the same commit
+
+      3161 + 100 = 3261, taken up to **3264**. Moved in the three files that
+      own the figure — `tools/check-size.mjs`, `CONTRIBUTING.md`, and the
+      `repo-tooling` delta — and in no others; `openspec/specs/` is written at
+      archive time, not now
 
 ## 2. The rule
 
