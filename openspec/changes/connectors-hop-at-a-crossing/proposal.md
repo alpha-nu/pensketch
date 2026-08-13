@@ -1,8 +1,8 @@
 # Proposal: connectors-hop-at-a-crossing
 
-> A connector that crosses another can be drawn hopping over it — a small arc
-> where the two meet — so that a reader can tell which line is which. Opt-in per
-> edge, or diagram-wide with a per-edge opt-out.
+> A connector that crosses another can be drawn as the one that goes over: the
+> line underneath is broken where they meet, so a reader can tell which is
+> which. Opt-in per edge, or diagram-wide with a per-edge opt-out.
 
 ## Why
 
@@ -13,12 +13,17 @@ the convention that answers it, and it is old: schematics, transit maps and
 piping diagrams all draw one line bridging the other rather than trusting the
 reader to disambiguate a plus sign.
 
-**The renderer already deviates from the ideal path, and says nothing by doing
-it.** Every stroke is jittered by up to `AMP / 2` at each end of each piece.
-A hop is the same kind of deviation — the line still goes where the caller
-said — except that it is deterministic and carries a meaning. It is a fact
-about how a line is *drawn*, not about where it goes, which is what keeps it
-out of routing.
+**The break is a fact about how a line is drawn, not about where it goes.**
+Neither path moves; one of them stops for ten pixels and starts again. That is
+what keeps this out of routing, which is the thing this renderer does not do.
+
+**The older convention — a bump on the line going over — cannot be drawn by
+this pen.** Displacing a line perpendicular to itself moves the apex *along*
+whatever it crosses at a right angle, so the bump lands on the line it is meant
+to bridge; and `ARC_MIN_CHORD`, which exists so that `pass` cannot jitter a
+small arc into noise, flattens it into two chords and makes that apex a vertex.
+Rendered at four sizes it reads as a junction. Seven shapes went to a render
+before this one was chosen; design.md D4 has the set.
 
 **Detection costs nothing at the scale this library is for.** Measured against
 a real render of `examples/showcase/`:
@@ -52,10 +57,12 @@ a guard against a diagram that does not exist.
   An author flips it by reordering the array or by naming `hop: false` on one
   of the pair — no geometry is consulted to decide whose relationship is
   subordinate.
-- **`hop` is a boolean and the geometry lives in `constants`** (`HOP_OUT`,
-  `HOP_SPAN`), the way `LOOP_OUT` and `LOOP_SPAN` already do. A numeric `hop`
-  would need a non-finite case, which would reopen the closed list in
-  *Invalid diagram data fails fast and specific*; a boolean cannot be `NaN`.
+- **`hop` is a boolean and the size lives in `constants`** as `HOP_GAP`, 10 px,
+  calibrated at both ends on a render: below it the gap is swallowed by the ink
+  band the crossing line lays down, above it the two halves stop reading as one
+  interrupted line. A numeric `hop` would need a non-finite case, which would
+  reopen the closed list in *Invalid diagram data fails fast and specific*; a
+  boolean cannot be `NaN`.
 - **Only edge-against-edge.** Not an edge against a node's outline, a brace, or
   a note's pointer. Those are separate relationships and none of them is what a
   hop means. This is asymmetric with `bow`, which a note pointer does accept:
@@ -64,18 +71,17 @@ a guard against a diagram that does not exist.
 - **`render_diagram` and `render_png` accept `hops` beside `seed`**, so the
   diagram-wide switch is reachable by an agent and not only by a hand-written
   page. `check_diagram` does not accept it and refuses it by name — `check`
-  walks the un-hopped path, so the argument would change no finding, and
+  walks the unbroken path, so the argument would change no finding, and
   accepting it to ignore it is the silent fallback this project refuses
   everywhere else.
 - **Only a transversal crossing**, tested as a strict interior intersection —
-  both parameters in `(0, 1)`. Two edges leaving one anchor therefore grow no
-  divots, which matters: `showcase` has a three-way fan out of `pen` at
-  (440, 498) that a looser test would decorate with three bumps.
+  both parameters in `(0, 1)`. So a fan-out is left whole, and so is a line
+  another edge merely *arrives at*: arriving is not crossing.
 - **`check` is untouched.** With detection in the renderer nothing needs a
   crossing report, and `core/check` has 64 bytes of headroom. The consequence —
-  that `edgePath` keeps returning the un-hopped path, so `out-of-bounds` cannot
-  see a bump leave the frame — is stated in the requirement rather than left to
-  be discovered.
+  that `edgePath` keeps returning the unbroken path, so `label-collision` can
+  measure clearance to ink the renderer cut away — is stated in the requirement
+  rather than left to be discovered.
 
 ## Impact
 
@@ -85,17 +91,19 @@ a guard against a diagram that does not exist.
 - **Affected code**: `packages/core/src/{types,constants,draw,sample}.ts`,
   the generated `schema.json` and `resources.generated.ts`, `docs/agents.md`,
   `README.md`.
-- **Byte budgets.** `core/server` has **99 B** of headroom at 3773/3872 and it
-  carries `draw`, so it moves first, in its own commit, with the arithmetic
-  from a measured prototype — never corrected after the fact. `core` has
-  1370 B at 3750/5120 and may not need to move at all; that is a measurement,
-  not a prediction.
-- **No existing golden shifts**, because the default is `false`. Applying the
-  feature to `showcase` shifts that one deliberately.
-- **What this does not fix.** Measured on the current `showcase`: one
-  transversal crossing, at (700, 372), and **262 px of collinear overlap** —
-  `page→root` and `react→root` sharing 76 px into `root`, and the three edges
-  out of `mcp` stacked on `x = 700` for 58–70 px. A hop is skipped on collinear
-  pairs by construction, so turning this on draws exactly **one** divot and
-  leaves every overlap as it is. Separating those trunks is a change to the
-  picture, not to the renderer, and is not in this proposal.
+- **Byte budgets.** `core/server` moved first, in its own commit, twice: to
+  4240 against a measured prototype of the bow, and to **4300** once calibration
+  replaced the bow with the break, which costs more rather than less — 4196
+  against 4134. `core` lands at 4179 against 5120 and does not move. +429 B on
+  the root entry is about a tenth of it, and every consumer carries it whether
+  or not a diagram ever sets `hop`; hopping is a behaviour of `draw` rather
+  than an entry point somebody imports, so it cannot be split off.
+- **No existing golden shifts**, because the default is `false`, and the
+  restructure that collects every path before drawing any of them consumes the
+  seeded sequence in the same order. `showcase` shifts deliberately.
+- **What this does not fix.** A break marks a crossing, so it does nothing for
+  two lines drawn *along* each other. `showcase` had 262 px of that, which was
+  its worst reading problem and which turning the feature on could not touch.
+  Routing fixed it instead — three anchors on `mcp`, `react` into core's left —
+  and that edit ships with this change. Teaching `edge-overlap` to report
+  partial overlap, so the next diagram is told rather than looked at, does not.
