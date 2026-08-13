@@ -54,12 +54,21 @@ more resource.
 
 ## 3. Left for the owner
 
-- [ ] 3.1 **OWNER**: look at it. `check` is silent about everything that
+- [x] 3.1 **OWNER**: look at it. `check` is silent about everything that
       actually went wrong across six rounds — a connector through a group
       title, a red dotted run and a black one sharing a `y` so they read as one
       line changing style, a label sitting on a group border, a loop cramped
       inside a pill's curve. None of those are rules. The render is in the
       conversation that produced it; the page itself is the artefact
-- [ ] 3.2 **OWNER**: a changeset. `@pensketch/mcp` serves a resource it did not
+
+      **Reviewed, and it took three further rounds.** The owner circled three
+      places where connectors could not be told apart, which measurement
+      confirmed as 262 px of line drawn *along* other line — not crossings.
+      Straight connectors were tried and rejected, and the routing settled on
+      orthogonal runs with `mcp` leaving by three different sides and `react`
+      arriving at core's left. 262 px → 0. `check` was silent through all of
+      it, before and after, which is the clearest evidence yet for the claim
+      this task makes
+- [x] 3.2 A changeset. `@pensketch/mcp` serves a resource it did not
       before, which is user-visible and additive — a **minor** under the rule
       that a minor may add API. `@pensketch/core` is untouched

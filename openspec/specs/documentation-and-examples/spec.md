@@ -144,13 +144,33 @@ theming, importing the built core dist relatively), `custom-pen/` (`pen()`
 used on its own, plus whatever `raw` callbacks draw what the data model still
 has no word for), `react/` (a Vite app rendering `<PenSketch>` with a seed
 control and a `useSketch` drawing, deliberately wrapped in
-`<React.StrictMode>`), and `state-machine/` (a state machine that branches on
+`<React.StrictMode>`), `state-machine/` (a state machine that branches on
 a decision, with a dotted exception path routed back into the node it left,
-and a self-transition stated in data). Each SHALL carry its own diagram,
+and a self-transition stated in data), and `showcase/` (this project's own
+logical architecture, drawn under the same theming as `vanilla/`). Each SHALL
+carry its own diagram,
 chosen to exercise what that folder exists to demonstrate rather than to
 repeat a README snippet. Examples SHALL be runnable per design.md D7, excluded
 from publishing, coverage, and size budgets, ASCII-only in fixture strings,
 and screenshot-verified at implementation time and after any API change.
+
+`showcase/` SHALL reach for the breadth of the data model in one diagram —
+every drawn shape, `accent` and `hatch`, a straight connector, an orthogonal
+one, a self-transition, both kinds of brace, and notes whose pointers bow —
+and SHALL do so **without `raw`**, so that what it draws is
+expressible as data and can be served whole rather than served with a hole in
+it. A feature that cannot be reached without `raw` SHALL be left to
+`custom-pen/`, which exists for exactly that. The diagram SHALL state what its
+own `hatch` and `dotted` mean, since the renderer attaches no meaning to
+either and a picture using both without saying so teaches a convention that
+does not exist.
+
+Connectors leaving one node together SHALL be drawn alike. Reaching for a
+`bow` to clear an obstacle one of them meets makes that one connector look
+like a different kind of relationship from its siblings, when the difference
+is only that its path was awkward. Where a straight run clips something,
+choosing a different anchor SHALL be preferred to bending one line out of a
+set: an anchor is free and a `bow` is a claim.
 
 The bundled examples SHALL demonstrate what the library can draw, not only
 what it once could not. Every connector shape the data model expresses — a
@@ -186,4 +206,8 @@ project publishes a rule against.
 #### Scenario: A new example folder reaches every gate that governs the others
 - **WHEN** an example folder is added
 - **THEN** its diagram is checked by `npm run diagrams`, and adding it without wiring it into `tools/shipped-diagrams.mjs` leaves it unchecked, which the folder count in this requirement exists to catch
+
+#### Scenario: The showcase is served whole
+- **WHEN** an agent reads `pensketch://example/showcase`
+- **THEN** it receives the diagram as data with no `rawOmitted` note beside it, because there is no `raw` in it to omit
 
