@@ -73,6 +73,7 @@ describe('constants', () => {
       HEAD_LEN: 10,
       HEAD_SPREAD: 0.5,
       HEAD_AMP: 1.2,
+      HOP_GAP: 10,
       OVERSHOOT: 4,
       PILL_STEPS: 26,
       PILL_JX: 3,

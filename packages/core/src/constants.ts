@@ -31,6 +31,18 @@ export const HEAD_LEN = 10;
 export const HEAD_SPREAD = 0.5;
 /** Jitter amplitude in px of the arrowhead barbs. */
 export const HEAD_AMP = 1.2;
+/**
+ * The break left in a connector where another one crosses over it, in px.
+ *
+ * Bounded at both ends, measured on a render rather than reasoned about. Below
+ * it: the crossing line lays down a band about 4.2 px wide - `WIDTH` 1.6 plus
+ * the `AMP` 2.6 the jitter moves it across - so a gap of 8 leaves under 2 px of
+ * daylight either side and reads as a smudge. Above it: at 16 the two halves
+ * stop reading as one interrupted line and start reading as two lines that
+ * happen to be collinear. 10 clears the band by about 2.9 px each side and
+ * still closes visually.
+ */
+export const HOP_GAP = 10;
 /** Largest corner overshoot in px at each end of a rect side. */
 export const OVERSHOOT = 4;
 /** Number of segments around a pill outline. */
@@ -184,6 +196,7 @@ export const constants = Object.freeze({
   HEAD_LEN,
   HEAD_SPREAD,
   HEAD_AMP,
+  HOP_GAP,
   OVERSHOOT,
   PILL_STEPS,
   PILL_JX,

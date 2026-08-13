@@ -14,7 +14,7 @@
 - **Determinism is the contract.** Same data, same seed, same package version,
   same engine, same bytes - so a diagram can be snapshot-tested like anything
   else.
-- **The core is tiny and dependency-free.** About 3 KB minified and gzipped,
+- **The core is tiny and dependency-free.** About 4 KB minified and gzipped,
   and it adds nothing to your lockfile.
 - **Themed with CSS variables.** Colors are `var(--ps-*)` references, so dark
   mode is a variable the page redefines rather than a diagram it redraws.
@@ -121,6 +121,7 @@ obstacle.
 | `via` | `Point[]` | none | Corner points between the two anchors. `draw` throws when corners are given with `bow`, and on a self-transition, whose path its side, `out` and `span` already settle. An empty array names no corner and is accepted anywhere. |
 | `bow` | `number` | `0` | Bow the arrow off the straight line between its anchors, in px. Positive is to the right of travel, so an edge and its reverse bow apart rather than overlapping. Refused alongside corners in `via`, on a self-transition, and for a value that is not a finite number. |
 | `dotted` | `boolean` | `false` | Dash the line and recolor it, and its label, to `--ps-accent`. |
+| `hop` | `boolean` | `false` | Draw this arrow as the one that goes over wherever it crosses another: the line underneath is broken where they meet, and this one runs through. Overrides the `hops` draw option either way, so `false` opts one arrow out of a diagram-wide switch. Only a crossing counts - arrows meeting at a shared anchor, or drawn along one another, are left whole. |
 | `label` | `string` | none | One line of text. Requires `lx` and `ly`. |
 | `lx`, `ly` | `number` | none | Where the label sits. `draw` throws when `label` is set and these are not numbers. |
 | `anchor` | `'start' \| 'middle' \| 'end'` | `'middle'` | Which end of the label sits on `lx`. |
@@ -425,7 +426,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **3750 B** | 8919 B |
+| Size, min+gzip | **4179 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |
@@ -436,7 +437,7 @@ measured at 4.6.6.
 
 **Reach for pensketch** when the picture is boxes and arrows that belong in
 version control: one plain object your reviewers can read, rendering to the
-same bytes on every run, for about 3 KB and no new entries in your lockfile.
+same bytes on every run, for about 4 KB and no new entries in your lockfile.
 
 **Reach for rough.js** when the picture is arbitrary - a sketchy chart, a game,
 a texture, anything worth composing stroke by stroke, on canvas or SVG.

@@ -35,53 +35,71 @@ consequence.
 
 ## 2. The data model and the geometry
 
-- [ ] 2.1 Calibrate `HOP_OUT` and `HOP_SPAN` **against both bounds** before
-      either is written down: too small and it is lost in `AMP` (2.6, so ±1.3 px
-      of wander on a band of two-pass ink at `WIDTH` 1.6); too large and it
-      swallows a chord of `SEG_LEN` 26 or reads as a bulge. Measured on a
-      render, at more than one line angle, on a solid edge and a dotted one.
-      The figures go in the commit message
-- [ ] 2.2 `hop?: boolean` on `DiagramEdge` and `hops?: boolean` on
+- [x] 2.1 Calibrate `HOP_OUT` and `HOP_SPAN` **against both bounds** before
+      either is written down
+
+      **The calibration replaced the mechanism.** A bump on the line going over
+      cannot be drawn by this pen, and no size rescues it: seven shapes went to
+      a render before a break in the line underneath was chosen. One constant
+      survives, `HOP_GAP` = 10, bounded at both ends on a render - 8 is
+      swallowed by the 4.2 px ink band the crossing line lays down, 16 stops
+      reading as one interrupted line. proposal, design D4/D5/D9 and the
+      core-renderer requirement were rewritten before the code landed
+- [x] 2.2 `hop?: boolean` on `DiagramEdge` and `hops?: boolean` on
       `DrawOptions`, resolved `edge.hop ?? options.hops ?? false` — `??` and not
       `||`, so `hop: false` is an opt-out and not an absence
-- [ ] 2.3 Detection in `draw`: a plain `O(S²)` double loop over every edge
+- [x] 2.3 Detection in `draw`: a plain `O(S²)` double loop over every edge
       path's segments, strict interior intersection (`u` and `v` both in
       `(0, 1)`), parallel pairs skipped. No spatial index and no sweep line —
       measured at 0.0017 ms on this repository's largest diagram, 0.10% of the
       render it already pays for
-- [ ] 2.4 Where both edges of a crossing resolve to hopping, the later index in
+- [x] 2.4 Where both edges of a crossing resolve to hopping, the later index in
       `edges` goes over
-- [ ] 2.5 The splice: walk `HOP_SPAN / 2` either side of the crossing and
-      replace the points between with `bowPoints(p0, p1, HOP_OUT)`, positive to
-      the right of travel — the sign convention `bow` and `depth` already carry
-- [ ] 2.6 A hop whose span reaches within `HEAD_LEN` (10) of the final point is
-      dropped, so `arrow()` never takes its head angle from spliced points. The
-      field applies to the edge and does not apply at that spot, so it is
-      ignored rather than refused
-- [ ] 2.7 Tests: the fan-out at one anchor grows no divots; a collinear pair
-      grows none; `hop: false` beats `hops: true`; the later index wins a
-      contested crossing; a hop under an arrowhead is dropped; and the default
-      renders byte-identical to before this change. The last one is the golden
-      the rest of the change rests on
-- [ ] 2.8 Mutation-check the detection test: gut the strict-interior condition
+- [x] 2.5 The cut, on the path underneath: walk `HOP_GAP / 2` either side of
+      the crossing and end one run there, starting the next on the far side.
+      Two crossings closer together than `HOP_GAP` leave one break rather than
+      two overlapping into a longer one, which a high-water mark settles
+- [x] 2.6 A break falling within `HEAD_LEN` (10) of the final point is dropped,
+      so no arrowhead is eaten and `arrow()` never takes its angle from a run
+      that stops short of the head. The field applies to the edge and does not
+      apply at that spot, so it is ignored rather than refused
+- [x] 2.7 Tests: a fan-out at one anchor is left whole; a collinear pair is;
+      an edge that ends on another does not break it; `hop: false` beats
+      `hops: true`; a break under an arrowhead is dropped, with a control at the
+      same crossing moved clear so the assertion cannot pass for any reason at
+      all; and the default renders byte-identical to before this change
+
+      One fixture had `hop: true` baked into it, so both sides of its
+      comparison already carried the break and it passed while measuring
+      nothing. The control is what found it
+- [x] 2.8 Mutation-check the detection test: gut the strict-interior condition
       and confirm the fan-out test fails. A test that stays green with the
       primitive removed is not evidence
 
+      **It stayed green, so the test was not evidence.** A crossing at a shared
+      start has a negative `t0`, which the high-water guard drops whatever the
+      interior test said - the fan-out never consults strictness. The case that
+      does is an edge which *ends on* another: interior to the run being cut, an
+      endpoint of the run crossing it. Relaxing `>=` to `>` breaks a line that
+      merely arrives at another, and that assertion is what the mutation now
+      fails on: 46 paths against 44
+
 ## 3. The surface a caller and an agent see
 
-- [ ] 3.1 `packages/core/schema/diagram.schema.json` and
+- [x] 3.1 `packages/core/schema/diagram.schema.json` and
       `packages/mcp/src/resources.generated.ts` regenerate from the JSDoc, so
       the JSDoc is the thing that gets written carefully
-- [ ] 3.2 `docs/agents.md`: the edge field table, the constants table
-      (`HOP_OUT`, `HOP_SPAN`), and whichever worked example is closest
-- [ ] 3.3 `README.md`: the edge field row, the draw-options row, and the size
+- [ ] 3.2 `docs/agents.md`: the edge field table, `hops` beside `seed` in the
+      draw options, the constants table (`HOP_GAP`), and whichever worked
+      example is closest
+- [x] 3.3 `README.md`: the edge field row, the draw-options row, and the size
       claim if 1.2 moved it
 - [ ] 3.4 `render_diagram` and `render_png` accept `hops` beside `seed`, so an
       agent can ask for the diagram-wide default without setting `hop` on every
       edge it writes. An argument beside the diagram, not a key inside it, so
       the strict top-level-key rule is untouched
 - [ ] 3.5 `check_diagram` does **not** accept it, and its existing strict-key
-      handling refuses it by name. `check` walks the un-hopped path, so the
+      handling refuses it by name. `check` walks the unbroken path, so the
       argument would change no finding — accepting and ignoring it is the
       silent fallback this project refuses everywhere else
 

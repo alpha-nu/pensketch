@@ -13,7 +13,13 @@ import {
   TITLE_SIZE,
 } from './constants';
 import { pen } from './pen';
-import { bowPoints, bracePoints, hatchClip, loopPoints } from './sample';
+import {
+  bowPoints,
+  bracePoints,
+  hatchClip,
+  hopRuns,
+  loopPoints,
+} from './sample';
 import { resolveTheme } from './theme';
 import type {
   Diagram,
@@ -128,7 +134,12 @@ export function draw(
       });
     });
 
-  (diagram.edges || []).forEach((e, i) => {
+  // Every path first, then every arrow. An edge that hops has to know where
+  // the others run, and nothing below `draw` can see a second edge: the pen
+  // draws one stroke and the checker is not in this bundle. Validation stays
+  // in this pass, so a diagram still throws before anything is drawn.
+  const edgeList = diagram.edges || [];
+  const paths = edgeList.map((e, i): Point[] => {
     const from = byId.get(e.from[0]);
     if (!from)
       throw new Error(
@@ -182,7 +193,7 @@ export function draw(
     // A loop is an edge: it differs in its points and in nothing else, so
     // dotted, label, lx, ly and anchor keep working below by not being asked
     // about here.
-    const pts: Point[] = loop
+    return loop
       ? loopPoints(
           anchor(from, e.from[1]),
           e.from[1],
@@ -192,10 +203,30 @@ export function draw(
       : bow !== 0
         ? bowPoints(anchor(from, e.from[1]), anchor(to, e.to[1]), bow)
         : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
-    p.arrow(pts, {
+  });
+
+  // `??` and not `||`, so `hop: false` is an opt-out of a diagram-wide switch
+  // rather than indistinguishable from leaving the field out.
+  const over = edgeList.map((e) => e.hop ?? options.hops ?? false);
+  edgeList.forEach((e, i) => {
+    const pts = paths[i] as Point[];
+    const opts = {
       dotted: !!e.dotted,
       color: e.dotted ? theme.accent : theme.ink,
-    });
+    };
+    // Nothing hops, so nothing is cut, and the drawing is what it always was.
+    if (!over.some(Boolean)) {
+      p.arrow(pts, opts);
+    } else {
+      const runs = hopRuns(pts, paths, i, over);
+      runs.forEach((r, k) => {
+        // The arrowhead belongs to the run carrying the edge's last point.
+        if (r.length > 1) {
+          if (k === runs.length - 1) p.arrow(r, opts);
+          else p.stroke(r, opts);
+        }
+      });
+    }
     if (e.label) {
       if (typeof e.lx !== 'number' || typeof e.ly !== 'number')
         throw new Error(

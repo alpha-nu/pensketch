@@ -4,6 +4,8 @@ import {
   BRACE_DEPTH,
   BRACE_R,
   HATCH_INSET,
+  HEAD_LEN,
+  HOP_GAP,
   MIN_STEPS,
   SEG_LEN,
 } from './constants';
@@ -332,4 +334,89 @@ export function loopPoints(
   // first and last points of what comes back - appending them would draw the
   // node's own edge twice.
   return arcPoints(mid[0], mid[1], rx, ry, from, to);
+}
+
+/**
+ * An edge's path cut into the runs it actually draws: the whole thing, less a
+ * `HOP_GAP` break wherever an edge that goes over it crosses it.
+ *
+ * The break is on the line underneath, not the one on top. A bump on the line
+ * on top is the older convention and this renderer cannot draw one: displacing
+ * a line perpendicular to itself moves the apex *along* whatever it crosses at
+ * a right angle, so the bump lands on the line it is meant to bridge, and
+ * `ARC_MIN_CHORD` - which exists because `pass` jitters ±`AMP / 2` and finer
+ * chords draw as noise - flattens an arc that small into two chords, making
+ * that apex a vertex. Measured at four sizes, it reads as a junction every
+ * time. A break reads correctly at the first size tried.
+ *
+ * A crossing is a strict interior intersection, both parameters in the open
+ * interval `(0, 1)`, with parallel pairs skipped. That is what keeps a fan-out
+ * whole: connectors leaving one anchor meet at a shared endpoint, which is not
+ * an interior crossing, and two edges drawn along one another have no crossing
+ * to break for. On this repository's own architecture diagram the strict test
+ * finds 1 crossing where an endpoint-inclusive one finds 10.
+ *
+ * Where both edges of a crossing go over, the later index wins, so layering
+ * follows `edges` order and nothing about the geometry decides it.
+ */
+export function hopRuns(
+  pts: Point[],
+  all: Point[][],
+  self: number,
+  over: boolean[],
+): Point[][] {
+  const runs: Point[][] = [];
+  const end = pts[pts.length - 1] as Point;
+  let cur: Point[] = [pts[0] as Point];
+  for (let k = 0; k + 1 < pts.length; k++) {
+    const a = pts[k] as Point;
+    const b = pts[k + 1] as Point;
+    const rx = b[0] - a[0];
+    const ry = b[1] - a[1];
+    const hits: number[] = [];
+    for (let j = 0; j < all.length; j++) {
+      // `j` goes over `self` when it hops and either `self` does not or `j`
+      // is the later of the two. So layering is a total order on `edges`.
+      if (j === self || !over[j] || (over[self] && j < self)) continue;
+      const q = all[j] as Point[];
+      for (let m = 0; m + 1 < q.length; m++) {
+        const c = q[m] as Point;
+        const d = q[m + 1] as Point;
+        const sx = d[0] - c[0];
+        const sy = d[1] - c[1];
+        const den = rx * sy - ry * sx;
+        if (den === 0) continue;
+        const qx = c[0] - a[0];
+        const qy = c[1] - a[1];
+        const u = (qx * sy - qy * sx) / den;
+        const v = (qx * ry - qy * rx) / den;
+        if (u <= 0 || u >= 1 || v <= 0 || v >= 1) continue;
+        // A break under the arrowhead would eat the head, and `arrow` takes
+        // its angle from the last two points of the run it is given.
+        if (
+          Math.hypot(end[0] - (a[0] + u * rx), end[1] - (a[1] + u * ry)) <
+          HEAD_LEN
+        )
+          continue;
+        hits.push(u);
+      }
+    }
+    hits.sort((x, y) => x - y);
+    const half = HOP_GAP / 2 / Math.hypot(rx, ry);
+    // A high-water mark, so two crossings closer together than `HOP_GAP` leave
+    // one break rather than two that overlap into a longer one.
+    let prev = 0;
+    for (const t of hits) {
+      const t0 = t - half;
+      const t1 = t + half;
+      if (t0 <= prev || t1 >= 1) continue;
+      cur.push([a[0] + t0 * rx, a[1] + t0 * ry]);
+      runs.push(cur);
+      cur = [[a[0] + t1 * rx, a[1] + t1 * ry]];
+      prev = t1;
+    }
+    cur.push(b);
+  }
+  runs.push(cur);
+  return runs;
 }

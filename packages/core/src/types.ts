@@ -301,6 +301,25 @@ export interface DiagramEdge {
   bow?: number;
   /** Dash the line and recolor it, and its label, to `theme.accent`. */
   dotted?: boolean;
+  /**
+   * Draw this edge as the one that goes over wherever it crosses another, so
+   * a reader can tell which of two lines is continuous. Default: `false`.
+   *
+   * What moves is the *other* line: it is broken for `HOP_GAP` px where the
+   * two cross, and this edge is drawn straight through. Nothing is added to
+   * this edge's own path.
+   *
+   * Overrides `DrawOptions.hops` in both directions, so `false` is an opt-out
+   * of a diagram-wide switch and not merely the absence of an opt-in. Where
+   * both edges of a crossing hop, the one later in `edges` goes over.
+   *
+   * Only a crossing is bridged, and only against another edge: two edges
+   * meeting at a shared anchor grow nothing, two drawn along one another grow
+   * nothing, and a node's outline, a brace and a note's pointer are not
+   * considered. A crossing under the arrowhead is skipped, where a bump would
+   * be illegible and would aim the barbs off the line of travel.
+   */
+  hop?: boolean;
   /** A single line of text. Requires `lx` and `ly`. */
   label?: string;
   /** Label x. `draw` throws if `label` is set and this is not a number. */
@@ -433,4 +452,13 @@ export interface DrawOptions extends PenOptions {
    * Left unset, neither attribute is touched.
    */
   label?: string;
+  /**
+   * Draw every edge hopping over the edges it crosses. Default: `false`, so a
+   * diagram that asks for nothing renders exactly as it did before hops
+   * existed.
+   *
+   * An edge's own `hop` wins over this either way, which is what lets one
+   * connector opt out without turning the switch off for the picture.
+   */
+  hops?: boolean;
 }

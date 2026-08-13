@@ -204,6 +204,10 @@
           "type": "boolean",
           "description": "Dash the line and recolor it, and its label, to `theme.accent`."
         },
+        "hop": {
+          "type": "boolean",
+          "description": "Draw this edge as the one that goes over wherever it crosses another, so a reader can tell which of two lines is continuous. Default: `false`.\n\nWhat moves is the *other* line: it is broken for `HOP_GAP` px where the two cross, and this edge is drawn straight through. Nothing is added to this edge's own path.\n\nOverrides `DrawOptions.hops` in both directions, so `false` is an opt-out of a diagram-wide switch and not merely the absence of an opt-in. Where both edges of a crossing hop, the one later in `edges` goes over.\n\nOnly a crossing is bridged, and only against another edge: two edges meeting at a shared anchor grow nothing, two drawn along one another grow nothing, and a node's outline, a brace and a note's pointer are not considered. A crossing under the arrowhead is skipped, where a bump would be illegible and would aim the barbs off the line of travel."
+        },
         "label": {
           "type": "string",
           "description": "A single line of text. Requires `lx` and `ly`."
