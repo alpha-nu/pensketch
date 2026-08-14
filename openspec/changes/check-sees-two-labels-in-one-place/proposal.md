@@ -61,34 +61,50 @@ not compared, which is a limitation written down rather than fixed.
 
 ## Measured, on a built prototype
 
-Built, measured cold, and reverted — the figures are from a running rule, not
-an estimate:
+Built, measured cold, and reverted twice — first as written, then optimised to
+find out whether it could be made to fit the budget it stands under:
 
-| entry | before | after | |
-|---|---|---|---|
-| `@pensketch/core/check` | 3297 | **3468** | **+171** |
-| `@pensketch/core` | 4179 | 4179 | unmoved |
-| `@pensketch/core/server` | 4196 | 4196 | unmoved |
+| entry | before | first cut | optimised | |
+|---|---|---|---|---|
+| `@pensketch/core/check` | 3297 | 3468 | **3390** | **+93** |
+| `@pensketch/core` | 4179 | 4179 | 4179 | unmoved |
+| `@pensketch/core/server` | 4196 | 4196 | 4196 | unmoved |
 
 The root entry and `./server` not moving is the check that the rule landed in
 the checker rather than in shared code.
 
-**`./check` stands at 3297 against 3392, so 95 B free, and this needs 171.**
-The budget moves first, in its own commit, as it did twice for the shared-trunk
-rule.
+**+171 came down to +93** by folding the node boxing into the loop that already
+walks nodes for `text-overflow`, carrying the text as a `[subject, box]` tuple
+so the minifier is not holding property names, building each subject string
+once where it was being built twice, and — the largest single saving — phrasing
+the finding as `lies under …, which will be drawn through it`, which is a
+string this file already emits twice, so gzip carries it for almost nothing.
+That phrasing is also the more accurate one: texts are boxed in draw order, so
+the second really is drawn over the first.
+
+**It fits, at 3390 against 3392, and it should not be taken.** Two bytes is not
+a margin, it is the noise: this repository has already recorded `./check`
+gaining **2 B of gzip on identical code** when esbuild renamed some locals
+(`tools/check-size.mjs`, the 3872 entry). A budget with two bytes spare is a
+gate that goes red on a toolchain bump with no change to the source, and the
+requirement it lives under exists to stop budgets being corrected at a failing
+gate. So the recommendation is to move it deliberately now: 3390 plus the same
+100 B of gzip headroom is 3490, taken up to **3520**.
+
+The alternative is real and cheap to take: ship at 3390/3392, and accept that
+the next person to improve a message in this entry does it against a two-byte
+ceiling.
 
 **Calibration is not the risk here that it was for `edge-overlap`.** The
 prototype reports **zero findings across all ten diagrams this repository
 ships**, and zero across the five panels of the explainer that exposed the gap
-once its one real collision was fixed. On the unfixed panel it reports exactly
-the defect:
+once its one real collision was fixed. All 364 existing tests pass unedited,
+which is the evidence that `label-collision` is untouched. On the unfixed panel
+it reports exactly the defect, carrying `estimated`:
 
 ```
-text-collision: node "leaf" and edge 0 are written in the same place; move one of them
+text-collision: node "leaf" lies under edge 0, which will be drawn through it
 ```
 
 There is no threshold to tune — two boxes either intersect or they do not — so
-there is no number to be talked into. What the prototype does not yet answer is
-whether the rule should be its own id or a widening of `label-collision`; only
-the new-id shape was built, and the difference is a rule id and a defaults
-entry. That is the first thing to measure and the owner's call to settle.
+there is no number to be talked into.

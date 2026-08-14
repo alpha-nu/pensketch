@@ -6,20 +6,26 @@ and every finding from a self-review of the diff is fixed. Items marked
 
 ## 1. The decision, then the budget
 
-- [ ] 1.1 Build both shapes and measure each on `./check`: a new `text-collision`
-      rule id, and a widening of `label-collision` to cover the text-versus-text
-      axis. The first was measured at **+171 B**; the second is unmeasured.
-      Report both with the wording each produces, because the message is what a
-      caller acts on and the two read differently — a `label-collision` message
-      names "the label on edge 3", which is wrong for a pair of node labels
-- [ ] 1.2 **OWNER**: choose. A separate id can be switched off on its own and
-      says plainly what it found; reusing `label-collision` is fewer bytes and
-      one less rule in the list a reader has to hold
-- [ ] 1.3 Move the budget the chosen shape needs, in its own commit, with the
-      arithmetic: measured plus the 100 B of gzip headroom the other entries
-      are given. `./check` stands at **3297 against 3392**. `repo-tooling` and
-      `CONTRIBUTING.md` both name the figure literally, so all three files that
-      own it move together
+- [x] 1.1 Build both shapes and measure each on `./check`
+
+      Settled by the owner before the second was built: **a separate
+      `text-collision` id**, not a widening of `label-collision`, whose
+      messages name "the label on edge 3" and would be wrong for a pair of node
+      labels. Measured **+171 B** as first written, then **+93 B** optimised —
+      3297 to **3390** — which fits 3392 with two bytes to spare
+- [x] 1.2 **OWNER**: choose — answered, separate id
+- [ ] 1.3 Move the budget to **3520**, in its own commit, with the arithmetic:
+      3390 plus the same 100 B of gzip headroom is 3490, taken up to 3520.
+
+      Moved although the rule fits without it, and the reason is recorded
+      rather than assumed: this repository has measured `./check` gaining
+      **2 B of gzip on identical code** when esbuild renamed locals, so a
+      two-byte margin is the noise rather than a margin, and a gate that goes
+      red on a toolchain bump is the thing the requirement forbids. If the
+      owner would rather keep 3392 and ship at 3390, this task is struck and
+      1.1's figure stands as the record of why it was close
+- [ ] 1.4 `repo-tooling` and `CONTRIBUTING.md` both name the figure literally,
+      so all three files that own it move in the same commit
 
 ## 2. The rule
 
