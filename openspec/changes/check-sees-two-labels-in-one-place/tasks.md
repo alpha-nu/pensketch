@@ -84,8 +84,16 @@ and every finding from a self-review of the diff is fixed. Items marked
 
 ## 4. Left for the owner
 
-- [ ] 4.1 **OWNER**: a changeset. `@pensketch/core/check` reports a finding it
+- [x] 4.1 **OWNER**: a changeset. `@pensketch/core/check` reports a finding it
       did not before, so a **minor** on the same reasoning as the shared-trunk
       rule: rendered output does not move, but a green pipeline can turn red on
       unchanged input, and a caret range on 0.x stops at the minor. It says
       which diagrams start reporting — none of the ten shipped
+
+      Written at the owner's request rather than by them, as 4.1 of the
+      shared-trunk change was. Both packages **minor**: core because `check`
+      reports what it did not, `@pensketch/mcp` because `check_diagram` returns
+      it and the served reference describes it. It answers "which diagrams
+      start reporting" with **none of the ten shipped**, names the shape that
+      does, and states the limitation that remains — this compares the text a
+      group or note carries, not the lines they draw
