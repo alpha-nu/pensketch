@@ -1084,6 +1084,123 @@ describe('edge-overlap', () => {
   });
 });
 
+describe('text-collision', () => {
+  // Every other rule measures text against the *strokes* a diagram draws, so
+  // the connectors here are kept far from the labels on purpose: anything
+  // these tests report is text against text and nothing else.
+  const far: DiagramNode[] = [box('p', 0, 600), box('q', 300, 600)];
+  const link: DiagramEdge = { from: ['p', 'r'], to: ['q', 'l'] };
+  const ids = (d: Diagram) =>
+    check(d)
+      .filter((f) => f.rule === 'text-collision')
+      .map((f) => f.subjects.join(' + '));
+
+  // The case this rule exists for, and the one that was drawn before it was
+  // written: a group's title hangs off its top-left corner, an edge label was
+  // put there too, and every gate passed because a title lays down no path.
+  it("reports a label written through a group's title", () => {
+    const d: Diagram = {
+      nodes: [
+        {
+          id: 'g',
+          shape: 'group',
+          x: 0,
+          y: 0,
+          w: 300,
+          h: 120,
+          lines: ['a leaf'],
+        },
+        ...far,
+      ],
+      edges: [{ ...link, label: 'energy', lx: 30, ly: 18 }],
+    };
+    expect(ids(d)).toEqual(['node "g" + edge 0']);
+    // Named in draw order: the group's title is laid down before any edge, so
+    // the edge label is the one drawn over it.
+    expect(check(d).find((f) => f.rule === 'text-collision')?.message).toBe(
+      'node "g" lies under edge 0, which will be drawn through it',
+    );
+  });
+
+  // Moving it clear is the whole fix, and the rule has to agree that it worked.
+  it('goes quiet once the label is moved off the title', () => {
+    const d: Diagram = {
+      nodes: [
+        {
+          id: 'g',
+          shape: 'group',
+          x: 0,
+          y: 0,
+          w: 300,
+          h: 120,
+          lines: ['a leaf'],
+        },
+        ...far,
+      ],
+      edges: [{ ...link, label: 'energy', lx: 240, ly: 90 }],
+    };
+    expect(ids(d)).toEqual([]);
+  });
+
+  it("reports a label written through a node's own label", () => {
+    const d: Diagram = {
+      nodes: [{ ...box('n', 0, 0), lines: ['chloroplast'] }, ...far],
+      edges: [{ ...link, label: 'energy', lx: 50, ly: 20 }],
+    };
+    expect(ids(d)).toEqual(['node "n" + edge 0']);
+  });
+
+  it('reports two edge labels written on one another', () => {
+    const d: Diagram = {
+      nodes: far,
+      edges: [
+        { ...link, label: 'first', lx: 40, ly: 40 },
+        { ...link, label: 'second', lx: 44, ly: 42 },
+      ],
+    };
+    // The pair of edges is itself an overlap, so only the text finding is read.
+    expect(ids(d)).toEqual(['edge 0 + edge 1']);
+  });
+
+  // The rule has no clearance of its own, which is the point: near is not a
+  // collision, and there is no number here for anyone to tune.
+  it('says nothing about text that is merely near other text', () => {
+    const d: Diagram = {
+      nodes: [{ ...box('n', 0, 0), lines: ['chloroplast'] }, ...far],
+      edges: [{ ...link, label: 'energy', lx: 50, ly: 90 }],
+    };
+    expect(ids(d)).toEqual([]);
+  });
+
+  it('says nothing about a diagram with only one piece of text', () => {
+    expect(
+      ids({ nodes: far, edges: [{ ...link, label: 'alone', lx: 40, ly: 40 }] }),
+    ).toEqual([]);
+  });
+
+  // It rests on the width estimate, like every other finding that does, and a
+  // caller filtering on `estimated` has to be able to find it.
+  it('marks the finding as estimated', () => {
+    const d: Diagram = {
+      nodes: [{ ...box('n', 0, 0), lines: ['chloroplast'] }, ...far],
+      edges: [{ ...link, label: 'energy', lx: 50, ly: 20 }],
+    };
+    expect(check(d).find((f) => f.rule === 'text-collision')?.estimated).toBe(
+      true,
+    );
+  });
+
+  it('can be switched off on its own', () => {
+    const d: Diagram = {
+      nodes: [{ ...box('n', 0, 0), lines: ['chloroplast'] }, ...far],
+      edges: [{ ...link, label: 'energy', lx: 50, ly: 20 }],
+    };
+    expect(
+      rules(check(d, { rules: { 'text-collision': 'off' } })),
+    ).not.toContain('text-collision');
+  });
+});
+
 describe('a brace is checked as the shape it draws', () => {
   const FRAME = [0, 0, 400, 300] as const;
   // A span whose two endpoints sit well inside the frame, with the tip

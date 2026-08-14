@@ -386,6 +386,7 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
 | `edge-overlap` | two edges draw as one line: the whole way, or along a run of 40px out of a shared anchor | warning |
+| `text-collision` | two pieces of text — a node label, a group title, an edge or brace label, a note — have overlapping boxes | warning |
 
 Every rule can be raised, lowered or switched off:
 `check(diagram, { rules: { 'orphan-node': 'off' } })`. Findings come back

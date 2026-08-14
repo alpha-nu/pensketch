@@ -335,6 +335,7 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
 | `edge-overlap` | two edges draw as one line: the whole way, or along a run of 40px out of a shared anchor | warning |
+| `text-collision` | two pieces of text — a node label, a group title, an edge or brace label, a note — have overlapping boxes | warning |
 
 `out-of-bounds` measures the line that gets drawn rather than the straight run
 between the anchors: a loop and a bow are sampled, so a curve that leaves the
@@ -352,12 +353,13 @@ stable enough to snapshot. `at` is a point in the diagram's own coordinates —
 the place to look. Anything resting on the width estimate carries
 `estimated: true`.
 
-What it does not know about: group borders and note arrows are neither edges
-nor braces, so a label lying across one of those is not reported. No rule
-compares an edge with a node's outline either, so an arrow drawn straight
-through a box, or along the edge of one, is not reported at all — the worked
-example above carries a `bow` for exactly that reason and `check` is silent
-without it. `raw` is invisible to it.
+What it does not know about: no rule compares an edge with a node's outline,
+so an arrow drawn straight through a box, or along the edge of one, is not
+reported at all — the worked example above carries a `bow` for exactly that
+reason and `check` is silent without it. A group's border and a note's arrow
+are neither edges nor braces, so `label-collision` does not measure against
+either; `text-collision` covers the text they carry, not the lines they draw.
+`raw` is invisible to it.
 And it never moves anything — there is no autolayout here either.
 
 `edge-overlap` has limits of its own worth knowing before you rely on it. It

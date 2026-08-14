@@ -1,4 +1,11 @@
-import { EDGE_SIZE, NOTE_SIZE, SIZE, TITLE_DX, TITLE_SIZE } from './constants';
+import {
+  EDGE_SIZE,
+  NOTE_SIZE,
+  SIZE,
+  TITLE_DX,
+  TITLE_DY,
+  TITLE_SIZE,
+} from './constants';
 import {
   type Box,
   boxToSegment,
@@ -28,7 +35,8 @@ export type RuleId =
   | 'text-overflow'
   | 'group-escape'
   | 'orphan-node'
-  | 'edge-overlap';
+  | 'edge-overlap'
+  | 'text-collision';
 
 /** One defect, in enough detail to fix it without seeing the drawing. */
 export interface Finding {
@@ -83,6 +91,7 @@ const DEFAULTS: Record<RuleId, Severity> = {
   'group-escape': 'warning',
   'orphan-node': 'warning',
   'edge-overlap': 'warning',
+  'text-collision': 'warning',
 };
 
 // How much line two connectors may share before it is reported, in px.
@@ -257,10 +266,32 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // Nothing here measures text, so this is the estimate and every finding it
   // produces says so. It over-states width on purpose: a false warning costs
   // one edit, a missed overflow costs a picture nobody looks at again.
+  // Every piece of text the drawing lays down, boxed where `draw` will put it.
+  // `label-collision` below measures text against the *strokes* a diagram
+  // draws - `struckBy` walks the drawn polylines - and a node's label and a
+  // group's title are ink that is in no path, so nothing compared one piece of
+  // text with another until this existed. Filled as each kind is met rather
+  // than in a pass of its own: every loop that needs a box already computes it.
+  const texts: [string, Box][] = [];
+
   for (const n of nodes) {
     if (!n.lines) continue;
     const group = n.shape === 'group';
     const size = group ? TITLE_SIZE : n.size || SIZE;
+    const sub = `node "${n.id}"`;
+    // A group's title hangs off its top-left corner and runs right; every
+    // other shape centres its lines in its box. Both are what `draw` does.
+    texts.push([
+      sub,
+      labelBox(
+        group ? n.x + TITLE_DX : n.x + n.w / 2,
+        group ? n.y + TITLE_DY : n.y + n.h / 2,
+        n.lines,
+        size,
+        group ? 'start' : 'middle',
+        glyphWidth,
+      ),
+    ]);
     const width =
       n.lines.reduce((m, l) => Math.max(m, l.length), 0) * size * glyphWidth;
     // A group's title starts TITLE_DX in from the left corner and runs right,
@@ -269,9 +300,9 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     if (width > room)
       add(
         'text-overflow',
-        `the label on node "${n.id}" needs about ${Math.round(width)}px and has ${Math.round(room)}px; widen the box or shorten the text`,
+        `the label on ${sub} needs about ${Math.round(width)}px and has ${Math.round(room)}px; widen the box or shorten the text`,
         [n.x, n.y],
-        [`node "${n.id}"`],
+        [sub],
         true,
       );
   }
@@ -445,24 +476,25 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   edges.forEach((e, i) => {
     if (!e.label || typeof e.lx !== 'number' || typeof e.ly !== 'number')
       return;
-    const hit = struckBy(
-      labelBox(
-        e.lx,
-        e.ly,
-        [e.label],
-        EDGE_SIZE,
-        e.anchor || 'middle',
-        glyphWidth,
-      ),
+    const box = labelBox(
+      e.lx,
+      e.ly,
+      [e.label],
+      EDGE_SIZE,
+      e.anchor || 'middle',
+      glyphWidth,
     );
+    const sub = `edge ${i}`;
+    texts.push([sub, box]);
+    const hit = struckBy(box);
     if (hit)
       add(
         'label-collision',
-        hit.subject === `edge ${i}`
-          ? `the label on edge ${i} lies on the line it labels; move it clear or put the text in a box instead`
-          : `the label on edge ${i} lies under ${hit.subject}, which will be drawn through it`,
+        hit.subject === sub
+          ? `the label on ${sub} lies on the line it labels; move it clear or put the text in a box instead`
+          : `the label on ${sub} lies under ${hit.subject}, which will be drawn through it`,
         [e.lx, e.ly],
-        [`edge ${i}`, hit.subject],
+        [sub, hit.subject],
         true,
       );
   });
@@ -470,40 +502,71 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   braces.forEach((b, i) => {
     if (!b.lines || typeof b.lx !== 'number' || typeof b.ly !== 'number')
       return;
-    const hit = struckBy(
-      labelBox(b.lx, b.ly, b.lines, SIZE, b.anchor || 'start', glyphWidth),
+    const box = labelBox(
+      b.lx,
+      b.ly,
+      b.lines,
+      SIZE,
+      b.anchor || 'start',
+      glyphWidth,
     );
+    const sub = `brace ${i}`;
+    texts.push([sub, box]);
+    const hit = struckBy(box);
     if (hit)
       add(
         'label-collision',
-        hit.subject === `brace ${i}`
-          ? `the label on brace ${i} lies on the brace it labels; move it clear of the tip`
-          : `the label on brace ${i} lies under ${hit.subject}, which will be drawn through it`,
+        hit.subject === sub
+          ? `the label on ${sub} lies on the brace it labels; move it clear of the tip`
+          : `the label on ${sub} lies under ${hit.subject}, which will be drawn through it`,
         [b.lx, b.ly],
-        [`brace ${i}`, hit.subject],
+        [sub, hit.subject],
         true,
       );
   });
 
   notes.forEach((nt, i) => {
-    const hit = struckBy(
-      labelBox(
-        nt.x,
-        nt.y,
-        nt.lines,
-        NOTE_SIZE,
-        nt.anchor || 'start',
-        glyphWidth,
-      ),
+    const box = labelBox(
+      nt.x,
+      nt.y,
+      nt.lines,
+      NOTE_SIZE,
+      nt.anchor || 'start',
+      glyphWidth,
     );
+    const sub = `note ${i}`;
+    texts.push([sub, box]);
+    const hit = struckBy(box);
     if (hit)
       add(
         'label-collision',
-        `note ${i} lies under ${hit.subject}, which will be drawn through it`,
+        `${sub} lies under ${hit.subject}, which will be drawn through it`,
         [nt.x, nt.y],
-        [`note ${i}`, hit.subject],
+        [sub, hit.subject],
         true,
       );
+  });
+
+  // Two labels in one place are one smear in the picture and two strings in
+  // the data, and neither is recoverable by reading it. `intersects` rather
+  // than a clearance of its own: boxes either overlap or they do not, and a
+  // rule with nothing to tune is a rule nobody argues into silence. Text
+  // touching at the edges is sometimes close enough, so it is a warning, and
+  // the boxes rest on the width estimate, so it says so.
+  //
+  // The pair is named in the order the two are drawn, which is the order they
+  // were collected in, so `lies under` states the draw order rather than
+  // guessing at it.
+  texts.forEach(([s1, a], i) => {
+    for (const [s2, b] of texts.slice(i + 1))
+      if (intersects(a, b))
+        add(
+          'text-collision',
+          `${s1} lies under ${s2}, which will be drawn through it`,
+          [a.x, a.y],
+          [s1, s2],
+          true,
+        );
   });
 
   // Only when the caller says what the picture is cropped to. Everything else
