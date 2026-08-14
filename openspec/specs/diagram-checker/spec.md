@@ -81,9 +81,9 @@ examples and the README hero — and fail on any `error` finding.
 
 ### Requirement: The rules over diagram geometry
 `check` SHALL report: `duplicate-id` and `node-overlap` and `out-of-bounds` as
-errors; `label-collision`, `text-overflow`, `group-escape`, `orphan-node` and
-`edge-overlap` as warnings. Each rule's severity SHALL be raisable, lowerable,
-or switchable off through options. `out-of-bounds` SHALL run only when a
+errors; `label-collision`, `text-overflow`, `group-escape`, `orphan-node`,
+`edge-overlap` and `text-collision` as warnings. Each rule's severity SHALL be
+raisable, lowerable, or switchable off through options. `out-of-bounds` SHALL run only when a
 `viewBox` is supplied.
 
 `edge-overlap` SHALL fire when two edges' sampled paths stay within a small
@@ -114,6 +114,18 @@ run together".
 above the longest run any of them draws deliberately, and below the shortest
 run that reads as one line. A threshold chosen to silence a gate rather than to
 describe the drawing is what makes a warning worth switching off.
+
+`text-collision` SHALL fire when the boxes of any two pieces of text the
+drawing lays down intersect — a node's label, a group's title, an edge label, a
+brace label or a note, each against every other. `label-collision` measures
+text against the *strokes* a diagram draws, and a group's title and a node's
+label are in no path, so before this rule nothing compared one piece of text
+with another. It SHALL carry `estimated`, because the boxes rest on the width
+estimate rather than on measured text. It SHALL have no clearance of its own:
+two boxes either intersect or they do not, and a rule with nothing to tune is a
+rule nobody argues into silence. It is a warning rather than an error because
+text touching at the edges is sometimes close enough, and it names both pieces
+so the caller decides which to move.
 
 #### Scenario: A duplicate id is reported alongside everything else
 - **WHEN** two nodes share an `id`
@@ -156,6 +168,14 @@ describe the drawing is what makes a warning worth switching off.
 #### Scenario: Two connectors sharing a corridor but no anchor are not reported
 - **WHEN** two edges are routed along the same stretch without sharing either endpoint
 - **THEN** no `edge-overlap` finding is produced unless they coincide along their whole length, this being the price of not reporting shallow crossings, which stay within the same distance for an arbitrarily long run
+
+#### Scenario: A label written through a group's title is reported
+- **WHEN** an edge label's box intersects the box of a group's title, or of a node's own label
+- **THEN** `check` reports `text-collision` naming both, where before it was silent because a title lays down no path for `label-collision` to measure against
+
+#### Scenario: Text merely near other text is not a collision
+- **WHEN** two pieces of text sit close together without their boxes intersecting
+- **THEN** no `text-collision` finding is produced
 
 ### Requirement: Curved paths are checked as the shapes they draw
 Every geometric rule SHALL treat a self-transition's loop and a bowed
