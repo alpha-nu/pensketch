@@ -1,5 +1,163 @@
 # @pensketch/mcp
 
+## 0.4.0
+
+### Minor Changes
+
+- 82579c1: A connector can be drawn as the one that goes over where two cross: the line
+  underneath is broken where they meet, so a reader can tell which is continuous.
+
+  **Rendered output is unchanged unless you ask for it.** `hop` and `hops` both
+  default to `false`, and a diagram that sets neither draws the same bytes it drew
+  before — every parity golden in this repository is untouched, including under
+  the restructure that now collects each edge's path before drawing any of them.
+  That restructure consumes no seeded numbers, so the order the pen is called in
+  is the order it always was.
+
+  Two ways to ask. `hop: true` on an edge says that edge goes over whatever it
+  crosses. `hops: true` in the draw options says it of every edge, and an edge's
+  own `hop` still wins either way — so `hop: false` opts one connector out of a
+  diagram-wide switch rather than being indistinguishable from leaving it off.
+
+  ```js
+  edges: [
+    {
+      from: ["check", "b"],
+      to: ["rules", "t"],
+      via: [
+        [440, 372],
+        [995, 372],
+      ],
+    },
+    { from: ["server", "b"], to: ["markup", "t"], hop: true },
+  ];
+  ```
+
+  What moves is the _other_ line. Nothing is added to the path of the edge going
+  over; the one underneath stops for `HOP_GAP` — 10 px — and starts again on the
+  far side. Where both edges of a crossing go over, the one later in `edges` wins,
+  so layering is a total order on the array and no geometry decides which
+  relationship is subordinate.
+
+  Only a real crossing counts, tested as a strict interior intersection. So a
+  fan-out is left whole, two connectors drawn along one another are left whole,
+  and a connector that merely _arrives at_ another does not break it — arriving is
+  not crossing. Detection is a plain pairwise walk with no spatial index: measured
+  at 0.0017 ms on this repository's largest diagram, a tenth of a percent of the
+  render it already pays for.
+
+  The older convention — a bump on the line going over — is not what this does,
+  and cannot be. Displacing a line perpendicular to itself moves the apex _along_
+  whatever it crosses at a right angle, so the bump lands on the line it was meant
+  to bridge; and `ARC_MIN_CHORD`, which exists so the pen's own jitter cannot turn
+  a small arc into noise, flattens it into two chords and makes that apex a
+  vertex. Rendered at four sizes it reads as a junction. Seven shapes went to a
+  render before the break was chosen.
+
+  `check` does not model this. The path it walks is the unbroken one, so
+  `label-collision` can measure clearance to a stretch of line the renderer cut
+  away. The error is bounded by `HOP_GAP` and it is stated rather than discovered.
+
+  `@pensketch/core` grows by about 429 bytes min+gzip, to 4179. Every consumer
+  carries it whether or not a diagram sets `hop`: hopping is a behaviour of
+  `draw`, not an entry point that can be left unimported.
+
+  `@pensketch/mcp` reissues because `render_diagram` and `render_png` now accept
+  `hops` beside `seed`, and because the JSON Schema and the reference it serves
+  both describe the new field. `check_diagram` does not accept `hops` and refuses
+  it by name, since it would change no finding.
+
+- 226356e: `edge-overlap` reports two connectors that share a trunk and then part, where
+  before it only reported a pair drawn on top of one another the whole way.
+
+  **`check` will report diagrams it passed before, and nothing you draw moves.**
+  No renderer file changed, every golden regenerates clean, and the rendered
+  bytes of every diagram are what they were. This is a minor because `check` is
+  run in CI: on a 0.x version a caret range stops at the minor, so a release that
+  can turn a green pipeline red must be one you choose rather than one that
+  arrives on the next install.
+
+  The rule it replaces asked that _every_ sampled point of each path lie near the
+  other. A pair that runs together and then separates never satisfies that —
+  each has points at its far end the other never comes near, so one failing
+  sample made the whole test false. That is not a threshold set too high: the
+  quantity being measured was "do these coincide entirely", and a trunk answers
+  no. Measured on this repository's own showcase before its routing was fixed,
+  262 px of connector was drawn along other connector — 76, 70, 58 and 58 — and
+  `npm run diagrams` reported zero warnings on that file, before the fix and
+  after it.
+
+  The finding names the length, because "these two overlap" and "these two share
+  62 px" are different amounts of help when the fix is to move one line:
+
+  ```
+  edges 2 and 3 are drawn along one another for about 62 px; give one of them a bow
+  ```
+
+  "About" is meant. The walk is quantised, and a parting path keeps counting
+  until it is clear of the ink by `2 * INFLATE`, so a 20 px trunk reports as 24.
+
+  **Which diagrams start reporting.** None of the ten this repository ships —
+  `npm run diagrams` is 0 errors, 0 warnings across all of them, and the
+  threshold was calibrated against them rather than checked against them
+  afterwards. What starts reporting is the shape those diagrams were already
+  routed to avoid: two connectors leaving one anchor, or arriving at one, that
+  draw as a single line for 40 px or more before going different ways. If you
+  have an orthogonal layout where several edges leave one node and turn at a
+  shared corner, expect a warning per pair.
+
+  **What stays quiet, deliberately.** A run is measured only for two edges
+  sharing exactly one anchor. A pair sharing _both_ is the shape `bow` exists to
+  separate — they must meet at each end whatever they do between, so a run there
+  says nothing, and the whole-length test still governs them: a bow of 4 is
+  reported and 5 is not, exactly as before. A pair sharing _neither_ cannot be
+  told from a shallow crossing by proximity alone, since two lines meeting at a
+  narrow angle stay within the same distance for an arbitrarily long run — so
+  two connectors sharing a corridor without sharing an end are still only caught
+  if they coincide the whole way. That is a real blind spot and it is written
+  down rather than discovered.
+
+  Two more limits worth knowing. The 40 px threshold is in diagram units while
+  the distance that counts as one line is a fixed 4.2 px of ink, so the rule is
+  not scale-free: a diagram drawn at twice these proportions will report forks
+  this one leaves alone. And two edges leaving one anchor at less than about 6°
+  are reported at any scale, because a band that thin takes that long to escape.
+
+  `rules: { 'edge-overlap': 'off' }` switches the whole rule off as it always
+  did. There is no separate threshold option — a knob nobody can calibrate
+  against their own diagrams reports a different picture to every reader.
+
+  `@pensketch/core/check` grows from 3008 to 3297 bytes min+gzip. The root entry
+  and `@pensketch/core/server` do not move at all: the rule is in the checker,
+  not in shared code. Cost is unchanged in practice — 0.209 ms against 0.221 on
+  the largest diagram here — because a pair that shares no anchor is rejected
+  before any measuring. Where it does bite is a hub: the walk is quadratic in the
+  fan-out of a single anchor, so 20 edges off one node cost 17 ms and 40 cost
+  150, against 0.13 and 0.32 before.
+
+  `@pensketch/mcp` reissues because `check_diagram` returns the new findings and
+  the reference it serves describes the rule and its limits.
+
+- ec365c4: A fifth example, `examples/showcase/`, served as `pensketch://example/showcase`.
+
+  This project's own logical architecture, drawn by the renderer it describes:
+  four groups, thirteen components, fifteen connectors, two braces, two notes.
+  It exists to be the one picture that reaches for the breadth of the data model
+  — every drawn shape, `accent` and `hatch`, straight connectors and orthogonal
+  ones, a self-transition, both kinds of brace, notes whose pointers bow — and to
+  do it **without `raw`**, so that what it draws is expressible as data and can be
+  served whole rather than served with a hole and a note explaining the hole.
+
+  No package source changes and no rendered byte of any existing diagram moves.
+  What changes is what `@pensketch/mcp` publishes: one more resource, so an agent
+  asking for a worked example has a rich one to read rather than four small ones.
+
+### Patch Changes
+
+- Updated dependencies [82579c1]
+- Updated dependencies [226356e]
+  - @pensketch/core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes
