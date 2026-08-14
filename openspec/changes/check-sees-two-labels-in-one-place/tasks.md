@@ -14,7 +14,7 @@ and every finding from a self-review of the diff is fixed. Items marked
       labels. Measured **+171 B** as first written, then **+93 B** optimised —
       3297 to **3390** — which fits 3392 with two bytes to spare
 - [x] 1.2 **OWNER**: choose — answered, separate id
-- [ ] 1.3 Move the budget to **3520**, in its own commit, with the arithmetic:
+- [x] 1.3 **OWNER**: move the budget to **3520**, in its own commit, with the arithmetic:
       3390 plus the same 100 B of gzip headroom is 3490, taken up to 3520.
 
       Moved although the rule fits without it, and the reason is recorded
@@ -24,8 +24,18 @@ and every finding from a self-review of the diff is fixed. Items marked
       red on a toolchain bump is the thing the requirement forbids. If the
       owner would rather keep 3392 and ship at 3390, this task is struck and
       1.1's figure stands as the record of why it was close
-- [ ] 1.4 `repo-tooling` and `CONTRIBUTING.md` both name the figure literally,
+
+      Put to the owner with the measurement that it fits at 3390/3392 and the
+      argument that two bytes is inside noise this repository has measured, and
+      answered: move it. Done — 3392 to 3520 in the three files that own the
+      figure, and in no others
+- [x] 1.4 `repo-tooling` and `CONTRIBUTING.md` both name the figure literally,
       so all three files that own it move in the same commit
+
+      `tools/check-size.mjs`, `CONTRIBUTING.md`, and this change's new
+      `repo-tooling` delta, whose five scenarios are carried word for word with
+      `3392` -> `3520` the only edit. `openspec/specs/` is written at archive
+      time, not now
 
 ## 2. The rule
 

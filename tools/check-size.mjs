@@ -76,9 +76,41 @@ const PACKAGES = [
     // lands, so it moves the same way it did the first time - in advance, in
     // its own commit, carrying what was measured and why the first figure was
     // wrong.
+    //
+    // 3520 from 3392 for `text-collision`, a rule comparing text against text.
+    // Every rule before it compares text against *strokes* - `struckBy` walks
+    // the drawn polylines - so a node's label and a group's title, both ink and
+    // neither a path, were invisible to all of them, and so was another label.
+    //
+    // This one is raised although the rule fits without it, which is the
+    // opposite of the other three and wants its reason on the record. Built and
+    // measured cold at 3390 against 3392: it fits by two bytes. Two bytes is
+    // not a margin, it is the noise - the 3872 entry below records `./check`
+    // gaining 2 B of gzip on identical code when esbuild renamed some locals -
+    // so shipping at 3390 would leave a gate that goes red on a toolchain bump
+    // with nothing changed in the source, which is the failure the paragraph in
+    // the requirement is written against. The line that makes this principled
+    // is that a margin smaller than measured toolchain noise is not a margin;
+    // it is not that 100 B is owed to an entry. 3390 plus the same 100 B the
+    // raises before it used is 3490, taken up to 3520.
+    //
+    // The rule cost +171 B as first written and +93 as measured here. What came
+    // off: the node boxing folded into the loop already walking nodes for
+    // `text-overflow`; the text carried as a `[subject, box]` tuple, a minifier
+    // not renaming object keys and so holding those two names in the output;
+    // each subject string built once where three loops built it twice; and most
+    // of it from the message, phrased as `lies under ..., which will be drawn
+    // through it` - a string check.ts already emits three times, for an edge
+    // label, a brace label and a note, so gzip carries a fourth for almost
+    // nothing. It is the accurate phrasing besides: texts are boxed in draw
+    // order, so the second really is drawn over the first.
+    //
+    // The root entry and `./server` were measured on the same prototype and did
+    // not move - 4179 and 4196 - which is the check that the rule landed in the
+    // checker rather than in shared code.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 3392,
+    budget: 3520,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries

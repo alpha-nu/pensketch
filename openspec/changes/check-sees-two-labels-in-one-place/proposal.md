@@ -77,8 +77,9 @@ the checker rather than in shared code.
 walks nodes for `text-overflow`, carrying the text as a `[subject, box]` tuple
 so the minifier is not holding property names, building each subject string
 once where it was being built twice, and — the largest single saving — phrasing
-the finding as `lies under …, which will be drawn through it`, which is a
-string this file already emits twice, so gzip carries it for almost nothing.
+the finding as `lies under …, which will be drawn through it`, which
+`check.ts` already emits three times — for an edge label, a brace label and a
+note — so gzip carries a fourth for almost nothing.
 That phrasing is also the more accurate one: texts are boxed in draw order, so
 the second really is drawn over the first.
 
