@@ -755,10 +755,10 @@ export const EXAMPLES = {
           "shape": "group",
           "x": 40,
           "y": 40,
-          "w": 790,
+          "w": 1050,
           "h": 130,
           "lines": [
-            "what draws a diagram"
+            "what draws a diagram, and what makes it draw itself"
           ]
         },
         {
@@ -769,7 +769,7 @@ export const EXAMPLES = {
           "w": 1050,
           "h": 126,
           "lines": [
-            "the published surface — one package, four entries"
+            "core — one package, four entries"
           ]
         },
         {
@@ -828,6 +828,18 @@ export const EXAMPLES = {
           "lines": [
             "@pensketch/mcp",
             "three tools"
+          ]
+        },
+        {
+          "id": "anim",
+          "shape": "box",
+          "x": 870,
+          "y": 92,
+          "w": 200,
+          "h": 46,
+          "lines": [
+            "@pensketch/animation",
+            "one stylesheet"
           ]
         },
         {
@@ -959,7 +971,7 @@ export const EXAMPLES = {
           "w": 190,
           "h": 76,
           "lines": [
-            "eight rules"
+            "nine rules"
           ],
           "hatch": true
         },
@@ -1056,11 +1068,11 @@ export const EXAMPLES = {
           ],
           "via": [
             [
-              845,
+              830,
               115
             ],
             [
-              845,
+              830,
               200
             ],
             [
@@ -1073,6 +1085,16 @@ export const EXAMPLES = {
           "lx": 880,
           "ly": 182,
           "anchor": "start"
+        },
+        {
+          "from": [
+            "mcp",
+            "r"
+          ],
+          "to": [
+            "anim",
+            "l"
+          ]
         },
         {
           "from": [
@@ -1250,8 +1272,8 @@ export const EXAMPLES = {
       ],
       "notes": [
         {
-          "x": 880,
-          "y": 120,
+          "x": 1120,
+          "y": 86,
           "anchor": "start",
           "lines": [
             "a diagram is plain data —",
@@ -1259,14 +1281,23 @@ export const EXAMPLES = {
             "from the types core ships"
           ],
           "arrowFrom": [
-            1020,
-            168
+            1210,
+            122
+          ],
+          "via": [
+            [
+              1210,
+              190
+            ],
+            [
+              1040,
+              190
+            ]
           ],
           "arrowTo": [
-            1020,
+            1040,
             266
-          ],
-          "bow": 16
+          ]
         },
         {
           "x": 880,
@@ -1282,7 +1313,8 @@ export const EXAMPLES = {
           "arrowTo": [
             1010,
             612
-          ]
+          ],
+          "bow": 14
         }
       ]
     }

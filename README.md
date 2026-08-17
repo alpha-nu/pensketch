@@ -50,8 +50,10 @@ npm install @pensketch/react @pensketch/core
 
 **For motion**, `@pensketch/animation` turns a drawing into one that draws
 itself, stroke by stroke, in the order a hand would have used. It is CSS —
-nothing of it runs while the drawing is drawing — and it is a peer of nothing,
-so a page that does not want motion carries none of it:
+nothing of it runs while the drawing is drawing — and neither core nor the
+React bindings depend on it, so a page that does not want motion carries none
+of it. (`@pensketch/mcp` does depend on it: it is a server you spawn, not code
+that ships inside a page.)
 
 ```sh
 npm install @pensketch/animation @pensketch/core
@@ -61,21 +63,24 @@ npm install @pensketch/animation @pensketch/core
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/showcase-dark.png">
-  <img alt="pensketch's own architecture: three consumers above one package with four entry points, over a renderer and a checker that stand on the same geometry" src="docs/assets/showcase-light.png">
+  <img alt="pensketch's own architecture: three ways in and the package that makes a drawing draw itself, above core's four entry points, over a renderer and a checker that stand on the same geometry" src="docs/assets/showcase-light.png">
 </picture>
 
-Three ways in, one package with four entry points, and a renderer and a checker
-that stand on the same geometry — which is why `sample` sits under both. Every
-byte of that picture came out of `draw`, from a plain object, with no `raw`
-callback in it: it is the diagram at
+Three ways in — a page, the React bindings, the MCP server — and a package
+that is not a way in: `@pensketch/animation` adds a stylesheet to a drawing
+that already exists, which is why it is the only thing in that top band with
+nothing drawn under it. Below them core, one package with four entry points;
+below that a renderer and a checker that stand on the same geometry — which is
+why `sample` sits under both. Every byte of that picture came out of `draw`,
+from a plain object, with no `raw` callback in it: it is the diagram at
 [examples/showcase/](examples/showcase/), and an agent can read the same data
 back as `pensketch://example/showcase`.
 
 It is also the widest use of the data model this repository ships — all three
 drawn shapes, `accent` and `hatch`, straight connectors and orthogonal ones, a
-self-transition, both kinds of brace, notes whose pointers bow, and a break
-where two connectors cross. If you want to know what pensketch can draw before
-reading how, that is the answer.
+self-transition, both kinds of brace, note pointers that bow and take corners,
+and a break where two connectors cross. If you want to know what pensketch can
+draw before reading how, that is the answer.
 
 ## Quickstart: vanilla
 
@@ -380,7 +385,7 @@ root provides.
 | `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, a dotted edge back to the start, and a brace marking two deploys as one build promoted. | `npx serve .`, then open `/examples/vanilla/` |
 | `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, a retry that stays where it is — a self-transition sized by `out` and `span` — and a square bracket over the states the money has moved for, plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
 | `examples/state-machine/` | **An ATM.** A decision that splits the flow, a dotted retry routed back down the left margin, a keypad loop at the default size, and a transition and its reverse bowed apart rather than drawn on one line. | `npx serve .`, then open `/examples/state-machine/` |
-| `examples/showcase/` | **pensketch's own architecture.** A layered logical architecture — consumers, the published surface, the renderer and the checker — that reaches for nearly the whole data model in one picture: all three drawn shapes, `accent` and `hatch`, orthogonal `via` routing, a self-transition, both kinds of brace, and notes whose pointers bow. No `raw` anywhere, which is why it can be served as data. | `npx serve .`, then open `/examples/showcase/` |
+| `examples/showcase/` | **pensketch's own architecture.** A layered logical architecture — what draws a diagram and what makes it draw itself, core's four entry points, the renderer and the checker — that reaches for nearly the whole data model in one picture: all three drawn shapes, `accent` and `hatch`, orthogonal `via` routing, a self-transition, both kinds of brace, and note pointers that bow and take corners. No `raw` anywhere, which is why it can be served as data. | `npx serve .`, then open `/examples/showcase/` |
 | `examples/animation/` | **Photosynthesis in five panels**, each one drawing itself as you reach it. The page holds five diagrams as data and makes two calls per panel — `draw` with `order`, then `animate` — and writes no keyframe, index or `pathLength` of its own. | `npx serve .`, then open `/examples/animation/` |
 | `examples/react/` | **An incident, stepped through.** Five stages that fork at a decision, with the accented node, the stages shaded behind it and the arrows already taken all derived from React state — and it walks itself through on arrival, until you stop it. Plus a seed control: the stage changes the data, the seed changes which drawing of it you get, and every redraw draws itself through the `animate` prop — under StrictMode, so a doubled stylesheet or a missing one would show. | `cd examples/react && npm install && npm run dev` |
 
@@ -439,7 +444,7 @@ decidable from the diagram alone. It measures the line that gets drawn: a loop
 and a bow are sampled, so a curve that swings out of the frame is reported
 where it leaves, rather than passing because both its anchors are inside.
 
-**Two rules rest on an estimate.** Text is never measured, so `check`
+**Three rules rest on an estimate.** Text is never measured, so `check`
 approximates width as `length × fontSize × 0.55`, a figure measured against
 the documented handwriting stack and deliberately wider than every real label
 in it. It over-states, so it warns early rather than missing an overflow, and

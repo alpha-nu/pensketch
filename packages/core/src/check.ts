@@ -99,10 +99,14 @@ const DEFAULTS: Record<RuleId, Severity> = {
 // Calibrated at both ends against every diagram this repository ships, and
 // against the four pairs the showcase carried before its routing was fixed -
 // not chosen and then checked one way round. Below it, the longest run any
-// shipped diagram draws deliberately: `examples/react/src/incident.ts` forks
-// twice from one anchor and turns at one corner, which this reports at 24 px,
-// and its own source says so in as many words. Every other shipped run is a
-// fan-out artefact of 10 px or less. Above it, the shortest run that was a
+// shipped diagram draws deliberately, and two of them sit on it:
+// `examples/react/src/incident.ts` forks twice from one anchor and turns at
+// one corner, and the showcase forks the arrow reaching
+// `@pensketch/animation` off the one that reads the schema. Both are reported
+// at 24 px, and both sources say in as many words that the fork is deliberate.
+// Every other shipped run is a fan-out artefact of 10 px or less: 8, 8, 8, 4,
+// 4, 4 in the pipeline, and 4, 4, 4 for the showcase's own pen fan. Above it,
+// the shortest run that was a
 // real defect: the showcase's `mcp` trunk, reported at 62. Nothing anywhere in
 // this repository lands between 24 and 62, so the number separates two
 // populations rather than splitting one, and 40 sits near the middle of that

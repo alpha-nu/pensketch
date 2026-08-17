@@ -3,11 +3,12 @@
   pensketch - pensketch's own architecture, drawn by pensketch.
 
   A logical architecture in the usual notation: layers as groups, components
-  as boxes, dependencies as arrows. What makes it the showcase is that it
-  reaches for nearly the whole data model in one picture - all three drawn
-  shapes, `accent` and `hatch`, straight connectors, orthogonal ones, a
-  self-transition, both kinds of brace, and notes whose pointers bow - without
-  once reaching for `raw`.
+  as boxes, dependencies as arrows - four published packages, one of which
+  carries four entry points. What makes it the showcase is that it reaches for
+  nearly the whole data model in one picture - all three drawn shapes, `accent`
+  and `hatch`, straight connectors, orthogonal ones, a self-transition, both
+  kinds of brace, and note pointers that bow and take corners - without once
+  reaching for `raw`.
 
   That last part is the point. `raw` is the escape hatch for what the data
   model has no word for, and this diagram needed no escape: it is plain data
@@ -68,7 +69,7 @@ svg text {
 </head>
 <body>
 <svg id="showcase" viewBox="0 0 1340 800" role="img"
-     aria-label="The architecture of pensketch: what draws a diagram, the published surface, the renderer and the checker"></svg>
+     aria-label="The architecture of pensketch: what draws a diagram and what makes it draw itself, core's four entry points, the renderer and the checker"></svg>
 <script type="module">
   import { draw } from '../../packages/core/dist/index.js'; // a bare specifier needs a bundler, and this page has none
 
@@ -90,16 +91,20 @@ svg text {
       // are drawn behind everything and read as bands rather than as boxes
       // around boxes. Their titles need about 30px of clear space at the top,
       // which is why every row of nodes starts 52px into its band.
-      { id: 'g1',     shape: 'group',   x: 40,  y: 40,  w: 790,  h: 130, lines: ['what draws a diagram'] },
-      { id: 'g2',     shape: 'group',   x: 40,  y: 220, w: 1050, h: 126, lines: ['the published surface — one package, four entries'] },
+      { id: 'g1',     shape: 'group',   x: 40,  y: 40,  w: 1050, h: 130, lines: ['what draws a diagram, and what makes it draw itself'] },
+      { id: 'g2',     shape: 'group',   x: 40,  y: 220, w: 1050, h: 126, lines: ['core — one package, four entries'] },
       { id: 'g3',     shape: 'group',   x: 40,  y: 400, w: 790,  h: 280, lines: ['the renderer'] },
       { id: 'g4',     shape: 'group',   x: 880, y: 400, w: 230,  h: 280, lines: ['the checker'] },
 
-      // Three ways in. The page is a pill because it is not part of the
-      // package - it is whatever HTML you already have.
+      // Three ways in, and a fourth package that is not one: animation adds a
+      // stylesheet to what `draw` already left behind, so it stands beside
+      // them rather than under them - and nothing in the band below it is
+      // drawn on. The page is a pill because it is not part of the package -
+      // it is whatever HTML you already have.
       { id: 'page',   shape: 'pill',    x: 70,  y: 92,  w: 220, h: 46, lines: ['a page', 'and its <svg>'] },
       { id: 'react',  shape: 'box',     x: 330, y: 92,  w: 220, h: 46, lines: ['@pensketch/react', 'PenSketch · useSketch'] },
       { id: 'mcp',    shape: 'box',     x: 590, y: 92,  w: 220, h: 46, lines: ['@pensketch/mcp', 'three tools'] },
+      { id: 'anim',   shape: 'box',     x: 870, y: 92,  w: 200, h: 46, lines: ['@pensketch/animation', 'one stylesheet'] },
 
       // One package, four entry points, each with its own byte budget. A
       // consumer who never imports the checker ships none of it.
@@ -119,7 +124,7 @@ svg text {
       // The checker. Hatched on a diamond and on a box in the same picture,
       // which is the shape of the feature: shading follows the outline it is
       // drawn inside, so a diamond keeps its corners bare.
-      { id: 'rules',  shape: 'diamond', x: 900, y: 440, w: 190, h: 76, lines: ['eight rules'], hatch: true },
+      { id: 'rules',  shape: 'diamond', x: 900, y: 440, w: 190, h: 76, lines: ['nine rules'], hatch: true },
       { id: 'geom',   shape: 'box',     x: 900, y: 556, w: 190, h: 46, lines: ['geometry'] },
     ],
     edges: [
@@ -129,9 +134,11 @@ svg text {
       // the data, and no rule reports it: `edge-overlap` asks that *every*
       // point of each path lie near the other, which a pair that shares a
       // trunk and then diverges never satisfies. So it is placed rather than
-      // checked. `mcp` reaches three things and leaves by three different
-      // sides; `react` arrives at core's left rather than descending the column
-      // `page` already occupies. Measured: no two of these share any length.
+      // checked. `mcp` reaches four things and leaves by three sides; `react`
+      // arrives at core's left rather than descending the column `page`
+      // already occupies. Measured: the only length any two of them share is
+      // the 20px fork out of mcp's right side, and that one is drawn on
+      // purpose - see below.
       //
       // `hop` on the first: `react` crosses `page`'s drop at (180, 196), and
       // the straight line is the one that stays whole.
@@ -139,8 +146,26 @@ svg text {
       { from: ['react', 'b'], to: ['root', 'l'],   via: [[440, 196], [26, 196], [26, 295]] },
       { from: ['mcp', 'l'],   to: ['check', 't'],  via: [[570, 115], [570, 210], [440, 210]] },
       { from: ['mcp', 'b'],   to: ['server', 't'] },
-      { from: ['mcp', 'r'],   to: ['schema', 't'], via: [[845, 115], [845, 200], [960, 200]],
+      { from: ['mcp', 'r'],   to: ['schema', 't'], via: [[830, 115], [830, 200], [960, 200]],
         dotted: true, label: 'reads the schema', lx: 880, ly: 182, anchor: 'start' },
+
+      // A dependency that runs sideways rather than down, because the package
+      // it reaches is a sibling rather than something underneath:
+      // `render_diagram` takes an `animate` option, and the tool imports the
+      // package to serve it.
+      //
+      // It forks off the schema arrow rather than leaving by mcp's own free
+      // side. A top anchor was drawn first and was worse: mcp's bottom anchor
+      // already drops straight down at x=700, so a stub leaving the top at the
+      // same x read as one line run through the box. Twenty px of shared fork
+      // is the idiom this repository already uses for a decision, and
+      // `edge-overlap` reports the pair at 24 against a threshold of 40.
+      //
+      // React reaches the same package and no arrow says so, because there is
+      // nothing to draw: `PenSketch` takes `animate` as a function, and the
+      // react package never names it. Nothing descends from `anim` for the
+      // same kind of reason - it imports nothing, core included.
+      { from: ['mcp', 'r'],   to: ['anim', 'l'] },
 
       { from: ['root', 'b'],   to: ['draw', 't'] },
       { from: ['check', 'b'],  to: ['rules', 't'], via: [[440, 372], [995, 372]] },
@@ -192,14 +217,36 @@ svg text {
         lines: ['one package,', 'four entries'], lx: 1166, ly: 283 },
     ],
     notes: [
-      // A pointer with a bow: the arrow is drawn as an arc rather than a
-      // straight run, which is what a hand reaching for something looks like.
-      { x: 880, y: 120, anchor: 'start',
+      // This note reaches `schema` from the corner, because the row it used to
+      // sit in is a package now. A pointer takes corners the way an edge does,
+      // and this one has to: it must pass the right edge of both bands, and
+      // the only clear water is the 50px gutter between them. Routed down the
+      // margin and along y=190 it crosses that edge 20px below one group's
+      // corner and 30 above the other's - arithmetic, which an arc through the
+      // same gap is not. A bow of 16 was drawn first and measured at 1.3px
+      // from the lower corner: the perpendicular a bow displaces along also
+      // moves the point where the curve crosses, so the two compound and the
+      // arc left the gutter the chord sat in the middle of. Swept, the family
+      // is worse than it looks - every negative bow clears the lower corner by
+      // under 10px, and the positive half that does clear both (+10 is 17.5
+      // and 23.7) bows the arrow away from the box it points at.
+      //
+      // 190 rather than the middle of the gutter, because the schema arrow
+      // already runs a dotted horizontal at y=200. Five px apart the two read
+      // as one line broken in the middle - no rule compares a note's pointer
+      // with an edge, so only a render says so.
+      { x: 1120, y: 86, anchor: 'start',
         lines: ['a diagram is plain data —', 'the schema is generated', 'from the types core ships'],
-        arrowFrom: [1020, 168], arrowTo: [1020, 266], bow: 16 },
+        arrowFrom: [1210, 122], via: [[1210, 190], [1040, 190]], arrowTo: [1040, 266] },
+      // The bow lives here instead, where an 80px pointer - 68 of them inside
+      // the checker, the rest below its border - swings into an empty corner
+      // of the group. Measured at 14: 10px off `geom`, 127 off the nearest
+      // brace. Positive is to the right of travel and this one travels upward,
+      // so the arc swings out to the right - which is what a hand reaching for
+      // something looks like.
       { x: 880, y: 706, anchor: 'start',
         lines: ['hatched — no DOM in here'],
-        arrowFrom: [1010, 692], arrowTo: [1010, 612] },
+        arrowFrom: [1010, 692], arrowTo: [1010, 612], bow: 14 },
     ],
   }, { seed: 7 });
 </script>

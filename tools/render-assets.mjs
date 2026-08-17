@@ -107,7 +107,7 @@ function drawShowcase(diagram) {
   window.__pensketch.draw(document.getElementById('showcase'), diagram, {
     seed: 7,
     label:
-      'The architecture of pensketch: what draws a diagram, the published surface, the renderer and the checker',
+      "The architecture of pensketch: what draws a diagram and what makes it draw itself, core's four entry points, the renderer and the checker",
   });
 }
 
