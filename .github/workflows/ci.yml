@@ -20,11 +20,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # One job, one install. The whole chain takes about ten seconds to run; what
-  # costs real time is `npm ci` and provisioning a runner, so paying for those
-  # once beats spreading the work over jobs that each pay again.
+  # One job, one install. What costs real time is `npm ci` and provisioning a
+  # runner, so paying for those once beats spreading the work over jobs that
+  # each pay again. The scripted chain was about ten seconds until the browser
+  # check joined it; that one step is roughly three quarters of a minute on its
+  # own, and is now the most expensive thing here.
   verify:
     name: Verify
+    # x64, and one step depends on it: the animation check drives the Chrome
+    # this image ships at `/opt/google/chrome/chrome`, which is the only path
+    # playwright looks for `channel: "chrome"` on Linux. `ubuntu-24.04-arm`
+    # ships no Chrome at all, so moving to arm runners needs an install step
+    # added with it.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -96,6 +103,44 @@ jobs:
           out=$(npm run diagrams --silent) && rc=0 || rc=$?
           {
             echo "# Shipped diagrams"
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+
+      # The animation is CSS, so nothing else in this chain can see what the
+      # rules *do*. The suite reaches their shape and reaches `animate()` - the
+      # style element, the timing properties, the string helper - but jsdom
+      # neither computes `@scope` nor runs an animation, so five of the seven
+      # requirements would ship with nothing running against their effect.
+      #
+      # It is also where the accepted degradation stops being a claim: that a
+      # diagram which cannot animate renders finished rather than blank is
+      # measured here in pixels, against a control drawn with no stylesheet.
+      #
+      # No install step, and that is measured rather than hoped: playwright
+      # resolves `channel: "chrome"` on Linux to exactly one path,
+      # `/opt/google/chrome/chrome` - one candidate, no PATH search - and the
+      # runner image installs the same `google-chrome-stable` .deb there that
+      # playwright's own script fetches. This is CI's first browser, so the
+      # first run is what confirms the second half of that.
+      #
+      # And the browser is deliberately not pinned, which makes it the one
+      # determinism-sensitive tool here that is not - esbuild, subset-font,
+      # resvg-wasm and changesets all carry exact versions. The reason is that
+      # those four decide what this repository *ships*, so a version drift
+      # would move published bytes; this one decides only whether a claim about
+      # CSS still holds, and the claim is about the engine rather than about
+      # any particular build of it. A Chrome update that broke a check would be
+      # telling us something true. What it costs is that this step can go red
+      # on a commit that changed nothing - it asserts literal computed values
+      # like `2px, 7px` - and that is the trade, taken knowingly.
+      - name: The animation draws itself in a real browser
+        run: |
+          out=$(npm run animation --silent) && rc=0 || rc=$?
+          {
+            echo "# Animation, in Chrome"
             echo '```'
             echo "$out"
             echo '```'

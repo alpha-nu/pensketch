@@ -24,6 +24,10 @@ export const textsOf = (root: Element): SVGTextElement[] =>
 export const tagsOf = (root: Element): string[] =>
   Array.from(root.children, (child) => child.tagName.toLowerCase());
 
+/** Each direct child, in document order. */
+export const childrenOf = (root: Element): Element[] =>
+  Array.from(root.children);
+
 /**
  * The points of a path's `d`, which this renderer only ever writes as one
  * `M x y` followed by `L x y` pairs.

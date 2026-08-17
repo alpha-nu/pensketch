@@ -461,4 +461,30 @@ export interface DrawOptions extends PenOptions {
    * connector opt out without turning the switch off for the picture.
    */
   hops?: boolean;
+  /**
+   * Stamp every element with `--ps-i`, how far through the drawing it is, as a
+   * fraction in `[0, 1)`. Default: `false`, so a diagram that asks for nothing
+   * renders exactly the bytes it always did - no attribute added, no element
+   * moved.
+   *
+   * The number counts in the order a hand would draw in, which is not the
+   * order the document is in: group frames, then node shapes, then the
+   * connectors between them, then braces, notes and `raw`, and then every
+   * piece of text whatever phase drew it. A fraction rather than a count, so a
+   * page states one duration and every diagram takes it whatever its element
+   * count.
+   *
+   * Every path carrying no `stroke-dasharray` also gains `pathLength="1"`,
+   * which normalises it so one keyframe draws a 400 px connector and a 12 px
+   * arrowhead barb at the same rate. A dashed path is left alone: `pathLength`
+   * rescales every distance along a path and the dash pattern is one, so the
+   * dashes would be stretched past the end of the line and the stroke would
+   * render solid.
+   *
+   * Nothing is reordered. The z-order, the seeded sequence and the elements
+   * themselves are what they were; only the number differs from document
+   * order. A `pen` driven by hand is uninstrumented - the index is a property
+   * of `draw`'s phases, and a pen has none.
+   */
+  order?: boolean;
 }

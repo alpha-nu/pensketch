@@ -7,7 +7,7 @@ import { HERO, HERO_VIEW_BOX } from './hero-diagram.mjs';
 // rules the project publishes, and the generator that serves them to agents
 // as examples.
 //
-// They are not modules. Two live inside self-contained HTML pages,
+// They are not all modules. Most live inside self-contained HTML pages,
 // deliberately — an example you can open with no build step is worth more
 // than one that is easy to read from a script — so the pages are executed
 // with `draw` recording its argument instead of drawing it. Nothing is parsed
@@ -18,13 +18,21 @@ const root = new URL('../', import.meta.url);
 const read = (file) => readFileSync(new URL(file, root), 'utf8');
 
 // `draw` records rather than draws, `pen` swallows whatever it is asked to
-// do, and `document` hands back an object that knows only its own id — which
-// is all that is needed to find the `<svg>` a diagram was drawn into.
+// do, `animate` has nothing to decorate, and `document` hands back an object
+// that knows only its own id and has no children — which is all that is
+// needed to find the `<svg>` a diagram was drawn into and to leave whatever a
+// page measures off its own output reading zero.
+//
+// A page looking for a set of elements finds none, so the chrome a page hangs
+// off what it drew — a scroll trigger, a replay button — is skipped here
+// rather than faked. That is the line: this stands in for the browser far
+// enough to collect what a page passes to `draw`, and no further.
 const PRELUDE = `
 const draw = (target, diagram, options) => {
   globalThis.__shots.push({ id: target.id, diagram, options });
 };
 const pen = () => new Proxy({}, { get: () => () => 0 });
+const animate = () => {};
 `;
 
 const viewBoxOf = (html, id) => {
@@ -38,7 +46,10 @@ const viewBoxOf = (html, id) => {
 
 const fromHtml = async (file) => {
   const html = read(file);
-  globalThis.document = { getElementById: (id) => ({ id }) };
+  globalThis.document = {
+    getElementById: (id) => ({ id, children: [] }),
+    querySelectorAll: () => [],
+  };
   globalThis.__shots = [];
   for (const [, code] of html.matchAll(
     /<script type="module">([\s\S]*?)<\/script>/g,
@@ -99,6 +110,11 @@ export async function shippedDiagrams() {
     ...(await fromHtml('examples/custom-pen/index.html')),
     ...(await fromHtml('examples/state-machine/index.html')),
     ...(await fromHtml('examples/showcase/index.html')),
+    // Five panels of one explanation, each drawn from its own object. All of
+    // them are loaded for the same reason every stage of the React example is:
+    // a page ships as many diagrams as it holds, and one of them being right
+    // says nothing about the other four.
+    ...(await fromHtml('examples/animation/index.html')),
     ...(await fromReact()),
     {
       key: 'hero',

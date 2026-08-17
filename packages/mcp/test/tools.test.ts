@@ -180,6 +180,58 @@ describe('render_diagram', () => {
     expect(result.content[0]?.text).toContain('unknown node "ghost"');
   });
 
+  // What comes back has to work with nothing else supplied, because the caller
+  // hands it on to a page, an <img> or a file and cannot serve a second file
+  // alongside it. The stylesheet is therefore inside the wrapper - outside it,
+  // its implicit `@scope` would bind to the document instead of the drawing.
+  it('returns one self-contained svg when asked to animate', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      seed: 7,
+      animate: true,
+    });
+    const svg = result.content[0]?.text ?? '';
+
+    expect(svg).toMatch(/^<svg [^>]*><style>/);
+    expect(svg.endsWith('</svg>')).toBe(true);
+    expect(svg).toContain('@scope');
+    expect(svg).toContain('@keyframes ps-draw');
+    // The stamps the rules read, which only `order` writes. Without them the
+    // `animation` shorthand is invalid at computed-value time and the diagram
+    // renders finished and still.
+    expect(svg).toContain('style="--ps-i:0.000;');
+    expect(svg).toContain('pathLength="1"');
+    // Nothing fetched: no linked stylesheet, no import, no external reference
+    // of any kind. `xmlns` is a namespace name rather than a request.
+    expect(svg.replace(/ xmlns="[^"]*"/, '')).not.toMatch(
+      /<link|@import|href=|url\(/,
+    );
+  });
+
+  // The other half, and the one a golden would catch late: asking for nothing
+  // returns exactly the bytes this tool always returned.
+  it('draws exactly what it always drew when animate is absent', async () => {
+    const plain = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      seed: 7,
+    });
+    const off = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      seed: 7,
+      animate: false,
+    });
+    const svg = plain.content[0]?.text ?? '';
+
+    expect(off.content[0]?.text).toBe(svg);
+    expect(svg).toBe(svgFor(FLOW, VIEW_BOX, { seed: 7 }));
+    expect(svg).not.toContain('<style>');
+    expect(svg).not.toContain('--ps-i:');
+    expect(svg).not.toContain('pathLength');
+  });
+
   it('escapes an accessible name rather than breaking the document', async () => {
     const result = await callTool('render_diagram', {
       diagram: FLOW,
@@ -221,7 +273,7 @@ describe('render_png', () => {
     };
     // Through `svgFor` with `forRaster`, because that is where the fix is.
     const image = await rasterize(
-      svgFor(box, [0, 0, 200, 60], undefined, undefined, true),
+      svgFor(box, [0, 0, 200, 60], { forRaster: true }),
       { width: 200, height: 60, scale: 2 },
     );
 

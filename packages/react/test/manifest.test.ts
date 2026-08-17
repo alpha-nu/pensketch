@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -23,6 +23,44 @@ const manifest: {
 describe('the public surface is closed', () => {
   it('exports exactly the documented names and nothing else', () => {
     expect(Object.keys(barrel).sort()).toEqual(['PenSketch', 'useSketch']);
+  });
+});
+
+// The `animate` prop takes a function from a package this one declares no
+// relationship with, and the requirement is a literal one: the manifest, the
+// source and the published types are searched for the name, and none of them
+// carries it. A structural type is how that is possible; this is what keeps it
+// true, because the way it breaks is not an import.
+//
+// It broke exactly that way once. The name went into the prop's doc comment -
+// prose and a usage example, never a specifier - and rode into `index.d.ts`,
+// `index.d.cts` and both sourcemaps, all four of which this package publishes.
+// Nothing failed: not tsc, which never resolves a comment, not the build, not
+// `npm run exports`. Where the name belongs is the README, beside the two
+// peers that are declared, and it is there.
+//
+// Source rather than `dist/`, because the suite deliberately never loads built
+// output - but every published file derives from these, so a name absent here
+// cannot appear there.
+describe('the motion is not named here', () => {
+  const src = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
+
+  // The directory, not a list. A hand-written list of the three files here
+  // today is a list a fourth source file escapes, silently, in the commit that
+  // adds it - and the way this requirement broke was a doc comment, which is
+  // the kind of thing a new file arrives carrying. `packages/animation`'s own
+  // manifest test reads its `src/` the same way.
+  it.each(readdirSync(src))(
+    '%s does not name the animation package',
+    (file) => {
+      expect(readFileSync(join(src, file), 'utf8')).not.toContain(
+        '@pensketch/animation',
+      );
+    },
+  );
+
+  it('is not in the manifest either, in any position', () => {
+    expect(JSON.stringify(manifest)).not.toContain('@pensketch/animation');
   });
 });
 

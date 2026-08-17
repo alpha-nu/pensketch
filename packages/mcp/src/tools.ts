@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/server';
+import { animateMarkup } from '@pensketch/animation';
 import { check } from '@pensketch/core/check';
 import { renderToString } from '@pensketch/core/server';
 import { z } from 'zod';
@@ -185,21 +186,32 @@ export function registerTools(server: McpServer): void {
             .string()
             .optional()
             .describe('An accessible name, set as aria-label on the <svg>.'),
+          // The description an agent reads before it reads any resource, so it
+          // says what comes back rather than what the flag switches on: a
+          // caller who never opens pensketch://spec still has to learn that the
+          // result is finished, that there is no stylesheet for them to write,
+          // and what a viewer that cannot animate it shows instead.
+          animate: z
+            .boolean()
+            .optional()
+            .describe(
+              'Return an <svg> that draws itself, stroke by stroke, in the order a hand would have drawn it. It carries its own scoped <style> and is complete on its own: nothing to fetch, no CSS to write, no class or attribute to add. It animates inline in a page, embedded as an <img src>, or opened as a file. Where @scope is not understood the diagram renders finished and static rather than blank. Default false.',
+            ),
         },
         refuses(
           'render_diagram',
           'argument',
-          'a diagram, a viewBox, and an optional seed, hops and label',
+          'a diagram, a viewBox, and an optional seed, hops, label and animate',
         ),
       ),
     },
-    async ({ diagram: d, viewBox: box, seed, hops, label }) => {
+    async ({ diagram: d, viewBox: box, seed, hops, label, animate }) => {
       try {
         return {
           content: [
             {
               type: 'text' as const,
-              text: svgFor(d, box, seed, label, false, hops),
+              text: svgFor(d, box, { seed, label, hops, animate }),
             },
           ],
         };
@@ -214,6 +226,12 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to a PNG you can look at',
       description: `Rasterizes a diagram so it can be displayed. ${TRAPS.font} ${TRAPS.coordinates} Scale is capped at ${MAX_SCALE}, and an oversized request is refused rather than served.`,
+      // `animate` is absent here on purpose, and its absence is a refusal
+      // rather than an omission: a PNG is one frame, and the strict boundary
+      // this schema draws answers `animate: true` by name - `render_png has no
+      // argument "animate"` - where a declared-and-ignored field would hand
+      // back a still image as though the request had been honoured. A caller
+      // who cannot see the picture would have no way to tell the two apart.
       inputSchema: z.strictObject(
         {
           diagram,
@@ -241,7 +259,7 @@ export function registerTools(server: McpServer): void {
     async ({ diagram: d, viewBox: box, seed, hops, scale = 2 }) => {
       try {
         const png = await renderPng(
-          svgFor(d, box, seed, undefined, true, hops),
+          svgFor(d, box, { seed, hops, forRaster: true }),
           {
             width: box[2],
             height: box[3],
@@ -265,18 +283,44 @@ export function registerTools(server: McpServer): void {
 }
 
 /**
+ * Everything `svgFor` takes beyond the diagram and the frame it is drawn in.
+ *
+ * Each field admits `undefined` as well as being optional, which
+ * `exactOptionalPropertyTypes` otherwise keeps apart. Not because the parse
+ * leaves them present - zod drops an absent optional key entirely - but
+ * because each handler passes them on as a shorthand object literal, and
+ * `{ seed }` names the key whether or not the parse produced one. Re-omitting
+ * each one at every call site would be a second copy of the omission this
+ * function already performs when it hands them to `renderToString`.
+ */
+export interface SvgOptions {
+  /** Picks which drawing of the same data is produced. */
+  seed?: number | undefined;
+  /** An accessible name, escaped and set as `aria-label` on the wrapper. */
+  label?: string | undefined;
+  /** Draw every connector as hopping over the ones it crosses. */
+  hops?: boolean | undefined;
+  /** Draw for the rasterizer: the embedded face and a resolved palette. */
+  forRaster?: boolean | undefined;
+  /** Stamp the drawing order and carry the stylesheet that reads it. */
+  animate?: boolean | undefined;
+}
+
+/**
  * The `<svg>` wrapper around what `renderToString` draws, which is its
  * contents. `forRaster` names the embedded face instead of the handwriting
  * stack: the rasterizer has only the one font, and naming a face it does not
  * hold draws nothing at all.
+ *
+ * Named options rather than a row of positionals: `forRaster` and `animate`
+ * are both booleans and neither is ever passed by the same caller, so a
+ * transposition would be silent - a still PNG of an animated document, or a
+ * page-bound SVG drawn in a font the reader has not got.
  */
 export function svgFor(
   d: unknown,
   [minX, minY, width, height]: readonly [number, number, number, number],
-  seed?: number,
-  label?: string,
-  forRaster = false,
-  hops?: boolean,
+  { seed, label, hops, forRaster = false, animate = false }: SvgOptions = {},
 ): string {
   // The rasterizer resolves no CSS custom properties, so it is given the
   // palette already resolved. `render_diagram` keeps the `var()` defaults,
@@ -285,10 +329,20 @@ export function svgFor(
     ...(seed === undefined ? {} : { seed }),
     ...(hops === undefined ? {} : { hops }),
     ...(forRaster ? { theme: RASTER_THEME } : {}),
+    // Only when asked for, so the bytes of an unanimated render are the bytes
+    // they always were: no `--ps-i`, no `pathLength`, nothing moved.
+    ...(animate ? { order: true } : {}),
   });
   const font = forRaster
     ? ` style="font-family:'${EMBEDDED_FAMILY}'"`
     : ` style="font-family:'Chalkboard SE','Bradley Hand','Segoe Print','Comic Sans MS',cursive"`;
   const aria = label ? ` role="img" aria-label="${escapeAttr(label)}"` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}"${font}${aria}>${inner}</svg>`;
+  // `animateMarkup` rather than `animate`: this server renders through
+  // `@pensketch/core/server`, which has no DOM behind it, so there is no
+  // element to insert a `<style>` into and nothing to serialize afterwards.
+  // It takes the contents of an `<svg>` and returns contents, which is
+  // exactly what `renderToString` hands back and what the wrapper below
+  // encloses - so the stylesheet lands inside the element it scopes itself to.
+  const body = animate ? animateMarkup(inner) : inner;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}"${font}${aria}>${body}</svg>`;
 }

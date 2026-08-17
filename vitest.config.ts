@@ -49,6 +49,18 @@ export default defineConfig({
         },
       },
       {
+        resolve: { alias: CORE },
+        test: {
+          name: 'animation',
+          root: 'packages/animation',
+          // The package writes a stylesheet into an element and nothing else,
+          // so what a DOM proves here is structural. jsdom computes no
+          // `@scope` and runs no animation; what the rules do is measured in a
+          // browser instead.
+          environment: 'jsdom',
+        },
+      },
+      {
         // Per project, not at the root: a project gets its own Vite config
         // and does not inherit `define` or `resolve` from the one wrapping it.
         define: { __MCP_VERSION__: JSON.stringify(MCP_VERSION) },
@@ -81,6 +93,7 @@ export default defineConfig({
       // Per-package thresholds, so a well-covered package cannot mask a
       // poorly covered one. Globs match paths relative to the repo root.
       thresholds: {
+        'packages/animation/src/**': { lines: 90, branches: 90 },
         'packages/core/src/**': { lines: 90, branches: 90 },
         'packages/react/src/**': { lines: 90, branches: 90 },
         'packages/mcp/src/**': { lines: 90, branches: 90 },

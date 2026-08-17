@@ -133,6 +133,12 @@ export function draw(
         color: theme.pen,
       });
     });
+  // The first of three marks. Nothing in the finished document says which
+  // phase emitted a given element, and `order` at the foot of this function
+  // ranks by exactly that, so where each phase stops is recorded as it stops.
+  // Read unconditionally: three lengths cost less than the branch that would
+  // skip them.
+  const afterGroups = svg.children.length;
 
   // Every path first, then every arrow. An edge that hops has to know where
   // the others run, and nothing below `draw` can see a second edge: the pen
@@ -239,6 +245,7 @@ export function draw(
       });
     }
   });
+  const afterEdges = svg.children.length;
 
   // A Map rather than an object literal: an object would inherit
   // Object.prototype, so a node claiming shape "toString" would find a
@@ -283,6 +290,7 @@ export function draw(
           size: n.size || SIZE,
         });
     });
+  const afterShapes = svg.children.length;
 
   // Over what it spans and under the annotation that explains it, which is the
   // whole reason this phase sits between the shapes and the notes rather than
@@ -334,4 +342,75 @@ export function draw(
   (diagram.raw || []).forEach((fn) => {
     fn(p);
   });
+
+  // The order a hand would draw in, stamped on afterwards. It is not the order
+  // the document is in: a shape sits over the connectors that reach it, so it
+  // is emitted after them, and a label is written after the thing it names
+  // whatever phase drew either. Nothing here reorders anything - the z-order,
+  // the seeded sequence and the elements themselves are exactly what they were
+  // - and only the number differs from the document index it is read off.
+  if (options.order) {
+    const children = Array.from(svg.children);
+    // The phase a child came from is which of the three marks its document
+    // index falls under; text is lifted out of its phase and ranked last.
+    //
+    // Ranks 2 and 3 are told apart only by where the phases sit: annotations
+    // are emitted after the shapes, so within one rank the index tiebreak
+    // would put them after the connectors anyway, and ranking them 2 renders
+    // byte-identically - verified across fourteen diagram shapes and three
+    // seeds. They are numbered apart because they are different phases, and if
+    // the emission order ever changed so that an annotation could precede an
+    // edge, that equivalence would lapse with nothing to notice.
+    const rank = (k: number) =>
+      k < afterGroups ? 0 : k < afterEdges ? 2 : k < afterShapes ? 1 : 3;
+    children
+      .map((el, k) => ({ el, k, r: el.tagName === 'text' ? 4 : rank(k) }))
+      // Within a rank the pen's own emission order stands: it is already hand
+      // order, a connector before its barbs and a shape before its hatch.
+      .sort((a, b) => a.r - b.r || a.k - b.k)
+      .forEach(({ el }, i) => {
+        // `pathLength` normalises a path to one unit, so a single keyframe
+        // draws a 400 px connector and a 12 px arrowhead barb at the same
+        // rate. A dashed path is left out of it: `pathLength` rescales every
+        // distance along the path and `stroke-dasharray` is one, so the dashes
+        // stretch past the end of the line and the stroke renders solid -
+        // measured at 90 inked px of 400 plain, 400 of 400 with it.
+        //
+        // What it tests is the *attribute*, so a dash a page put on with a CSS
+        // rule is invisible to it: such a path is normalised like any solid one
+        // and renders solid. There is no fix on this line. Seeing a computed
+        // dash needs `getComputedStyle`, which exists on this path and not on
+        // `renderToString`'s - `markup.ts` is a six-member shim - so a DOM-only
+        // guard would fork the two renderers and break the byte-parity they are
+        // held to. Style your dashes with the `dotted` field, which the pen
+        // writes as an attribute.
+        if (
+          el.tagName === 'path' &&
+          el.getAttribute('stroke-dasharray') === null
+        )
+          el.setAttribute('pathLength', '1');
+        // Ahead of whatever style the element already carries, so a `<text>`
+        // keeps its fill and font-size.
+        //
+        // Truncated to three decimals, not rounded: the quotient is always
+        // below one, but `toFixed` rounds, so from 2000 elements up - 250
+        // plain boxes, or 32 hatched nodes at 200x120 - the last of them would
+        // be written `1.000`, outside the `[0, 1)` this option promises. Both
+        // counts are measured, and 2000 is where it starts, not where it gets
+        // bad.
+        //
+        // The thousandths come off an integer numerator, which is one division
+        // and so one rounding, and is the floor of the exact fraction by
+        // construction. Scaling a quotient instead - `Math.trunc((i /
+        // children.length) * 1000)` - rounds twice, and is the same number
+        // only as long as the second rounding stays under the first's slack.
+        // The two were compared exhaustively over every pair to 20000 and over
+        // every exactly-divisible pair to a million, and never disagreed - so
+        // this is a rounding not taken rather than a bug seen.
+        el.setAttribute(
+          'style',
+          `--ps-i:${(Math.floor((i * 1000) / children.length) / 1000).toFixed(3)};${el.getAttribute('style') || ''}`,
+        );
+      });
+  }
 }

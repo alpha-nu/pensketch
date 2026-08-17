@@ -1,3 +1,4 @@
+import { animate } from '@pensketch/animation';
 import { PenSketch } from '@pensketch/react';
 import { useEffect, useMemo, useState } from 'react';
 import { Caption } from './Caption';
@@ -15,6 +16,24 @@ const SEEDS = [3, 7, 11, 19] as const;
 // How long a stage holds before the incident moves on. Long enough to read the
 // picture that just changed, which is the only thing this number has to be.
 const STEP_MS = 1400;
+
+// The motion, at module scope so its identity never changes.
+//
+// `@pensketch/animation` is a dependency of this example and of no package:
+// the bindings take the function itself rather than declaring a peer, so a
+// caller who wants motion installs it and passes it, and everyone else carries
+// nothing.
+//
+// Written out here rather than inline in the JSX below, and the difference is
+// not style. `animate` is held in a ref and read when the drawing runs, so a
+// new function each render would not restart anything - but this file is what
+// a reader copies, and a prop whose identity churns is the trap that costs
+// nothing to avoid and everything to explain. The wrapper exists because the
+// drawing has to finish inside a step: the package's own default is two
+// seconds, which is longer than STEP_MS, so every frame would be interrupted
+// part-drawn.
+const drawItself = (svg: SVGSVGElement) =>
+  animate(svg, { duration: STEP_MS - 400 });
 
 export function App() {
   const [stage, setStage] = useState(0);
@@ -74,7 +93,8 @@ export function App() {
         An incident, and where it is right now. Three things in the picture are
         derived from that: which stage is accented, which are shaded behind it,
         and which arrows have been taken. It walks itself through on arrival,
-        redrawing by the same route the controls below take.
+        redrawing by the same route the controls below take — and every redraw
+        draws itself, stroke by stroke, through the <code>animate</code> prop.
       </p>
 
       <fieldset>
@@ -120,7 +140,14 @@ export function App() {
         {playing ? 'stop animation' : 'play animation'}
       </button>
 
+      {/* Every redraw draws itself: `animate` is applied inside the same
+          effect, after `draw` has filled the element, so each stage is laid
+          down in the order a hand would have drawn it rather than appearing
+          whole. Under StrictMode that effect runs twice and the second run
+          clears what the first left, stylesheet included - which is the
+          failure this page is the place to see. */}
       <PenSketch
+        animate={drawItself}
         diagram={diagram}
         seed={seed}
         viewBox={VIEW_BOX}

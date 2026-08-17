@@ -36,3 +36,22 @@ export function sketched(
 /** The direct children of an element, as the node instances themselves. */
 export const childrenOf = (element: Element): Element[] =>
   Array.from(element.children);
+
+/**
+ * A stand-in for `@pensketch/animation`'s `animate`, which these tests
+ * deliberately do not import: this package declares no relationship with that
+ * one, and a test resolving it through the workspace symlink would be proving
+ * something no consumer's install can reproduce. What the prop promises is
+ * that it takes *a function* and applies it to the filled element, so a
+ * function that does what the real one does to the DOM - a `<style>` as the
+ * element's first child - is the whole of what there is to observe here.
+ *
+ * What the rules then do in a browser is the animation package's own gate,
+ * and jsdom could not witness it anyway: it neither computes `@scope` nor
+ * runs an animation.
+ */
+export function stylesheet(svg: SVGSVGElement): void {
+  const style = svg.ownerDocument.createElementNS(NS, 'style');
+  style.textContent = ':scope>path{animation:ps-draw 1s}';
+  svg.insertBefore(style, svg.firstChild);
+}

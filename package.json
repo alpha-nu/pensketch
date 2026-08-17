@@ -19,6 +19,7 @@
     "size": "node tools/check-size.mjs",
     "exports": "node tools/check-exports.mjs",
     "diagrams": "node tools/check-diagrams.mjs",
+    "animation": "node tools/check-animation.mjs",
     "resources": "node tools/generate-resources.mjs",
     "pin": "node tools/pin-version.mjs",
     "stdio": "node tools/check-stdio.mjs",

@@ -42,10 +42,17 @@ together, so run every command from the root unless told otherwise.
   prints corrupts the stream a client is parsing.
 - `npm run size` - gzipped size budgets. Proves each minified, gzipped ESM
   entry point stays within budget: 5120 bytes for core, 3520 for its checker
-  subpath, 4300 for its DOM-free renderer, 2048 for react. It also proves the
-  size the README prints beside another project's is the one the build
-  produces, because a number a reader is invited to compare is a claim, and
-  this one has no generator to regenerate it from.
+  subpath, 4480 for its DOM-free renderer, 2048 for react, and 768 for the
+  animation package. It also proves the size the README prints beside another
+  project's is the one the build produces, because a number a reader is invited
+  to compare is a claim, and this one has no generator to regenerate it from.
+- `npm run animation` - drives the locally installed Chrome over ten checks of
+  `@pensketch/animation`, against the built package. The suite cannot reach
+  any of them: jsdom neither computes `@scope` nor runs an animation, so it
+  can prove the shape of the rules and nothing about what they do. This is
+  what holds a diagram that cannot animate to being a *finished* diagram
+  rather than a blank one, measured in pixels against a control drawn with no
+  stylesheet at all. It needs a real Chrome and says so if there is none.
 - `npm run diagrams` - runs the published checker over every diagram this
   repository ships: every HTML example, the React example, and the README
   hero. Errors fail; warnings are printed. The project that writes the rules

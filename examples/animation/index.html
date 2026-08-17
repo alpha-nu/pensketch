@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<!--
+  pensketch - a diagram that draws itself. Photosynthesis, in five panels.
+
+  Nothing on this page is a picture. The five diagrams are plain objects in the
+  script at the bottom, and pensketch draws them when you open it - so editing
+  a label is a one-line diff, and the page cannot drift from the library the
+  way a checked-in .svg can.
+
+  The panels were composed against @pensketch/mcp, the same server Claude Code
+  talks to: check_diagram passed all five with no findings, which is the only
+  reason they are laid out by hand and still read.
+
+  Two things have to happen before this page shows anything:
+
+    1. Build the packages. From the repository root:
+
+         npm run build
+
+       The page imports packages/core/dist/index.js and
+       packages/animation/dist/index.js, which is what the build produces.
+
+    2. Serve the repository over HTTP. Also from the repository root:
+
+         npx serve .              -> http://localhost:3000/examples/animation/
+         python3 -m http.server   -> http://localhost:8000/examples/animation/
+
+  Double-clicking the file will not work. A file:// document has the opaque
+  origin "null", ES module scripts are fetched with CORS, and an opaque origin
+  fails that check - the module never loads and the page stays blank.
+
+  THE ANIMATION. Each panel is revealed stroke by stroke, in CSS, with no
+  per-element JavaScript in the motion itself - and this page writes none of
+  that CSS. It makes two calls, in this order:
+
+    draw(svg, diagram, { seed, label, order: true });
+    animate(svg, { duration });
+
+  `order: true` asks the renderer to stamp every element with how far through
+  the drawing it is. That number is the one thing only `draw` can know: the
+  order a hand would lay the picture down in is the order it just drew in,
+  which is not the order the document ends up in - a page holding a finished
+  <svg> sees a list of anonymous <path> elements with every connector before
+  the boxes it connects. `animate` is @pensketch/animation, and it puts the
+  stylesheet that reads the number inside the <svg>.
+
+  Nothing below stamps a pathLength, an index or a counter of its own. That is
+  not tidiness: a page that hand-rolled this would keep working after the
+  package had regressed, and would teach the recipe the package exists to
+  delete - including the trap that pathLength rescales stroke-dasharray, so a
+  dotted connector normalised along with the solid ones renders solid. The
+  package fades a dashed stroke in instead, because it can tell the two apart
+  by an attribute the renderer wrote.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Green Is What It Throws Away</title>
+<style>
+:root{
+  --ground:#EDF1EA; --raise:#FFFFFF; --ink:#14241C; --dim:#5C6E62;
+  --rule:#C9D4C6; --blue:#3F45B8; --red:#C4361F; --green:#2F7D3E;
+  --ps-ink:#14241C; --ps-pen:#3F45B8; --ps-accent:#C4361F; --ps-muted:#5C6E62;
+  --ps-wash:rgba(63,69,184,.05);
+  --serif:'Iowan Old Style','Charter','Palatino Linotype',Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1A14; --raise:#14241C; --ink:#E8EFE6; --dim:#8FA396;
+    --rule:#26382D; --blue:#8B96F0; --red:#F0553C; --green:#6FCF7F;
+    --ps-ink:#E8EFE6; --ps-pen:#8B96F0; --ps-accent:#F0553C; --ps-muted:#8FA396;
+    --ps-wash:rgba(139,150,240,.07);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1A14; --raise:#14241C; --ink:#E8EFE6; --dim:#8FA396;
+  --rule:#26382D; --blue:#8B96F0; --red:#F0553C; --green:#6FCF7F;
+  --ps-ink:#E8EFE6; --ps-pen:#8B96F0; --ps-accent:#F0553C; --ps-muted:#8FA396;
+  --ps-wash:rgba(139,150,240,.07);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:17px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.col{max-width:64ch}
+
+/* ---- hero ---- */
+header{padding:96px 0 64px;border-bottom:1px solid var(--rule)}
+.kicker{
+  font-family:var(--mono); font-size:11px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--dim); margin:0 0 28px;
+}
+h1{
+  font-family:var(--serif); font-weight:400; font-size:clamp(40px,7vw,78px);
+  line-height:1.02; letter-spacing:-.02em; margin:0 0 24px; text-wrap:balance;
+}
+h1 em{font-style:italic;color:var(--green)}
+.stand{font-size:20px;line-height:1.6;color:var(--dim);margin:0;max-width:58ch}
+.stand b{color:var(--ink);font-weight:600}
+
+/* ---- panels ---- */
+.panel{padding:88px 0;border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--dim);margin:0 0 18px;
+}
+.eyebrow .acc{color:var(--red);font-weight:700}
+h2{
+  font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);
+  line-height:1.14;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;
+}
+.lede{margin:0;color:var(--dim);font-size:17.5px}
+.fig{margin:40px 0 0}
+.scroller{overflow-x:auto;background:var(--raise);border:1px solid var(--rule);border-radius:3px;padding:16px}
+.fig svg{width:100%;height:auto;display:block;min-width:520px}
+figcaption{
+  display:flex;justify-content:space-between;align-items:center;gap:20px;
+  flex-wrap:wrap;margin-top:14px;
+}
+.meta{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--dim)}
+.replay{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink);background:transparent;border:1px solid var(--rule);
+  border-radius:2px;padding:7px 14px;cursor:pointer;
+}
+.replay:hover{border-color:var(--green);color:var(--green)}
+.replay:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ---- what a panel looks like before it has been played ----
+   Not the animation, and not the waiting either. The animation arrives inside
+   the <svg>, from @pensketch/animation, and there is no rule for it here or
+   anywhere else on this page; what holds a panel back until you reach it is
+   the observer at the foot of the page.
+
+   This is for the two frames between the two. A panel is drawn when you
+   arrive, and the drawing is complete for the moment before the stylesheet
+   lands on it - measured, about two painted frames of the finished picture
+   before it goes blank and draws. Long enough to see, on every arrival. It
+   matters for the first panel most, which at a common window height is already
+   0.19 of the way into view at load, against a threshold of 0.18.
+
+   A panel that has been played is a panel that shows - under reduced motion
+   too, where the package switches the animation off and the whole drawing
+   appears at once. */
+.fig svg{visibility:hidden}
+.fig.go svg{visibility:visible}
+
+footer{padding:72px 0 110px;color:var(--dim)}
+footer p{max-width:64ch;margin:0 0 14px}
+footer a{color:var(--green)}
+.tally{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  display:flex;gap:28px;flex-wrap:wrap;margin-top:26px;padding-top:22px;
+  border-top:1px solid var(--rule);
+}
+.tally b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* No reduced-motion block for the drawing: the package carries its own, and
+   every starting state it uses lives inside a keyframe, so switching the
+   animation off is the whole of the accommodation. A rule here that tried to
+   restore what it hides would flatten the lighter of the pen's two passes. */
+@media (max-width:640px){
+  header{padding:60px 0 44px} .panel{padding:60px 0} body{font-size:16px}
+}
+</style>
+<style>
+/* The hand-drawn feel depends on a handwriting font for labels. The --ps-*
+   roles above are the documented theming snippet, tuned green for this page. */
+svg text {
+  font-family: "Chalkboard SE", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <p class="kicker">Five diagrams, drawn from data &middot; rendered by pensketch</p>
+  <h1>A leaf is green because green is the one colour it <em>refuses</em>.</h1>
+  <p class="stand">Chlorophyll eats violet-blue light at about <b>430&nbsp;nm</b> and deep red at about <b>662&nbsp;nm</b>. The middle of the spectrum it barely touches &mdash; so green light bounces off and reaches your eye. <b>Every leaf you have ever seen is showing you its waste.</b> What it keeps, it spends on the machinery below.</p>
+</header>
+
+<section class="panel" id="overview">
+  <div class="col">
+    <p class="eyebrow"><span class="acc">01</span> &middot; overview</p>
+    <h2>The whole trade, in one line</h2>
+    <p class="lede">A leaf takes light, air and water, and gives back sugar and the oxygen you are breathing right now. Everything after this panel is detail.</p>
+  </div>
+  <figure class="fig" data-panel="overview">
+    <div class="scroller"><svg id="fig-overview" viewBox="0 0 1010 400" role="img" aria-label="The whole trade, in one line"></svg></div>
+    <figcaption>
+      <span class="meta" id="meta-overview"></span>
+      <button class="replay" type="button">Draw it again</button>
+    </figcaption>
+  </figure>
+</section>
+
+<section class="panel" id="zoom">
+  <div class="col">
+    <p class="eyebrow"><span class="acc">02</span> &middot; zoom</p>
+    <h2>Zoom in until you find the machine</h2>
+    <p class="lede">The reaction does not happen in the leaf. It happens in an organelle inside one cell of it, and that organelle has two rooms that do two different jobs.</p>
+  </div>
+  <figure class="fig" data-panel="zoom">
+    <div class="scroller"><svg id="fig-zoom" viewBox="0 0 1010 380" role="img" aria-label="Zoom in until you find the machine"></svg></div>
+    <figcaption>
+      <span class="meta" id="meta-zoom"></span>
+      <button class="replay" type="button">Draw it again</button>
+    </figcaption>
+  </figure>
+</section>
+
+<section class="panel" id="light">
+  <div class="col">
+    <p class="eyebrow"><span class="acc">03</span> &middot; light</p>
+    <h2>The light reactions: a waterfall that drives a turbine</h2>
+    <p class="lede">Light knocks an electron out of Photosystem II. To replace it, the complex tears a water molecule apart &mdash; which is where every oxygen atom in the air came from. The electron then falls downhill through a chain, and the energy it sheds pumps protons upstairs. They come back down through ATP synthase, and that spinning is the ATP.</p>
+  </div>
+  <figure class="fig" data-panel="light">
+    <div class="scroller"><svg id="fig-light" viewBox="0 0 1270 530" role="img" aria-label="The light reactions: a waterfall that drives a turbine"></svg></div>
+    <figcaption>
+      <span class="meta" id="meta-light"></span>
+      <button class="replay" type="button">Draw it again</button>
+    </figcaption>
+  </figure>
+</section>
+
+<section class="panel" id="calvin">
+  <div class="col">
+    <p class="eyebrow"><span class="acc">04</span> &middot; calvin</p>
+    <h2>The Calvin cycle: bolting carbon onto a trap</h2>
+    <p class="lede">No light here at all &mdash; this runs on the ATP and NADPH the first half made. RuBisCO, the most abundant protein on Earth, clamps one CO&#8322; onto a five-carbon trap. Most of what comes out is spent rebuilding the trap. Six turns are needed for a single glucose.</p>
+  </div>
+  <figure class="fig" data-panel="calvin">
+    <div class="scroller"><svg id="fig-calvin" viewBox="0 0 1000 670" role="img" aria-label="The Calvin cycle: bolting carbon onto a trap"></svg></div>
+    <figcaption>
+      <span class="meta" id="meta-calvin"></span>
+      <button class="replay" type="button">Draw it again</button>
+    </figcaption>
+  </figure>
+</section>
+
+<section class="panel" id="loop">
+  <div class="col">
+    <p class="eyebrow"><span class="acc">05</span> &middot; loop</p>
+    <h2>Why it is one process and not two</h2>
+    <p class="lede">The halves are each other's supply chain. Light reactions charge the carriers; the Calvin cycle spends them and hands the empties straight back. Stop the light and the cycle runs until the carriers are flat &mdash; which is why "dark reactions" is a misleading old name.</p>
+  </div>
+  <figure class="fig" data-panel="loop">
+    <div class="scroller"><svg id="fig-loop" viewBox="0 0 910 400" role="img" aria-label="Why it is one process and not two"></svg></div>
+    <figcaption>
+      <span class="meta" id="meta-loop"></span>
+      <button class="replay" type="button">Draw it again</button>
+    </figcaption>
+  </figure>
+</section>
+
+<footer>
+  <p>None of these diagrams is a picture. Each is a plain object &mdash; boxes with coordinates, edges naming the sides they attach to &mdash; and <b>pensketch</b> drew it in your browser just now. The panels were composed against the pensketch MCP server, the same tool an agent calls, and <code>check_diagram</code> passed all five with no findings.</p>
+  <p>The animation is not a video, and this page does not write it. <code>draw</code> is asked for <code>order</code>, which stamps each element with how far through the drawing it is, and <code><a href="https://www.npmjs.com/package/@pensketch/animation">@pensketch/animation</a></code> puts the stylesheet that reads it inside the drawing. A solid stroke is dashed with a single dash as long as itself and slid home; a dotted one fades in instead, because normalising it the same way would render it solid.</p>
+  <div class="tally" id="tally"></div>
+</footer>
+</div>
+
+<script type="module">
+  // Relative paths into the built dists: a bare specifier needs a bundler,
+  // and this page has none.
+  import { animate } from '../../packages/animation/dist/index.js';
+  import { draw } from '../../packages/core/dist/index.js';
+
+  // The whole page, as data. Every coordinate is placed by hand: pensketch
+  // performs no layout and never measures text, so where a box sits and where
+  // a label sits are both decisions made here.
+  const PANELS = [
+    {
+      "id": "overview",
+      "viewBox": [
+        0,
+        0,
+        1010,
+        400
+      ],
+      "title": "The whole trade, in one line",
+      "diagram": {
+        "nodes": [
+          {
+            "id": "sun",
+            "shape": "pill",
+            "x": 60,
+            "y": 40,
+            "w": 180,
+            "h": 56,
+            "lines": [
+              "sunlight",
+              "photons"
+            ]
+          },
+          {
+            "id": "co2",
+            "shape": "box",
+            "x": 60,
+            "y": 172,
+            "w": 180,
+            "h": 56,
+            "lines": [
+              "6 CO\u2082",
+              "from the air"
+            ]
+          },
+          {
+            "id": "h2o",
+            "shape": "box",
+            "x": 60,
+            "y": 304,
+            "w": 180,
+            "h": 56,
+            "lines": [
+              "6 H\u2082O",
+              "from the roots"
+            ]
+          },
+          {
+            "id": "leaf",
+            "shape": "group",
+            "x": 390,
+            "y": 20,
+            "w": 300,
+            "h": 360,
+            "lines": [
+              "a leaf"
+            ]
+          },
+          {
+            "id": "chl",
+            "shape": "box",
+            "x": 430,
+            "y": 110,
+            "w": 220,
+            "h": 100,
+            "lines": [
+              "chloroplast",
+              "stroma + thylakoids"
+            ]
+          },
+          {
+            "id": "glu",
+            "shape": "box",
+            "x": 790,
+            "y": 110,
+            "w": 180,
+            "h": 64,
+            "lines": [
+              "C\u2086H\u2081\u2082O\u2086",
+              "glucose"
+            ]
+          },
+          {
+            "id": "oxy",
+            "shape": "box",
+            "x": 790,
+            "y": 266,
+            "w": 180,
+            "h": 64,
+            "lines": [
+              "6 O\u2082",
+              "out the stomata"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": [
+              "sun",
+              "r"
+            ],
+            "to": [
+              "chl",
+              "t"
+            ],
+            "via": [
+              [
+                340,
+                68
+              ],
+              [
+                540,
+                68
+              ]
+            ],
+            "label": "energy",
+            "lx": 292,
+            "ly": 50
+          },
+          {
+            "from": [
+              "co2",
+              "r"
+            ],
+            "to": [
+              "chl",
+              "l"
+            ],
+            "via": [
+              [
+                340,
+                200
+              ],
+              [
+                340,
+                160
+              ]
+            ]
+          },
+          {
+            "from": [
+              "h2o",
+              "r"
+            ],
+            "to": [
+              "chl",
+              "b"
+            ],
+            "via": [
+              [
+                340,
+                332
+              ],
+              [
+                540,
+                332
+              ]
+            ]
+          },
+          {
+            "from": [
+              "chl",
+              "r"
+            ],
+            "to": [
+              "glu",
+              "l"
+            ],
+            "via": [
+              [
+                720,
+                160
+              ],
+              [
+                720,
+                142
+              ]
+            ]
+          },
+          {
+            "from": [
+              "leaf",
+              "r"
+            ],
+            "to": [
+              "oxy",
+              "l"
+            ],
+            "via": [
+              [
+                740,
+                200
+              ],
+              [
+                740,
+                298
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "zoom",
+      "viewBox": [
+        0,
+        0,
+        1010,
+        380
+      ],
+      "title": "Zoom in until you find the machine",
+      "diagram": {
+        "nodes": [
+          {
+            "id": "leaf",
+            "shape": "box",
+            "x": 60,
+            "y": 170,
+            "w": 180,
+            "h": 70,
+            "lines": [
+              "a leaf"
+            ]
+          },
+          {
+            "id": "cell",
+            "shape": "box",
+            "x": 300,
+            "y": 170,
+            "w": 180,
+            "h": 70,
+            "lines": [
+              "mesophyll cell",
+              "~50 chloroplasts"
+            ]
+          },
+          {
+            "id": "chl",
+            "shape": "group",
+            "x": 560,
+            "y": 40,
+            "w": 420,
+            "h": 320,
+            "lines": [
+              "one chloroplast"
+            ]
+          },
+          {
+            "id": "thyl",
+            "shape": "box",
+            "x": 600,
+            "y": 120,
+            "w": 160,
+            "h": 100,
+            "accent": true,
+            "lines": [
+              "thylakoid",
+              "LIGHT REACTIONS"
+            ]
+          },
+          {
+            "id": "stro",
+            "shape": "box",
+            "x": 800,
+            "y": 120,
+            "w": 140,
+            "h": 100,
+            "lines": [
+              "stroma",
+              "CALVIN CYCLE"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": [
+              "leaf",
+              "r"
+            ],
+            "to": [
+              "cell",
+              "l"
+            ]
+          },
+          {
+            "from": [
+              "cell",
+              "r"
+            ],
+            "to": [
+              "chl",
+              "l"
+            ]
+          },
+          {
+            "from": [
+              "thyl",
+              "r"
+            ],
+            "to": [
+              "stro",
+              "l"
+            ]
+          },
+          {
+            "from": [
+              "stro",
+              "b"
+            ],
+            "to": [
+              "thyl",
+              "b"
+            ],
+            "via": [
+              [
+                870,
+                280
+              ],
+              [
+                680,
+                280
+              ]
+            ],
+            "label": "ADP + NADP\u207a",
+            "lx": 775,
+            "ly": 302,
+            "dotted": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "light",
+      "viewBox": [
+        0,
+        0,
+        1270,
+        530
+      ],
+      "title": "The light reactions: a waterfall that drives a turbine",
+      "diagram": {
+        "nodes": [
+          {
+            "id": "lumen",
+            "shape": "group",
+            "x": 60,
+            "y": 30,
+            "w": 1150,
+            "h": 100,
+            "lines": [
+              "thylakoid lumen"
+            ]
+          },
+          {
+            "id": "prot",
+            "shape": "box",
+            "x": 360,
+            "y": 55,
+            "w": 220,
+            "h": 52,
+            "accent": true,
+            "lines": [
+              "H\u207a H\u207a H\u207a H\u207a"
+            ]
+          },
+          {
+            "id": "h2o",
+            "shape": "box",
+            "x": 60,
+            "y": 200,
+            "w": 140,
+            "h": 64,
+            "lines": [
+              "2 H\u2082O"
+            ]
+          },
+          {
+            "id": "ps2",
+            "shape": "box",
+            "x": 240,
+            "y": 190,
+            "w": 180,
+            "h": 84,
+            "accent": true,
+            "lines": [
+              "Photosystem II",
+              "P680"
+            ]
+          },
+          {
+            "id": "etc",
+            "shape": "box",
+            "x": 520,
+            "y": 200,
+            "w": 210,
+            "h": 64,
+            "lines": [
+              "electron transport",
+              "chain"
+            ]
+          },
+          {
+            "id": "ps1",
+            "shape": "box",
+            "x": 830,
+            "y": 190,
+            "w": 180,
+            "h": 84,
+            "accent": true,
+            "lines": [
+              "Photosystem I",
+              "P700"
+            ]
+          },
+          {
+            "id": "nadph",
+            "shape": "box",
+            "x": 1070,
+            "y": 200,
+            "w": 140,
+            "h": 64,
+            "lines": [
+              "NADPH"
+            ]
+          },
+          {
+            "id": "o2",
+            "shape": "box",
+            "x": 60,
+            "y": 390,
+            "w": 140,
+            "h": 60,
+            "lines": [
+              "O\u2082"
+            ]
+          },
+          {
+            "id": "atps",
+            "shape": "box",
+            "x": 370,
+            "y": 380,
+            "w": 200,
+            "h": 84,
+            "lines": [
+              "ATP synthase",
+              "the turbine"
+            ]
+          },
+          {
+            "id": "atp",
+            "shape": "box",
+            "x": 630,
+            "y": 394,
+            "w": 140,
+            "h": 56,
+            "lines": [
+              "ATP"
+            ]
+          },
+          {
+            "id": "lgt1",
+            "shape": "pill",
+            "x": 240,
+            "y": 470,
+            "w": 180,
+            "h": 44,
+            "lines": [
+              "light"
+            ]
+          },
+          {
+            "id": "lgt2",
+            "shape": "pill",
+            "x": 830,
+            "y": 470,
+            "w": 180,
+            "h": 44,
+            "lines": [
+              "light"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": [
+              "h2o",
+              "r"
+            ],
+            "to": [
+              "ps2",
+              "l"
+            ]
+          },
+          {
+            "from": [
+              "ps2",
+              "r"
+            ],
+            "to": [
+              "etc",
+              "l"
+            ]
+          },
+          {
+            "from": [
+              "etc",
+              "r"
+            ],
+            "to": [
+              "ps1",
+              "l"
+            ],
+            "label": "e\u207b downhill",
+            "lx": 780,
+            "ly": 208
+          },
+          {
+            "from": [
+              "ps1",
+              "r"
+            ],
+            "to": [
+              "nadph",
+              "l"
+            ]
+          },
+          {
+            "from": [
+              "h2o",
+              "b"
+            ],
+            "to": [
+              "o2",
+              "t"
+            ],
+            "label": "split",
+            "lx": 146,
+            "ly": 330,
+            "anchor": "start"
+          },
+          {
+            "from": [
+              "ps2",
+              "t"
+            ],
+            "to": [
+              "prot",
+              "l"
+            ],
+            "via": [
+              [
+                330,
+                140
+              ],
+              [
+                300,
+                140
+              ],
+              [
+                300,
+                81
+              ]
+            ]
+          },
+          {
+            "from": [
+              "prot",
+              "b"
+            ],
+            "to": [
+              "atps",
+              "t"
+            ],
+            "hop": true,
+            "label": "H\u207a rush back",
+            "lx": 488,
+            "ly": 306,
+            "anchor": "start"
+          },
+          {
+            "from": [
+              "atps",
+              "r"
+            ],
+            "to": [
+              "atp",
+              "l"
+            ]
+          },
+          {
+            "from": [
+              "lgt1",
+              "t"
+            ],
+            "to": [
+              "ps2",
+              "b"
+            ]
+          },
+          {
+            "from": [
+              "lgt2",
+              "t"
+            ],
+            "to": [
+              "ps1",
+              "b"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "calvin",
+      "viewBox": [
+        0,
+        0,
+        1000,
+        670
+      ],
+      "title": "The Calvin cycle: bolting carbon onto a trap",
+      "diagram": {
+        "nodes": [
+          {
+            "id": "co2",
+            "shape": "box",
+            "x": 400,
+            "y": 30,
+            "w": 200,
+            "h": 56,
+            "lines": [
+              "CO\u2082 from the air"
+            ]
+          },
+          {
+            "id": "rubp",
+            "shape": "box",
+            "x": 400,
+            "y": 140,
+            "w": 200,
+            "h": 70,
+            "lines": [
+              "RuBP",
+              "the 5-carbon trap"
+            ]
+          },
+          {
+            "id": "fuel",
+            "shape": "box",
+            "x": 700,
+            "y": 150,
+            "w": 240,
+            "h": 70,
+            "accent": true,
+            "lines": [
+              "ATP + NADPH",
+              "from the light reactions"
+            ]
+          },
+          {
+            "id": "pga",
+            "shape": "box",
+            "x": 700,
+            "y": 290,
+            "w": 240,
+            "h": 70,
+            "lines": [
+              "2 \u00d7 3-PGA",
+              "first stable product"
+            ]
+          },
+          {
+            "id": "regen",
+            "shape": "box",
+            "x": 60,
+            "y": 290,
+            "w": 240,
+            "h": 70,
+            "lines": [
+              "RuBP regenerated",
+              "costs 3 more ATP"
+            ]
+          },
+          {
+            "id": "g3p",
+            "shape": "box",
+            "x": 400,
+            "y": 450,
+            "w": 200,
+            "h": 70,
+            "lines": [
+              "G3P",
+              "a 3-carbon sugar"
+            ]
+          },
+          {
+            "id": "sugar",
+            "shape": "box",
+            "x": 390,
+            "y": 570,
+            "w": 220,
+            "h": 64,
+            "lines": [
+              "glucose",
+              "1 per 6 turns"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": [
+              "co2",
+              "b"
+            ],
+            "to": [
+              "rubp",
+              "t"
+            ]
+          },
+          {
+            "from": [
+              "rubp",
+              "r"
+            ],
+            "to": [
+              "pga",
+              "l"
+            ],
+            "via": [
+              [
+                650,
+                175
+              ],
+              [
+                650,
+                325
+              ]
+            ],
+            "label": "RuBisCO fixes it",
+            "lx": 662,
+            "ly": 244,
+            "anchor": "start"
+          },
+          {
+            "from": [
+              "fuel",
+              "b"
+            ],
+            "to": [
+              "pga",
+              "t"
+            ],
+            "dotted": true
+          },
+          {
+            "from": [
+              "pga",
+              "b"
+            ],
+            "to": [
+              "g3p",
+              "r"
+            ],
+            "via": [
+              [
+                820,
+                420
+              ],
+              [
+                650,
+                420
+              ],
+              [
+                650,
+                485
+              ]
+            ]
+          },
+          {
+            "from": [
+              "g3p",
+              "l"
+            ],
+            "to": [
+              "regen",
+              "b"
+            ],
+            "via": [
+              [
+                350,
+                485
+              ],
+              [
+                180,
+                485
+              ]
+            ]
+          },
+          {
+            "from": [
+              "regen",
+              "t"
+            ],
+            "to": [
+              "rubp",
+              "l"
+            ],
+            "via": [
+              [
+                180,
+                220
+              ],
+              [
+                350,
+                220
+              ],
+              [
+                350,
+                175
+              ]
+            ]
+          },
+          {
+            "from": [
+              "g3p",
+              "b"
+            ],
+            "to": [
+              "sugar",
+              "t"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "loop",
+      "viewBox": [
+        0,
+        0,
+        910,
+        400
+      ],
+      "title": "Why it is one process and not two",
+      "diagram": {
+        "nodes": [
+          {
+            "id": "light",
+            "shape": "box",
+            "x": 90,
+            "y": 150,
+            "w": 290,
+            "h": 130,
+            "accent": true,
+            "lines": [
+              "LIGHT REACTIONS",
+              "in the thylakoid membrane",
+              "water in, oxygen out"
+            ]
+          },
+          {
+            "id": "calvin",
+            "shape": "box",
+            "x": 530,
+            "y": 150,
+            "w": 290,
+            "h": 130,
+            "lines": [
+              "CALVIN CYCLE",
+              "in the stroma",
+              "carbon in, sugar out"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": [
+              "light",
+              "r"
+            ],
+            "to": [
+              "calvin",
+              "l"
+            ],
+            "bow": -38,
+            "label": "ATP + NADPH",
+            "lx": 455,
+            "ly": 158
+          },
+          {
+            "from": [
+              "calvin",
+              "l"
+            ],
+            "to": [
+              "light",
+              "r"
+            ],
+            "bow": -38,
+            "label": "ADP + NADP\u207a + Pi",
+            "lx": 455,
+            "ly": 300,
+            "dotted": true
+          }
+        ]
+      }
+    }
+  ];
+
+  const SEED = 7;
+  // How long a panel takes, first stroke to last. Shorter than the package's
+  // own default of two seconds, because five of these are read in a row and a
+  // reader who has stopped scrolling is waiting for one.
+  const DURATION = 1600;
+
+  // `order: true` is the whole of this page's part in the animation. Nothing
+  // here writes an index, a pathLength or a counter: what to do with the
+  // number belongs to @pensketch/animation, and what the number is belongs to
+  // `draw`, which is the only thing that knows the order it drew in.
+  const drawPanel = (panel) => {
+    const svg = document.getElementById(`fig-${panel.id}`);
+    draw(svg, panel.diagram, { seed: SEED, label: panel.title, order: true });
+    return svg;
+  };
+
+  let paths = 0;
+  let bytes = 0;
+
+  // Drawn once here, so the figures under each panel are measured from what
+  // was actually drawn rather than written down when the page was - and drawn
+  // again, with the stylesheet, when the panel is reached.
+  for (const panel of PANELS) {
+    const svg = drawPanel(panel);
+    const count = [...svg.children].filter(
+      (el) => el.tagName === 'path',
+    ).length;
+    const svgBytes = new Blob([svg.outerHTML]).size;
+    paths += count;
+    bytes += svgBytes;
+    document.getElementById(`meta-${panel.id}`).textContent =
+      panel.viewBox[2] + '\u00d7' + panel.viewBox[3] + ' \u00b7 ' + count +
+      ' paths \u00b7 ' + Math.round(svgBytes / 1024) + ' KB \u00b7 seed ' + SEED;
+  }
+
+  // Measured from what was actually drawn, rather than recorded when the page
+  // was built: a tally that cannot go stale.
+  document.getElementById('tally').innerHTML =
+    '<span>Panels <b>' + PANELS.length + '</b></span>' +
+    '<span>Paths <b>' + paths + '</b></span>' +
+    // Two paths per stroke: a dark pass and a lighter one, which is the
+    // pressure. Staggering per path is what makes the pen go over its line.
+    '<span>Strokes <b>' + paths / 2 + '</b></span>' +
+    '<span>SVG <b>' + Math.round(bytes / 1024) + ' KB</b></span>' +
+    '<span>Findings <b>0</b></span>';
+
+  // Playing a panel is the same two calls, in the same order. `animate` after
+  // `draw` and never before: `draw` empties the element it fills, so a
+  // stylesheet put there first goes with everything else that was in it - and
+  // for the same reason a redraw takes the last stylesheet with it and has to
+  // be animated again. Which is why the replay button below draws rather than
+  // toggling a class, and why the class it does add is only about whether the
+  // panel is showing.
+  const play = (panel) => {
+    const svg = drawPanel(panel);
+    animate(svg, { duration: DURATION });
+    svg.closest('.fig').classList.add('go');
+  };
+
+  const BY_ID = new Map(PANELS.map((panel) => [panel.id, panel]));
+
+  // Without an observer every panel plays at once. The rule above hides an
+  // svg until it has been played, so a browser that cannot watch for arrival
+  // would otherwise show five empty boxes - which is the one degradation
+  // @pensketch/animation exists to rule out, shipped by the page that
+  // demonstrates it. Waiting for arrival is the nicety; the drawing is not.
+  const watches = 'IntersectionObserver' in globalThis;
+
+  for (const fig of document.querySelectorAll('.fig')) {
+    const panel = BY_ID.get(fig.dataset.panel);
+    if (watches) {
+      // One observer per panel, disconnected the first time it fires: a panel
+      // draws itself when you reach it, once - and again whenever you ask.
+      const arrival = new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting) return;
+        arrival.disconnect();
+        play(panel);
+      }, { threshold: .18 });
+      arrival.observe(fig);
+    } else play(panel);
+    fig.querySelector('.replay').addEventListener('click', () => play(panel));
+  }
+</script>
+</body>
+</html>

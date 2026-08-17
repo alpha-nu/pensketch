@@ -15,7 +15,7 @@ const manifestOf = (name: string): Record<string, unknown> =>
 // `@pensketch/mcp` is a tool an agent spawns; it may depend on things, and
 // saying "no package here has dependencies" would have made that a violation
 // of an invariant it was never meant to cover.
-const RENDERING = ['core', 'react'];
+const RENDERING = ['core', 'react', 'animation'];
 
 describe('the rendering packages stay out of a consumer lockfile', () => {
   it.each(RENDERING)('%s takes no runtime dependency', (name) => {
@@ -36,17 +36,24 @@ describe('the server package', () => {
   // The shape, not the ranges: a release rewrites the core range, and
   // asserting it literally makes every release fail its own tests.
   //
-  // Four, and each is a decision worth failing a test to revisit: the SDK
-  // speaks the protocol, core does the drawing, the rasterizer turns an SVG
+  // Five, and each is a decision worth failing a test to revisit: the SDK
+  // speaks the protocol, core does the drawing, the animation package writes
+  // the stylesheet an animated render carries, the rasterizer turns an SVG
   // into something a client can display, and zod is what the SDK wants a tool
-  // schema written in. A fifth arriving quietly is what this asserts against.
+  // schema written in. A sixth arriving quietly is what this asserts against.
+  //
+  // The animation package is a plain dependency here and a peer nowhere,
+  // which is the carve-out this package has and the rendering packages do
+  // not: it is spawned rather than bundled into a page, so it owns its copies
+  // and adds nothing to anybody's bundle.
   //
   // zod is declared even though the SDK would supply it: a package that
   // imports something should say so rather than reach through a dependency's
   // tree for it.
-  it('depends on the SDK, core, the rasterizer and zod, and nothing else', () => {
+  it('depends on the SDK, core, the motion, the rasterizer and zod, and nothing else', () => {
     expect(Object.keys(mcp.dependencies ?? {}).sort()).toEqual([
       '@modelcontextprotocol/server',
+      '@pensketch/animation',
       '@pensketch/core',
       '@resvg/resvg-wasm',
       'zod',

@@ -51,11 +51,20 @@ describe('what a core release does to the bindings', () => {
     ]);
   });
 
-  // Only the bindings take a major, because only they ask a consumer to
-  // resolve core. The server is patched here for the same reason as above.
+  // Only the packages that peer on core take a major, because only they ask a
+  // consumer to resolve it. The server is patched here for the same reason as
+  // above.
+  //
+  // `@pensketch/animation` is one of them now, and it answers exactly as the
+  // bindings do: left alone by the minor above, because its compound peer
+  // range still holds, and majored here, because the `<1.0.0` half of that
+  // range stops holding the moment core takes a major. That is the range doing
+  // its job - it is the whole reason a compound peer is allowed at all - and
+  // this is where a release that quietly widened it would show up.
   it('majors them when core breaks its API, because the peer range stops matching', () => {
     expect(planFor('major')).toEqual([
       '@pensketch/core:major',
+      '@pensketch/animation:major',
       '@pensketch/mcp:patch',
       '@pensketch/react:major',
     ]);

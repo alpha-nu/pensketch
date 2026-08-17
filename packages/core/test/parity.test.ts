@@ -57,4 +57,19 @@ describe('golden parity with the reference implementation', () => {
       );
     },
   );
+
+  // The reference renderer has no `order` and cannot gain one - it is
+  // read-only - so the option is only ever off in a golden. Asserted against
+  // the same files rather than against a second render of the port, which
+  // would compare the port to itself.
+  it.each(CASES)(
+    'renders $name at seed $seed byte-for-byte with `order: false`',
+    ({ diagram, seed, file }) => {
+      const svg = document.createElementNS(NS, 'svg');
+      draw(svg, diagram, { seed, theme: REFERENCE_THEME, order: false });
+      expect(`${serialize(svg)}\n`).toBe(
+        readFileSync(join(GOLDENS, file), 'utf8'),
+      );
+    },
+  );
 });

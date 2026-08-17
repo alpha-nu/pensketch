@@ -1,0 +1,57 @@
+{
+  "name": "@pensketch/animation",
+  "version": "0.0.0",
+  "description": "CSS that draws a pensketch diagram in the order a hand would have drawn it.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alpha-nu/pensketch.git",
+    "directory": "packages/animation"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "sketch",
+    "hand-drawn",
+    "svg",
+    "diagram",
+    "animation",
+    "css",
+    "seeded",
+    "deterministic",
+    "napkin"
+  ],
+  "peerDependencies": {
+    "@pensketch/core": ">=0.5.0 <1.0.0"
+  }
+}

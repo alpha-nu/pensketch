@@ -47,6 +47,19 @@ const ENTRIES = [
     base: 'packages/react/dist/index',
     surface: ['PenSketch', 'useSketch'],
   },
+  {
+    // `rules` is here for a reason the other entries do not have: it is the
+    // stylesheet itself, exported so a caller assembling markup can place it,
+    // and nothing else in this repository loads it. Left off this list it
+    // would ship unverified.
+    //
+    // `AnimateOptions` is a type, and types are erased before this can see
+    // them. It is held to its contract by the suite, which only typechecks
+    // while it is exported.
+    name: '@pensketch/animation',
+    base: 'packages/animation/dist/index',
+    surface: ['animate', 'animateMarkup', 'rules'],
+  },
 ];
 
 let problems = 0;

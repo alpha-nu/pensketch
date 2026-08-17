@@ -156,6 +156,8 @@ draw(svg: SVGSVGElement, diagram: Diagram, options?: {
   hops?: boolean;             // default false — every arrow goes over the ones
                               // it crosses. An edge's own `hop` wins either way,
                               // so `hop: false` opts one arrow out
+  order?: boolean;            // default false — stamp every element with how far
+                              // through the drawing it is, so it can be animated
   theme?: Partial<Theme>;
   label?: string;             // sets role="img" + aria-label
 }): void;
@@ -381,3 +383,68 @@ Colours are emitted as `var(--ps-*, fallback)`, so a page restyles a drawn
 diagram by redefining variables: `--ps-ink`, `--ps-pen`, `--ps-accent`,
 `--ps-muted`, `--ps-wash`. The packages ship no CSS. The sketch look also
 depends on a handwriting font being applied to `svg text` by the page.
+
+## Making a diagram draw itself
+
+One boolean is the renderer's whole part in it:
+
+```js
+draw(svg, diagram, { seed: 7, order: true });
+```
+
+Every element then carries `--ps-i`, how far through the drawing it is, as a
+fraction in `[0, 1)`. The number counts in the order a hand would draw in —
+group frames, then node shapes, then connectors, then braces, notes and `raw`,
+and then every piece of text whatever phase drew it — which is **not** the
+order the document is in. Nothing is reordered: the z-order, the seeded
+sequence and the elements themselves are what they were, and with `order`
+unset not one byte differs from the drawing you would have had.
+
+Every path carrying no `stroke-dasharray` also gains `pathLength="1"`, which
+normalises it so a single keyframe draws a 400 px connector and a 12 px
+arrowhead barb at the same rate. A dashed path is deliberately left alone:
+`pathLength` rescales every distance along a path, `stroke-dasharray` among
+them, so a normalised dotted line renders solid. A `pen` driven by hand is
+uninstrumented — the index is a property of `draw`'s phases, and a pen has
+none.
+
+The motion itself is a separate package, `@pensketch/animation`, peered on
+core. It is CSS: nothing of it runs while the drawing is drawing.
+
+```js
+import { draw } from '@pensketch/core';
+import { animate } from '@pensketch/animation';
+
+draw(svg, diagram, { order: true });
+animate(svg, { duration: 3000 });
+```
+
+`animate` inserts one `<style>` as the svg's first child and writes the timing
+onto the element as custom properties. What comes back is a self-contained
+`<svg>` — it draws itself inline in a page, embedded as `<img src>`, and
+opened as a file, with nothing else loaded. Nothing else is added to your
+element: no class, no id. The options are `duration` (the whole drawing,
+default 2000) and `stroke` (any one element, default 500), both in
+milliseconds, and `easing` (any CSS `<easing-function>`, default `ease-out`).
+Anything left out keeps the stylesheet's own default, so the defaults have
+exactly one home.
+
+**Call it after `draw`, never before.** `draw` removes every child of the
+element it fills, so a `<style>` put there first goes with them and the
+diagram simply appears. For the same reason a redraw takes the stylesheet with
+it and has to be animated again.
+
+For markup rather than an element — what `renderToString` hands back —
+`animateMarkup(inner, options)` returns the same rules with the same timing in
+front of it. It takes and returns the *contents* of an `<svg>`, the caller
+supplying the wrapper as they already do.
+
+**How it degrades, and it is one way.** The rules are wrapped in an implicit
+`@scope` block so they reach only the drawing they were put in. An engine that
+does not understand `@scope` drops that block whole. An element carrying no
+`--ps-i` — an older core, a `pen` drawing, a caller who did not pass `order` —
+makes the `animation` shorthand invalid at computed-value time, so
+`animation-name` computes to `none`. `prefers-reduced-motion: reduce` switches
+it off outright. All three land in the same place on purpose: the diagram
+renders **finished and still**, pixel-identical to the same diagram with no
+stylesheet at all — never blank, never half-inked.

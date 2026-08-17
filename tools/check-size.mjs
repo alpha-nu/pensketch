@@ -176,14 +176,68 @@ const PACKAGES = [
     // subpath budgets exist to enforce - a consumer who never imports the
     // checker ships none of it - and it is unavoidable here, because hopping
     // is a behaviour of `draw` rather than an entry point somebody imports.
+    //
+    // 4480 from 4300 for `order`, the option that stamps each element with how
+    // far through the drawing it is so a stylesheet can reveal them in turn.
+    // This entry stands at 4196 with 104 B free, and the feature does not fit:
+    // a built prototype - the three phase boundaries, the rank that reads
+    // them, the sort, the `pathLength` guard and the inline `style` prefix -
+    // measures 4374 here, so +178. Not an estimate; it rendered, and
+    // `order: false` output came back byte-identical to the golden. 4374 plus
+    // the same 100 B of gzip headroom is 4474, taken up to 4480.
+    //
+    // This entry is the one that binds, and that is the whole reason it has a
+    // budget: it carries its own copy of `draw`, so it pays for a renderer
+    // feature whether or not a server ever passes the option.
+    //
+    // Built and measured against those prototype figures: this entry 4378
+    // rather than 4374, and the root entry 4380 - which is +201 on the 4179 it
+    // stood at, so unlike every raise above it this one *does* move the root
+    // entry, and by about a twentieth of it. `order` is a behaviour of `draw`
+    // rather than an entry point somebody imports, so every consumer carries it
+    // whether or not a diagram ever asks for it. That is the same departure the
+    // hop paragraph above records, and it is stated again because a reader
+    // scanning for "does not move" would otherwise find it and be wrong.
+    // `./check` lands at 3391 against 3520 - it imports constants, sample and
+    // types and never `draw`, so that 1 B is the toolchain noise the margin
+    // exists for.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 4300,
+    budget: 4480,
   },
   {
     name: '@pensketch/react',
     entry: 'packages/react/dist/index.js',
     budget: 2048,
+  },
+  {
+    // 704 from nothing, for the package that turns a diagram `draw` stamped
+    // with `order` into one that draws itself. A prototype of it - the
+    // stylesheet, the element-side helper and the string-side one - measured
+    // 546; plus the same 100 B of gzip headroom every raise here uses is 646,
+    // taken up to the next multiple of 64.
+    //
+    // A budget set from a prototype rather than from the finished package, so
+    // it is a claim about how big this ought to be and not a record of how big
+    // it turned out. Most of the weight is the stylesheet, which is a string
+    // and so is not minified by the build: it is written compact in the
+    // source, and gzip does the rest.
+    //
+    // 768 from 704, and this is the re-decision that paragraph asked for. The
+    // finished package measured 614 against the prototype's 546 - inside 704,
+    // but leaving 90 B where this file's own standard is 100, and a margin
+    // below the toolchain noise it exists to absorb is not a margin. The rule
+    // that makes this principled is the one the `./check` raise to 3520 states:
+    // 100 B is owed to an entry not because it is owed, but because gzip has
+    // been measured moving an entry by 2 B on identical code. 614 plus 100 is
+    // 714, taken up to the next multiple of 64.
+    //
+    // Raised here rather than at a gate that failed - nothing failed. What
+    // failed was the arithmetic, which sized the budget from a prototype 68 B
+    // lighter than the package that shipped.
+    name: '@pensketch/animation',
+    entry: 'packages/animation/dist/index.js',
+    budget: 768,
   },
 ];
 

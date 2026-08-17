@@ -48,6 +48,15 @@ npm install @pensketch/core
 npm install @pensketch/react @pensketch/core
 ```
 
+**For motion**, `@pensketch/animation` turns a drawing into one that draws
+itself, stroke by stroke, in the order a hand would have used. It is CSS —
+nothing of it runs while the drawing is drawing — and it is a peer of nothing,
+so a page that does not want motion carries none of it:
+
+```sh
+npm install @pensketch/animation @pensketch/core
+```
+
 ## The architecture, drawn by the thing it describes
 
 <picture>
@@ -121,6 +130,36 @@ export function Flow() {
   return <PenSketch diagram={FLOW} seed={7} viewBox="0 0 700 150" aria-label="Request flow" />;
 }
 ```
+
+## Making a diagram draw itself
+
+Two calls, in this order. `order: true` asks the renderer to stamp each element
+with how far through the drawing it is — the one number only `draw` can know,
+since the order a hand would lay a picture down in is the order it just drew in
+— and `animate` puts the stylesheet that reads it inside the `<svg>`.
+
+```js
+import { draw } from '@pensketch/core';
+import { animate } from '@pensketch/animation';
+
+const svg = document.querySelector('svg');
+draw(svg, diagram, { order: true });
+animate(svg, { duration: 3000 });
+```
+
+In React it is one prop:
+
+```tsx
+import { animate } from '@pensketch/animation';
+
+<PenSketch diagram={FLOW} viewBox="0 0 700 150" animate={animate} />
+```
+
+Where `@scope` is not understood, or `order` was not asked for, or the reader
+has asked not to be moved, the diagram renders finished and still — identical
+to the same diagram with no stylesheet at all, rather than blank.
+[packages/animation/README.md](packages/animation/README.md) has the rest, and
+[examples/animation/](examples/animation/) is five panels of it.
 
 ## The drawing model
 
@@ -331,7 +370,8 @@ test('flow diagram renders byte-stably', () => {
 ## Examples
 
 Every example runs against the local packages, so install and build them
-once from the repository root with `npm ci && npm run build`. The two HTML pages need a static server -
+once from the repository root with `npm ci && npm run build`. Every folder but
+`react/` is an HTML page, and those need a static server -
 browsers refuse ES module imports over `file://` - which `npx serve .` from the
 root provides.
 
@@ -341,7 +381,8 @@ root provides.
 | `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, a retry that stays where it is — a self-transition sized by `out` and `span` — and a square bracket over the states the money has moved for, plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
 | `examples/state-machine/` | **An ATM.** A decision that splits the flow, a dotted retry routed back down the left margin, a keypad loop at the default size, and a transition and its reverse bowed apart rather than drawn on one line. | `npx serve .`, then open `/examples/state-machine/` |
 | `examples/showcase/` | **pensketch's own architecture.** A layered logical architecture — consumers, the published surface, the renderer and the checker — that reaches for nearly the whole data model in one picture: all three drawn shapes, `accent` and `hatch`, orthogonal `via` routing, a self-transition, both kinds of brace, and notes whose pointers bow. No `raw` anywhere, which is why it can be served as data. | `npx serve .`, then open `/examples/showcase/` |
-| `examples/react/` | **An incident, stepped through.** Five stages that fork at a decision, with the accented node, the stages shaded behind it and the arrows already taken all derived from React state — and it walks itself through on arrival, until you stop it. Plus a seed control: the stage changes the data, the seed changes which drawing of it you get. | `cd examples/react && npm install && npm run dev` |
+| `examples/animation/` | **Photosynthesis in five panels**, each one drawing itself as you reach it. The page holds five diagrams as data and makes two calls per panel — `draw` with `order`, then `animate` — and writes no keyframe, index or `pathLength` of its own. | `npx serve .`, then open `/examples/animation/` |
+| `examples/react/` | **An incident, stepped through.** Five stages that fork at a decision, with the accented node, the stages shaded behind it and the arrows already taken all derived from React state — and it walks itself through on arrival, until you stop it. Plus a seed control: the stage changes the data, the seed changes which drawing of it you get, and every redraw draws itself through the `animate` prop — under StrictMode, so a doubled stylesheet or a missing one would show. | `cd examples/react && npm install && npm run dev` |
 
 ## Generating diagrams programmatically
 
@@ -463,7 +504,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **4179 B** | 8919 B |
+| Size, min+gzip | **4381 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

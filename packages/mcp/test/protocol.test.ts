@@ -103,6 +103,34 @@ describe('a client talking to the server', () => {
     }
   });
 
+  // A tool schema is what an agent reads before it reads any resource, so this
+  // parameter has to teach the whole feature on its own: what comes back, that
+  // it needs nothing else, and what a viewer that cannot animate it shows
+  // instead. Asserted for the same reason the traps are - a description nobody
+  // checks is a description that rots.
+  it('teaches the animate parameter in the schema itself', async () => {
+    const { send } = await connected();
+    const { result } = await send('tools/list');
+    const tools = result?.tools as {
+      name: string;
+      inputSchema?: { properties?: Record<string, { description?: string }> };
+    }[];
+    const animate =
+      tools.find((t) => t.name === 'render_diagram')?.inputSchema?.properties
+        ?.animate?.description ?? '';
+
+    expect(animate).toContain('draws itself');
+    expect(animate).toContain('complete on its own');
+    expect(animate).toContain('no CSS to write');
+    expect(animate).toContain('@scope');
+    expect(animate).toContain('finished and static rather than blank');
+    // And the raster publishes no such parameter to read in the first place.
+    expect(
+      tools.find((t) => t.name === 'render_png')?.inputSchema?.properties
+        ?.animate,
+    ).toBeUndefined();
+  });
+
   it('lists every resource', async () => {
     const { send } = await connected();
     const { result } = await send('resources/list');
@@ -233,6 +261,31 @@ describe('the tool boundary refuses what it cannot carry', () => {
     }
   });
 
+  // A raster is one frame, and the field is left out of `render_png` on
+  // purpose. The strict boundary is what turns that absence into a refusal by
+  // name: declared and ignored, it would hand back a still image as though the
+  // request had been honoured, and a caller who cannot see the picture has no
+  // way to tell those two apart.
+  it('refuses animate on render_png, which cannot carry it', async () => {
+    const text = await refusal('render_png', {
+      diagram: { nodes: [NODE] },
+      viewBox: BOX,
+      animate: true,
+    });
+    expect(text).toContain('render_png has no argument "animate"');
+    expect(text).toContain('an optional seed, hops and scale');
+  });
+
+  it('takes animate on the tool that renders a document', async () => {
+    const result = await called('render_diagram', {
+      diagram: { nodes: [NODE] },
+      viewBox: BOX,
+      animate: true,
+    });
+    expect(result.isError).toBeFalsy();
+    expect(result.content?.[0]?.text).toContain('@keyframes ps-draw');
+  });
+
   // Each tool names itself and its own arguments. One shared message would
   // send a caller who mistyped `scale` off to read about diagrams.
   it('names the tool and its arguments when the stray key is an argument', async () => {
@@ -337,6 +390,6 @@ describe('the tool boundary refuses what it cannot carry', () => {
       seed: 7,
     });
     expect(result.isError).toBeFalsy();
-    expect(result.content?.[0]?.text).toBe(svgFor(diagram, BOX, 7));
+    expect(result.content?.[0]?.text).toBe(svgFor(diagram, BOX, { seed: 7 }));
   });
 });

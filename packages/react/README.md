@@ -17,6 +17,17 @@ their own. That matters for core in particular - two copies in one tree would
 be two renderers, and the same diagram at the same seed would come out
 differently through this component than through a direct `draw()` call.
 
+There are two peers and not three. `@pensketch/animation` is not among them,
+nor a dependency, nor an optional peer: the `animate` prop takes the function
+itself, so a consumer who wants motion installs the package and passes it, and
+everyone else carries nothing. Core's argument does not carry over. Core is a
+peer because these bindings *call* it on every draw, and two resolved copies
+would render one seed two ways; the motion arrives from a caller who has
+already imported it, and its rules are a constant, so two copies of it cannot
+disagree. What a peer would buy is one import line the consumer no longer
+writes, against every consumer of these bindings carrying an animation package
+they may never use.
+
 ## Quickstart
 
 ```tsx
@@ -52,6 +63,7 @@ leaves.
 
 | Prop | Type | Default | Meaning |
 |---|---|---|---|
+| `animate` | `(svg: SVGSVGElement) => void` | - | Makes the diagram draw itself. Pass `animate` from `@pensketch/animation`; the drawing is stamped with the renderer's `order` whenever this is present, and the function is applied to the element after `draw` has filled it. Held in a ref, so changing its identity does not re-animate - see below. |
 | `diagram` | `Diagram` | required | The picture as data. Compared by identity, never by value: keep it at module scope or memoize it, or every render redraws. |
 | `seed` | `number` | `1` | Seeds the drawing's PRNG. Same seed, same wobble - a seed picks a drawing rather than adding noise. |
 | `theme` | `Partial<Theme>` | `defaultTheme` | The color roles to override, shallow-merged over the defaults. Compared by identity like `diagram`. |
@@ -63,6 +75,30 @@ The component forwards its ref to the underlying `SVGSVGElement`.
 Colors are emitted as `var(--ps-*, fallback)` references, so a page can restyle
 a diagram that is already on screen - dark mode included - just by redefining
 the variables. See `@pensketch/core` for the full list.
+
+### Making it draw itself
+
+```tsx
+import { animate } from '@pensketch/animation';
+
+<PenSketch diagram={FLOW} viewBox="0 0 700 150" animate={animate} />
+```
+
+The function is applied inside the same effect that draws, after `draw` has
+filled the element - which is also what makes a redraw re-animate, since `draw`
+empties the element and the old stylesheet goes with the old children.
+
+It is held in a ref and kept out of that effect's dependencies, so **changing
+its identity does not re-animate**. That is what makes the natural spelling of
+options safe: `animate={svg => animate(svg, { duration: 3000 })}` is a fresh
+function on every render, and a prop compared by identity would clear the
+element and start the drawing over each time the parent re-rendered. A redraw
+`diagram`, `seed` or `theme` does cause applies whatever function is current by
+then.
+
+The function runs inside a synchronous effect and is expected to be
+synchronous. On an engine that does not understand `@scope` the diagram renders
+finished and static rather than blank.
 
 ## `useSketch`
 

@@ -42,7 +42,11 @@
   },
   "overrides": [
     {
-      "includes": ["packages/core/src/**", "packages/react/src/**"],
+      "includes": [
+        "packages/animation/src/**",
+        "packages/core/src/**",
+        "packages/react/src/**"
+      ],
       "linter": {
         "rules": {
           "correctness": {
