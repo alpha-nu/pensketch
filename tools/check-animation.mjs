@@ -876,15 +876,26 @@ await check(9, 'self-contained as a file and as an img', async (want) => {
         early > 0 && early < late,
         `as ${name} the drawing was ${early} inked px half way through, of an eventual ${late} - ${early === 0 ? 'nothing had painted, so this measured a blank page rather than an animation' : 'which is a static picture, not an animated one'}`,
       );
-      // The inked count, not the pixel diff: a stroke that has been animated
-      // on `stroke-opacity` is rastered a shade differently once it lands,
-      // which moves the colour of pixels that are inked either way and not
-      // whether they are inked. The failure this separates is a stroke that
-      // is missing, which moves the count by a fifth or more.
-      want(
-        Math.abs(late - baseInk) <= baseInk / 100,
-        `as ${name} the finished drawing inked ${late} px against ${baseInk} for the same markup with no stylesheet`,
-      );
+      // That the finished drawing is the whole drawing - but only as an
+      // `img`, because only there are the two sides of this comparison
+      // rastered the same way. An image is one layer, so nothing inside it is
+      // composited per element. A document is not: it puts every animated
+      // element on a layer of its own and keeps it there, and Chrome rasters a
+      // composited element a shade differently from one it never composited.
+      //
+      // Measured on the same markup in one run, finished against unanimated:
+      // as an `img` 0 px differ on macOS and on Linux; as a `file` +3 px of ink
+      // on macOS and -141 on Linux, 3.6% of the drawing. No band separates
+      // that from a real defect, because the quantity it measures belongs to
+      // the platform rather than to the drawing - a band wide enough for Linux
+      // is wider than several strokes. So the document case is not held to
+      // pixels here. It is held to every computed property, exactly, by check
+      // 10 - which is the assertion this one was standing in for.
+      if (name === 'img')
+        want(
+          Math.abs(late - baseInk) <= baseInk / 100,
+          `as ${name} the finished drawing inked ${late} px against ${baseInk} for the same markup with no stylesheet`,
+        );
       notes.push(
         `${name} ${early} inked px half way -> ${late} at the end, against ${baseInk} unanimated (${gap.count} px differ, worst channel ${gap.worst})`,
       );
@@ -958,12 +969,25 @@ await check(10, 'the degradation is one, not four', async (want) => {
 
   // And the animation run to its end, which is the other half of the same
   // claim: a finished element is one the stylesheet is no longer touching.
-  // Held to its computed values, which match exactly, and to its inked count.
-  // Not to the pixels: measured, a stroke Chrome has animated on
-  // `stroke-opacity` lands a shade differently from one it never animated -
-  // reproduced by a stylesheet whose only declaration is a `stroke-opacity`
-  // keyframe, and absent from one whose keyframes are empty. It moves the
-  // colour of pixels that are inked either way, never whether they are inked.
+  //
+  // Held to its computed values and to nothing else, because the computed
+  // values are the whole of the claim. `painted` collects *every* property
+  // `getComputedStyle` reports bar the animation longhands and `--ps-*`, and
+  // this compares all of them against the control element by element - so
+  // `stroke-opacity`, `opacity`, `stroke-dasharray`, `stroke-dashoffset`,
+  // `stroke-width`, `visibility` and the rest are each equal, exactly. There
+  // is no way for an element to be missing, faded, hidden or narrowed that
+  // does not show up here.
+  //
+  // It used to be held to its inked pixel count as well, within 1%, and that
+  // was the second of two instruments for one claim - the weaker one, and the
+  // only assertion in this file comparing a *composited* render against one
+  // that was never composited. An element Chrome has animated stays on a layer
+  // of its own and rasters a shade differently: measured, +4 px of ink on
+  // macOS and -141 on Linux, against the same control, with every computed
+  // property equal in both. That is a fact about the platform's compositor,
+  // not about the drawing, and no threshold turns it into one - which is why
+  // the comparison is gone rather than widened.
   const finished = await shoot('animation finished', {
     duration: 1000,
     settle: 3000,
@@ -972,10 +996,6 @@ await check(10, 'the degradation is one, not four', async (want) => {
   want(
     unlike.length === 0,
     `the finished drawing is still being touched: ${unlike.slice(0, 3).join('; ')}`,
-  );
-  want(
-    Math.abs(finished.ink - controlInk) <= controlInk / 100,
-    `the finished drawing inked ${finished.ink} px against the control's ${controlInk}`,
   );
 
   return `control ${controlInk} inked px; ${dead

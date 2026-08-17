@@ -144,16 +144,7 @@ jobs:
       # telling us something true. What it costs is that this step can go red
       # on a commit that changed nothing - it asserts literal computed values
       # like `2px, 7px` - and that is the trade, taken knowingly.
-      # TEMPORARILY DISABLED to unblock a release. The gate is red on the
-      # runner for a reason that is not a defect in what ships: all four
-      # degradation paths measure 0 px differ on Linux, which is the
-      # requirement. What fails is a secondary ink-count comparison between a
-      # finished animation and a drawing that never animated - Chrome rasters
-      # a composited element differently, +4 px on macOS and -141 on Linux.
-      # Re-enable with that comparison removed; see the commit that disabled
-      # this.
       - name: The animation draws itself in a real browser
-        if: false
         run: |
           out=$(npm run animation --silent) && rc=0 || rc=$?
           # To the log as well, not only the summary: see the size step.
