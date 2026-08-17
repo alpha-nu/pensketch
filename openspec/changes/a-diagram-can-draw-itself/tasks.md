@@ -413,11 +413,39 @@ room and never at a failing gate.
       `packages/react/README.md`, copied rather than composed, because
       Appendix A predates all three of them
 
-- [ ] 5.7 **OWNER**: a changeset. Core **minor** — a new option, and output
+- [x] 5.7 **OWNER**: a changeset. Core **minor** — a new option, and output
       that changes when it is set. `@pensketch/mcp` **minor** — a new tool
       parameter. `@pensketch/react` **minor** — a new prop.
       `@pensketch/animation` at its first published version. It states the
       `@scope` degradation, and that nothing drawn moves when `order` is unset
+
+      **Done**, at the owner's explicit instruction in the session that wrote
+      it. The task is marked OWNER and the ceremony keeps those off the agent,
+      so this one is delegated rather than assumed — as 4.1 of
+      `edge-overlap-sees-a-shared-trunk` was.
+
+      `.changeset/a-diagram-can-draw-itself.md`, all four packages at minor.
+      `npx changeset status` lists exactly those four and nothing at patch or
+      major.
+
+      **The version step was rehearsed and reverted**, because the hazard 5.8
+      describes starts here rather than there. Running `changeset version`
+      against this changeset produces core 0.6.0, animation **0.1.0**, react
+      0.2.0, mcp 0.6.0 — and rewrites mcp's dependency on animation from
+      `^0.0.0` to `^0.1.0`. That rewrite is the whole reason animation has to
+      be *in* the changeset: left out, it would stay at 0.0.0 and mcp would
+      publish a dependency on a version that will never exist, breaking
+      `npx -y @pensketch/mcp` for every agent user.
+
+      The rehearsal also confirms the alarm 5.8 expects. Animation's peer floor
+      stays `>=0.5.0 <1.0.0` — `onlyUpdatePeerDependentsWhenOutOfRange` leaves
+      a range alone while the dependency remains inside it — so
+      `packages/animation/test/manifest.test.ts` fails on the versioned tree
+      with *"core is 0.6.0, so the peer floor must be at least 0.6.0 - the
+      minor that ships `order` - but the range reads `>=0.5.0 <1.0.0`"*. That
+      is the designed alarm, not a defect: raise the floor to
+      `>=0.6.0 <1.0.0` in the Version PR. Every package.json and CHANGELOG the
+      rehearsal touched was reverted; the tree carries only the changeset
 
 - [ ] 5.8 **OWNER**: `@pensketch/animation`'s **first publish will fail
       `ENEEDAUTH`**, and the failure will read like a broken secret.
