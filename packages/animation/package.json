@@ -1,6 +1,6 @@
 {
   "name": "@pensketch/animation",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "CSS that draws a pensketch diagram in the order a hand would have drawn it.",
   "license": "MIT",
   "repository": {

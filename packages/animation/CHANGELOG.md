@@ -1,6 +1,6 @@
-# @pensketch/react
+# @pensketch/animation
 
-## 0.2.0
+## 0.1.0
 
 ### Minor Changes
 
@@ -104,25 +104,3 @@
   omission: a still frame of an animation is just the finished picture, so a
   caller who asks for `animate: true` there is told `render_png has no argument
 "animate"` — which is more use than a field accepted and quietly ignored.
-
-## 0.1.0
-
-### Minor Changes
-
-- 4f36e10: First release.
-
-  `@pensketch/core` renders hand-sketched SVG diagrams from plain data: nodes,
-  edges and notes as ordinary objects, drawn with a seeded wobble so the same
-  diagram and seed always produce the same bytes. Zero runtime dependencies,
-  CSS-variable theming, and an escape hatch that hands you the pen.
-
-  It also ships the JSON Schema for a diagram, generated from its own types, at
-  `@pensketch/core/schema.json` — so data can be validated against the version
-  installed rather than a copy taken once and left to drift.
-
-  `@pensketch/react` adds a `<PenSketch>` component and a `useSketch` hook over
-  it, safe under StrictMode and on the server.
-
-  Both packages name a minor rather than a patch: patch is reserved for releases
-  that render byte-identically, and there is no earlier rendering to be
-  identical to.
