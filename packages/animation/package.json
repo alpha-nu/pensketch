@@ -52,6 +52,6 @@
     "napkin"
   ],
   "peerDependencies": {
-    "@pensketch/core": ">=0.5.0 <1.0.0"
+    "@pensketch/core": ">=0.6.0 <1.0.0"
   }
 }
