@@ -86,6 +86,12 @@ jobs:
       - name: Size budgets
         run: |
           out=$(npm run size --silent) && rc=0 || rc=$?
+          # To the log as well as to the summary. The summary is where a
+          # reader reads it; the log is where `gh run view --log-failed` looks,
+          # and a step whose only diagnostic is in the summary reports a
+          # failure that cannot be read without opening a browser. Both, so
+          # that neither reader is the one who has to go and find it.
+          echo "$out"
           {
             echo "# Size budgets"
             echo '```'
@@ -101,6 +107,8 @@ jobs:
       - name: The diagrams this repository ships pass its own checker
         run: |
           out=$(npm run diagrams --silent) && rc=0 || rc=$?
+          # To the log as well, not only the summary: see the size step.
+          echo "$out"
           {
             echo "# Shipped diagrams"
             echo '```'
@@ -139,6 +147,8 @@ jobs:
       - name: The animation draws itself in a real browser
         run: |
           out=$(npm run animation --silent) && rc=0 || rc=$?
+          # To the log as well, not only the summary: see the size step.
+          echo "$out"
           {
             echo "# Animation, in Chrome"
             echo '```'
