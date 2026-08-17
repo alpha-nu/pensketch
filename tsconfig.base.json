@@ -8,11 +8,19 @@
     "moduleResolution": "bundler",
     "lib": ["ES2020", "DOM"],
     "skipLibCheck": true,
-    // Every entry core publishes, mapped to the source behind it. Nothing
-    // here may resolve through `dist`: typecheck runs before build in CI, so
-    // a missing mapping is not a slower path to the same answer - it is
-    // `TS2307`, and locally it is worse, because a stale build answers.
+    // Every entry a workspace package publishes and another one imports,
+    // mapped to the source behind it. Nothing here may resolve through
+    // `dist`: typecheck runs before build in CI, so a missing mapping is not
+    // a slower path to the same answer - it is `TS2307`, and locally it is
+    // worse, because a stale build answers.
+    //
+    // `@pensketch/animation` is here because `@pensketch/mcp` imports it, and
+    // it arrived one release after this comment was written: the entry was
+    // added, the mapping was not, and CI failed on `tools.ts` exactly as the
+    // paragraph above says it would. A package that only ever imports core
+    // needs no line here - what earns one is being imported.
     "paths": {
+      "@pensketch/animation": ["./packages/animation/src/index.ts"],
       "@pensketch/core": ["./packages/core/src/index.ts"],
       "@pensketch/core/check": ["./packages/core/src/check.ts"],
       "@pensketch/core/server": ["./packages/core/src/server.ts"]

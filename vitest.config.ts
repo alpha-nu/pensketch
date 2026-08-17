@@ -2,21 +2,30 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-// The react and mcp packages reach core by its public specifier, which
-// resolves through built output. Pointing them at core's source instead means
-// tests and typecheck need no prior build, cannot silently run against a
-// stale one, and report failures in real source rather than in a minified
-// bundle.
-const coreSrc = (file: string) =>
-  fileURLToPath(new URL(`./packages/core/src/${file}`, import.meta.url));
+// The react and mcp packages reach the packages they depend on by public
+// specifier, which resolves through built output. Pointing them at the source
+// instead means tests and typecheck need no prior build, cannot silently run
+// against a stale one, and report failures in real source rather than in a
+// minified bundle.
+const src = (pkg: string, file: string) =>
+  fileURLToPath(new URL(`./packages/${pkg}/src/${file}`, import.meta.url));
 
 // Longest specifier first. A string alias matches what is under it as well as
 // itself, so a bare `@pensketch/core` listed first would rewrite
 // `@pensketch/core/check` to `.../src/index.ts/check` and resolve nothing.
 const CORE = {
-  '@pensketch/core/check': coreSrc('check.ts'),
-  '@pensketch/core/server': coreSrc('server.ts'),
-  '@pensketch/core': coreSrc('index.ts'),
+  '@pensketch/core/check': src('core', 'check.ts'),
+  '@pensketch/core/server': src('core', 'server.ts'),
+  '@pensketch/core': src('core', 'index.ts'),
+};
+
+// `@pensketch/mcp` reaches the animation package the same way and for the same
+// reason: `render_diagram`'s `animate` option is served by `animateMarkup`.
+// Kept separate from `CORE` rather than folded into it, so that the map a
+// project is given still says which packages that project may import. One
+// entry and no subpaths, so it needs no ordering care of its own.
+const ANIMATION = {
+  '@pensketch/animation': src('animation', 'index.ts'),
 };
 
 // `@pensketch/mcp` reports its own version to a client. tsup substitutes it
@@ -64,7 +73,7 @@ export default defineConfig({
         // Per project, not at the root: a project gets its own Vite config
         // and does not inherit `define` or `resolve` from the one wrapping it.
         define: { __MCP_VERSION__: JSON.stringify(MCP_VERSION) },
-        resolve: { alias: CORE },
+        resolve: { alias: { ...CORE, ...ANIMATION } },
         test: {
           name: 'mcp',
           root: 'packages/mcp',
