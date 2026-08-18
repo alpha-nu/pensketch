@@ -21,6 +21,7 @@
     "diagrams": "node tools/check-diagrams.mjs",
     "animation": "node tools/check-animation.mjs",
     "resources": "node tools/generate-resources.mjs",
+    "record": "node tools/record.mjs",
     "pin": "node tools/pin-version.mjs",
     "stdio": "node tools/check-stdio.mjs",
     "bump": "changeset version && npm run pin"

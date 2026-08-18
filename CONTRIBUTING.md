@@ -3,9 +3,10 @@
 ## Setup
 
 Node 22 or newer is required. Clone the repository and run `npm ci` at the
-root. The repository is an npm workspace: the two published packages live in
-`packages/core` and `packages/react`, and a single root install wires them
-together, so run every command from the root unless told otherwise.
+root. The repository is an npm workspace: the four published packages live in
+`packages/core`, `packages/react`, `packages/mcp` and `packages/animation`,
+and a single root install wires them together, so run every command from the
+root unless told otherwise.
 
 ## The verification commands
 
@@ -70,6 +71,67 @@ writing down: it has changed twice. CI runs the same set on every pull request
 and every push to `main`, so a local failure is a CI failure. It can also be
 dispatched by hand from the Actions tab, for a commit whose run was lost to
 something other than the commit.
+
+## Recording a diagram
+
+`npm run record -- path/to/diagram.mjs` turns a diagram into an MP4 of itself
+being drawn, for the places that will not render an SVG — LinkedIn, X, Slack,
+a slide deck. It is a tool rather than a gate: nothing in the build depends on
+its output and CI never runs it, which is why it is absent from the list
+above, the same way `tools/render-assets.mjs` is.
+
+The file it takes is a `.mjs`, `.js` or `.json` naming a `viewBox` and a
+`diagram`, and optionally a `label` and a `seed`:
+
+```js
+export default {
+  viewBox: [0, 0, 720, 720],
+  diagram: { nodes: [], edges: [], notes: [] },
+  label: 'an accessible name',
+  seed: 7,
+};
+```
+
+`viewBox` and `diagram` are required by name; a bare diagram object is
+refused rather than guessed at. `raw` is refused too — the diagram crosses into the page as JSON and JSON
+carries no functions, the same constraint `tools/render-assets.mjs`
+documents. There is no fitting step and no letterboxing: the viewBox is the
+video's aspect ratio, so author the diagram at the shape you mean to publish.
+
+`node tools/record.mjs --help` lists the flags. `--out`, `--scale`, `--fps`,
+`--duration`, `--stroke`, `--easing`, `--hold`, `--theme`, `--background` and
+`--seed` are the picture; `--frames`, `--system-font` and `--ffmpeg` are the
+recording.
+
+It drives the same locally installed Google Chrome `npm run animation` does,
+and shells out to an `ffmpeg` on PATH — `brew install ffmpeg`, or `apt install
+ffmpeg`. ffmpeg is deliberately not an npm dependency: a static build is some
+45 MB fetched on every `npm ci`, CI included, for a tool one person runs.
+`--frames <dir>` writes the PNGs, skips the encode and prints the ffmpeg
+command that turns them into an MP4 whenever there is one to run.
+
+Every frame is a seek rather than a wait. The animation is paused and its
+clock moved to `(i + 1) * (1000 / fps)` before each screenshot, the
+handwriting face is embedded rather than named, and Chrome rasterizes in
+software — so re-recording an unchanged diagram writes the same frames, on any
+machine. A real-time capture would drop and duplicate frames according to how
+busy the machine was.
+
+The `i + 1` is the sampling instant, and it is deliberate: the drawing is
+sampled at the end of each interval rather than the start, so the first frame
+is one step in and the last lands on `duration` exactly. From zero, the first
+frame is the moment before anything has been drawn — measured at 0 inked
+pixels — and every target above uses a video's first frame as its poster
+unless one is uploaded.
+
+Two things it refuses rather than papers over. The frame must be an even
+number of pixels on both sides, because H.264 in `yuv420p` subsamples chroma
+2x2 and cannot represent an odd one; an odd `viewBox × scale` fails and names
+a scale that works. And a character the embedded subset has no glyph for —
+`→ ← ↑ ↓ ✓ ✗` above all — draws nothing at all rather than a fallback shape,
+which is invisible until someone watches the video, so each one is warned
+about by name. That one is a warning and not a failure: the gap is cosmetic,
+and `--system-font` may well cover it.
 
 ## Releasing
 
