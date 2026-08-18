@@ -15,7 +15,7 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
-  # Push the git tags `changeset publish` creates.
+  # Create and push the release tags.
   contents: write
   # Read CI's conclusion for the commit being published.
   actions: read
@@ -89,6 +89,29 @@ jobs:
           echo "npm $have, and trusted publishing needs >= $need"
           [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | head -1)" = "$need" ]
 
+      # A committer identity, which this runner has not got and which tagging
+      # needs. `@changesets/git` tags with `git tag <name> -m <name>`, and its
+      # own comment says the `-m` is deliberate; `-m` makes the tag annotated,
+      # an annotated tag records a tagger, and a runner whose hostname carries
+      # no domain gets no identity auto-detected - git calls that fatal rather
+      # than warning. Measured: under `user.useConfigOnly=true`, `git tag v -m v`
+      # is fatal and writes nothing while a bare `git tag v` succeeds.
+      #
+      # Nothing said so. `@changesets/cli` prints "New tag: <tag>" *before* it
+      # calls `git.tag`, then discards the boolean it gets back, and the spawn
+      # captures the child's stderr instead of forwarding it - so the log
+      # reported four releases' worth of tags that were never written, and
+      # `git push origin --tags` correctly answered "Everything up-to-date".
+      # Seven published versions carry no tag because of this.
+      #
+      # `actions/checkout` sets an auth header and no identity. The old
+      # `release.yml` ran the changesets action, which sets one, which is why
+      # every release before the workflow split is tagged and none after it is.
+      - name: Identify as the release bot
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
       - name: Install dependencies
         run: npm ci
 
@@ -127,16 +150,62 @@ jobs:
           NPM_CONFIG_PROVENANCE: 'true'
         run: npx --no changeset publish
 
-      # `changeset publish` writes a `pkg-name@X.X.X` tag per published package
-      # and leaves them local; the changesets action used to push them. `--tags`
-      # rather than `--follow-tags` because those tags are lightweight and
-      # `--follow-tags` pushes only annotated ones. A fresh checkout fetches no
-      # tags, so the only ones here are the ones just written and this cannot
-      # push something stale.
+      # The tags this commit must carry are the versions its own manifests
+      # declare: the guard above proves no changeset is pending, so those are
+      # the released versions, and the step above has just put every one of
+      # them on the registry.
+      #
+      # Derived from the manifests rather than read out of `changeset publish`'s
+      # output, and written here rather than trusted to it. Both halves are the
+      # lesson from the failure this replaces: a tag that depends on a log line
+      # nobody checks is a tag that silently does not exist, and the empty-set
+      # case then looks exactly like the nothing-to-do case. An empty set is
+      # now an error, because `packages/` moving is the one way this loop could
+      # go quiet.
       #
       # After the publish, not before: a tag for a version the registry
-      # rejected is a tag pointing at a release that does not exist. Publishing
-      # nothing - every version already on the registry - writes no tags and
-      # this is a no-op, which is the right answer for a re-dispatch.
-      - name: Push the tags
-        run: git push origin --tags
+      # rejected points at a release that does not exist. A re-dispatch that
+      # publishes nothing finds every tag already on the remote and pushes
+      # nothing, which is the right answer.
+      - name: Tag the release
+        run: |
+          set -euo pipefail
+
+          # A read loop rather than `mapfile`, which is bash 4 and up: the
+          # runner has bash 5, but this way the step can be run and tested on
+          # a machine that ships bash 3.
+          wanted=()
+          while IFS= read -r tag; do wanted+=("$tag"); done < <(node -e '
+            const { existsSync, readdirSync, readFileSync } = require("node:fs");
+            if (!existsSync("packages")) process.exit(0);
+            for (const dir of readdirSync("packages").sort()) {
+              const file = `packages/${dir}/package.json`;
+              if (!existsSync(file)) continue;
+              const pkg = JSON.parse(readFileSync(file, "utf8"));
+              if (!pkg.private) console.log(`${pkg.name}@${pkg.version}`);
+            }
+          ')
+
+          if [ ${#wanted[@]} -eq 0 ]; then
+            echo "::error::No publishable package found under packages/. This step"
+            echo "tags what it finds there, so finding nothing is a broken release,"
+            echo "not an empty one."
+            exit 1
+          fi
+
+          # One round trip, not one per tag.
+          onRemote=$(git ls-remote --tags origin | awk '{ print $2 }' \
+            | sed -e 's#^refs/tags/##' -e 's#\^{}$##' | sort -u)
+
+          for tag in "${wanted[@]}"; do
+            if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+              echo "local   ${tag}"
+            elif printf '%s\n' "$onRemote" | grep -qxF "${tag}"; then
+              echo "remote  ${tag}"
+            else
+              git tag -a "${tag}" -m "${tag}"
+              echo "created ${tag}"
+            fi
+          done
+
+          git push origin --tags
