@@ -447,7 +447,7 @@ room and never at a failing gate.
       `>=0.6.0 <1.0.0` in the Version PR. Every package.json and CHANGELOG the
       rehearsal touched was reverted; the tree carries only the changeset
 
-- [ ] 5.8 **OWNER**: `@pensketch/animation`'s **first publish will fail
+- [x] 5.8 **OWNER**: `@pensketch/animation`'s **first publish will fail
       `ENEEDAUTH`**, and the failure will read like a broken secret.
       `publish.yml` carries no `NPM_TOKEN` on purpose — each package has a
       trusted publisher naming this repository and that file — and its own

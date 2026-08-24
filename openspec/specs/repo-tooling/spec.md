@@ -5,15 +5,17 @@ TBD - created by archiving change initial-release. Update Purpose after archive.
 ## Requirements
 ### Requirement: Scoped packages in an npm-workspaces monorepo
 The repository SHALL be an npm-workspaces monorepo with `@pensketch/core` in
-`packages/core`, `@pensketch/react` in `packages/react`, and `@pensketch/mcp`
+`packages/core`, `@pensketch/react` in `packages/react`,
+`@pensketch/animation` in `packages/animation`, and `@pensketch/mcp`
 in `packages/mcp`, all `"license": "MIT"` and `"publishConfig": { "access":
 "public" }` (scoped packages default to restricted). **Zero runtime
-dependencies in the rendering packages** — `@pensketch/core` and
-`@pensketch/react` — which is what keeps them out of a consumer's lockfile;
-the react package's dependency shape is fixed by the react-bindings
+dependencies in the rendering packages** — `@pensketch/core`,
+`@pensketch/react` and `@pensketch/animation` — which is what keeps them out of
+a consumer's lockfile; the react package's dependency shape is fixed by the
+react-bindings capability, and the animation package's by the animation
 capability. `@pensketch/mcp` MAY carry runtime dependencies, because it is a
 tool an agent runs rather than code that ships inside a page, and it SHALL NOT
-be a dependency of either rendering package. The `workspace:*` protocol SHALL
+be a dependency of any rendering package. The `workspace:*` protocol SHALL
 NOT appear (npm resolves plain semver ranges locally; changesets keeps
 internal ranges current). Every internal range SHALL exclude the next major of
 what it names, and any range a release rewrites SHALL be a caret or tilde
@@ -35,7 +37,7 @@ left to drift.
 - **THEN** it resolves to the schema generated from the types that same version ships
 
 #### Scenario: The rendering packages stay dependency-free
-- **WHEN** `@pensketch/core` or `@pensketch/react` gains a runtime dependency
+- **WHEN** `@pensketch/core`, `@pensketch/react` or `@pensketch/animation` gains a runtime dependency
 - **THEN** the manifest test fails, regardless of what `@pensketch/mcp` depends on
 
 #### Scenario: A release cannot widen an internal range
@@ -43,8 +45,28 @@ left to drift.
 - **THEN** the rewritten range still excludes the next core major, and the manifest test fails if it does not
 
 #### Scenario: The server never leaks into the browser packages
-- **WHEN** `@pensketch/mcp` appears in the dependencies of either rendering package
+- **WHEN** `@pensketch/mcp` appears in the dependencies of any rendering package
 - **THEN** the manifest test fails
+
+> **Size budgets** is edited in one sentence: `@pensketch/core/server` goes from
+> 4300 to 4480, and `@pensketch/animation` is added at 768. The
+> self-contained-entry rule, the README comparison gate, the `@pensketch/mcp`
+> exemption and the paragraph requiring a budget to move before the code are
+> unchanged — that last one being the clause this change obeys by moving both
+> numbers in group 1, before any of the work that needs them.
+>
+> 4480 is the prototype's measured 4374 plus the conventional 100 B of gzip
+> headroom, taken up to the next multiple of 64; built, the entry measures 4378.
+>
+> The animation budget was first set at 704 by the same arithmetic on a 546 B
+> prototype, and is **re-decided to 768 here** because the finished package
+> measures 614. Nothing failed — 614 fits 704. What failed was the arithmetic:
+> it left 90 B where this repository's standard is 100, and a margin smaller
+> than the 2 B of gzip noise an entry has already been measured moving on
+> identical code is not a margin. 614 plus 100 is 714, taken up to 768. A budget
+> sized from a prototype is a claim, and a claim that the finished thing
+> falsifies SHALL be re-decided deliberately rather than left standing because
+> it happened to hold.
 
 ### Requirement: Dual-format builds with types
 Each package SHALL build with tsup to ESM + CJS + `.d.ts` (minified,
@@ -79,8 +101,9 @@ uncovered instead of vanishing from the report.
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
 `@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 3520
-bytes, `@pensketch/core/server` exceeds 4300 bytes, or `@pensketch/react`
-exceeds 2048 bytes min+gzip. Each published entry SHALL be a self-contained
+bytes, `@pensketch/core/server` exceeds 4480 bytes, `@pensketch/react` exceeds
+2048 bytes, or `@pensketch/animation` exceeds 768 bytes min+gzip. Each
+published entry SHALL be a self-contained
 file: build-time code splitting SHALL be off, because a shared chunk makes an
 entry's budget measure a re-export rather than the code it stands for. It
 SHALL also fail when the size printed in the README's comparison table is not
@@ -117,6 +140,10 @@ corrected before records what was decided and on what evidence.
 #### Scenario: The server's download weight is visible
 - **WHEN** `@pensketch/mcp` is packed
 - **THEN** its tarball size is reported, so the wait an `npx` user pays for is a known number rather than an accident
+
+#### Scenario: A drawing feature is caught in the entry that carries it
+- **WHEN** a feature is added to `draw` and only the root entry is measured
+- **THEN** `@pensketch/core/server` is measured too and fails on its own account, because it bundles its own copy of the renderer and pays for the feature whether or not anyone imports it
 
 ### Requirement: CI validates the full chain including generated-file freshness
 CI SHALL run on push and pull request to `main`, and on manual dispatch, as a
