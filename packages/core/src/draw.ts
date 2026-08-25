@@ -1,5 +1,6 @@
 import {
   DEPTH,
+  DEPTH_RISE,
   EDGE_SIZE,
   GROUP_AMP,
   GROUP_W,
@@ -32,18 +33,31 @@ import type {
 } from './types';
 
 /**
- * Where an edge meets a node: the midpoint of the named side of its box.
- * Edges are anchored by side rather than by coordinate, so moving or resizing
- * a node carries everything attached to it.
+ * Where an edge meets a node: the midpoint of the named side of its box,
+ * carried onto the silhouette when the node is extruded. Edges are anchored
+ * by side rather than by coordinate, so moving, resizing or extruding a node
+ * carries everything attached to it.
+ *
+ * `depth` is the node's *resolved* depth - `node.depth ?? options.depth ??
+ * DEPTH` when its extrusion is on, and `0`, the default, when it is off;
+ * anything non-positive reads as flat. When it is positive, `t` and `r` move
+ * by the full extrusion vector `(depth, -DEPTH_RISE × depth)` - the flat
+ * anchor plus the offset the pen drew the silhouette chain at, which lands
+ * on ink for every shape: the box's back-edge midpoint, the diamond's offset
+ * apex, the pill's offset arc to the sampling tolerance flat anchors already
+ * carry. `l` and `b` sit on the front plane and do not move.
  */
-export function anchor(node: DiagramNode, side: Side): Point {
+export function anchor(node: DiagramNode, side: Side, depth = 0): Point {
   const sides: Record<Side, Point> = {
     t: [node.x + node.w / 2, node.y],
     b: [node.x + node.w / 2, node.y + node.h],
     l: [node.x, node.y + node.h / 2],
     r: [node.x + node.w, node.y + node.h / 2],
   };
-  return sides[side];
+  const [x, y] = sides[side];
+  return depth > 0 && (side === 't' || side === 'r')
+    ? [x + depth, y - DEPTH_RISE * depth]
+    : [x, y];
 }
 
 /**
@@ -141,6 +155,18 @@ export function draw(
   // skip them.
   const afterGroups = svg.children.length;
 
+  // A node's resolved depth, by the `hop` idiom: `extrude` on the node opts
+  // out of a diagram-wide switch or in from a flat diagram, and the magnitude
+  // is the node's `depth` over the diagram's over `DEPTH`. Zero when its
+  // extrusion is off - and always for a group, which never extrudes, so a
+  // group carrying the pair keeps flat anchors on the same terms it keeps a
+  // flat frame. One resolution read by the edge pass and the node phase
+  // alike, so an edge attaches to the silhouette the pen will draw.
+  const depthOf = (n: DiagramNode): number =>
+    n.shape !== 'group' && (n.extrude ?? options.extrude ?? false)
+      ? (n.depth ?? options.depth ?? DEPTH)
+      : 0;
+
   // Every path first, then every arrow. An edge that hops has to know where
   // the others run, and nothing below `draw` can see a second edge: the pen
   // draws one stroke and the checker is not in this bundle. Validation stays
@@ -202,14 +228,22 @@ export function draw(
     // about here.
     return loop
       ? loopPoints(
-          anchor(from, e.from[1]),
+          anchor(from, e.from[1], depthOf(from)),
           e.from[1],
           e.out ?? LOOP_OUT,
           e.span ?? LOOP_SPAN,
         )
       : bow !== 0
-        ? bowPoints(anchor(from, e.from[1]), anchor(to, e.to[1]), bow)
-        : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
+        ? bowPoints(
+            anchor(from, e.from[1], depthOf(from)),
+            anchor(to, e.to[1], depthOf(to)),
+            bow,
+          )
+        : [
+            anchor(from, e.from[1], depthOf(from)),
+            ...(e.via || []),
+            anchor(to, e.to[1], depthOf(to)),
+          ];
   });
 
   // `??` and not `||`, so `hop: false` is an opt-out of a diagram-wide switch
@@ -268,18 +302,17 @@ export function draw(
         throw new Error(
           `node "${n.id}" has unknown shape "${n.shape}"; expected group, box, pill or diamond`,
         );
-      // `??` and not `||`, the `hop` idiom again: `extrude: false` on a node
-      // opts out of a diagram-wide switch, and `true` opts in from a flat
-      // diagram. Off, no depth is passed at all, so the flat call is
-      // byte-for-byte the one the goldens froze. The pen draws the faces and
-      // their shading inside this call, after the front outline, so an
-      // extruded node lays down front outline, faces, face shading, then its
-      // `hatch: true` shading and label below - the slab rises whole under
-      // an animated reveal.
-      const on = n.extrude ?? options.extrude ?? false;
+      // Resolved by `depthOf`, the same read the edge anchors took, so the
+      // slab drawn here is the one they attached to. Off, no depth is passed
+      // at all, so the flat call is byte-for-byte the one the goldens froze.
+      // The pen draws the faces and their shading inside this call, after
+      // the front outline, so an extruded node lays down front outline,
+      // faces, face shading, then its `hatch: true` shading and label below
+      // - the slab rises whole under an animated reveal.
+      const d = depthOf(n);
       shape(n.x, n.y, n.w, n.h, {
         color: n.accent ? theme.pen : theme.ink,
-        ...(on ? { depth: n.depth ?? options.depth ?? DEPTH } : {}),
+        ...(d > 0 ? { depth: d } : {}),
       });
       // Two boxes, deliberately: the inset one says which diagonals are ruled,
       // which is what it has always said and what keeps a hatched shape on the

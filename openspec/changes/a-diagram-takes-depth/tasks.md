@@ -74,16 +74,34 @@ Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
 
 ## 2. The renderer
 
-- [ ] 2.1 `draw` plumbing: the options pair, the per-node pair, the `hop`
+- [x] 2.1 `draw` plumbing: the options pair, the per-node pair, the `hop`
       resolution idiom, faces drawn front → faces → face shading →
       front `hatch: true` → label within the node phase (no wash: that is
       the group treatment). Groups never
       extrude (T-49): the pair on a group is ignored by `draw`, refused by
       the schema, and a test pins the flat group frame under a diagram-wide
       `extrude: true`
-- [ ] 2.2 Anchors: `t` and `r` to the silhouette midpoints when extruded,
+
+      **Landed in 4c304a6.** The hop idiom verbatim, the depth key absent
+      from a flat call, GroupNode never learning the pair so tsc and the
+      strict schema refuse it, hand order emergent from the pen and pinned.
+      Three resolution mutants die on exactly the predicted tests. The tick
+      itself landed a commit late - the navigator's 2.2 nit - and the
+      convention stands: tick and evidence ride the task's own commit
+
+- [x] 2.2 Anchors: `t` and `r` to the silhouette midpoints when extruded,
       `anchor` reporting the same points, edges attaching there. Tests pin
       the two moved anchors and the two unmoved ones at a known `d`
+
+      **Landed.** `anchor(node, side, depth = 0)`, moved branch = flat
+      anchor plus the full vector on `t`/`r`; `depthOf` narrows groups to
+      flat and threads every edge branch at both endpoints, loops riding
+      the moved mid through `loopPoints`. Note arrows keep their literal
+      points - the author's line to move, pinned by a test. The checker's
+      `edgePath` deliberately stays flat until 3.1. Two mutants die on
+      exactly the predicted kill sets. For 2.3: `depth: Infinity` today
+      moves the anchor while the pen draws flat - the non-finite throw
+      closes that incoherence, cover it with a test
 - [ ] 2.3 Validation (T-54's reading): the options `depth` validates
       whenever `options.extrude` is true, and every extruded node's resolved
       depth validates — the inherit corner included, where a node's

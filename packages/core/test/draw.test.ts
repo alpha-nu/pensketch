@@ -95,6 +95,39 @@ describe('anchor()', () => {
     for (const side of ['t', 'b', 'l', 'r'] as Side[])
       expect(anchor(node, side)).toEqual(expected[side]);
   });
+
+  it('moves t and r by the full extrusion vector at a resolved depth', () => {
+    const node: DiagramNode = {
+      id: 'n',
+      shape: 'box',
+      x: 10,
+      y: 20,
+      w: 100,
+      h: 40,
+    };
+    // The flat anchor plus (d, -0.75d) at d = 10, pinned as literals so a
+    // drifting DEPTH_RISE dies here rather than passing against itself.
+    expect(anchor(node, 't', 10)).toEqual([70, 12.5]);
+    expect(anchor(node, 'r', 10)).toEqual([120, 32.5]);
+    // l and b sit on the front plane and do not move.
+    expect(anchor(node, 'l', 10)).toEqual(anchor(node, 'l'));
+    expect(anchor(node, 'b', 10)).toEqual(anchor(node, 'b'));
+  });
+
+  it('reads an absent, zero or negative depth as flat on every side', () => {
+    const node: DiagramNode = {
+      id: 'n',
+      shape: 'box',
+      x: 10,
+      y: 20,
+      w: 100,
+      h: 40,
+    };
+    for (const side of ['t', 'b', 'l', 'r'] as Side[]) {
+      expect(anchor(node, side, 0)).toEqual(anchor(node, side));
+      expect(anchor(node, side, -8)).toEqual(anchor(node, side));
+    }
+  });
 });
 
 describe('draw() render order', () => {
@@ -1330,6 +1363,152 @@ describe('draw() extrusion', () => {
     draw(off, ALL_PHASES, { seed: 7, extrude: false, depth: 40 });
 
     expect(serialize(off)).toBe(serialize(bare));
+  });
+
+  it('starts an edge on the slab silhouette, not the wall behind it', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes: [
+        {
+          id: 'a',
+          shape: 'box',
+          x: 0,
+          y: 0,
+          w: 60,
+          h: 40,
+          extrude: true,
+          depth: 10,
+        },
+        { id: 'b', shape: 'box', x: 200, y: 0, w: 60, h: 40 },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+    });
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    // a's r anchor plus the full vector (10, -7.5): the same point `anchor`
+    // reports, 12.5 px from the flat midpoint - an order of magnitude past
+    // the jitter bound, so aiming at the wall behind the slab fails here.
+    expectNear(nth(points, 0), [70, 12.5]);
+    // The flat target does not move: the shaft still lands on b's l anchor.
+    expectNear(nth(points, points.length - 1), [200, 20]);
+  });
+
+  it('lands an edge into an extruded t on the moved anchor', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes: [
+        { id: 'a', shape: 'box', x: 0, y: 100, w: 60, h: 40 },
+        {
+          id: 'b',
+          shape: 'box',
+          x: 200,
+          y: 100,
+          w: 60,
+          h: 40,
+          extrude: true,
+          depth: 10,
+        },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 't'] }],
+    });
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    // b's t anchor plus the vector: (200 + 30 + 10, 100 - 7.5).
+    expectNear(nth(points, points.length - 1), [240, 92.5]);
+  });
+
+  it('pins a flat-by-override endpoint while the other end rides the switch', () => {
+    const svg = makeSvg();
+    draw(
+      svg,
+      {
+        nodes: [
+          { id: 'a', shape: 'box', x: 0, y: 0, w: 60, h: 40 },
+          {
+            id: 'b',
+            shape: 'box',
+            x: 200,
+            y: 0,
+            w: 60,
+            h: 40,
+            extrude: false,
+          },
+        ],
+        edges: [{ from: ['a', 'r'], to: ['b', 't'] }],
+      },
+      { extrude: true, depth: 20 },
+    );
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    // a extrudes under the diagram switch at the options depth: its r anchor
+    // moves by (20, -15).
+    expectNear(nth(points, 0), [80, 5]);
+    // b opted out, so its t anchor - the side that would move - stays flat.
+    // Were the override lost, the shaft would end at (250, -15).
+    expectNear(nth(points, points.length - 1), [230, 0]);
+  });
+
+  it('hangs a self-transition off the moved side of an extruded node', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes: [
+        {
+          id: 'a',
+          shape: 'box',
+          x: 0,
+          y: 0,
+          w: 100,
+          h: 50,
+          extrude: true,
+          depth: 10,
+        },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['a', 'r'] }],
+    });
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    // The loop derives from the same `anchor` an edge does, so its whole
+    // geometry rides the moved midpoint (110, 17.5) - a loop on a slab's r
+    // side sits on the silhouette, half a span either way from it.
+    expectNear(nth(points, 0), [110, 17.5 - LOOP_SPAN / 2]);
+    expectNear(nth(points, points.length - 1), [110, 17.5 + LOOP_SPAN / 2]);
+  });
+
+  it('leaves a note arrow on its literal points beside an extruded node', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes: [
+        {
+          id: 'a',
+          shape: 'box',
+          x: 0,
+          y: 0,
+          w: 60,
+          h: 40,
+          extrude: true,
+          depth: 10,
+        },
+      ],
+      notes: [
+        {
+          x: 150,
+          y: 100,
+          lines: ['careful'],
+          arrowFrom: [150, 90],
+          arrowTo: [60, 20],
+        },
+      ],
+    });
+    // A note pointer is given points rather than sides, so extrusion moves
+    // nothing about it: aimed at the flat r midpoint, it still lands there,
+    // on the wall - where the slab's edges now attach 12.5 px away. Pointing
+    // at the silhouette is the author's line to move.
+    const arrow = pointsOf(
+      nth(
+        pathsOf(svg).filter(
+          (path) => attr(path, 'stroke') === defaultTheme.accent,
+        ),
+        0,
+      ),
+    );
+    expectNear(nth(arrow, 0), [150, 90]);
+    expectNear(nth(arrow, arrow.length - 1), [60, 20]);
   });
 });
 
