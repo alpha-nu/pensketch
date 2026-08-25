@@ -202,7 +202,16 @@ Gate: full suite, generated files fresh in CI's sense.
       Per-shape guidance written to the evidence: a box extrudes
       at any scale, a pill wants depth near a third of its height, a
       diamond prefers flat (T-48), and a pill under ~12 px in both
-      dimensions has no outline to extrude (T-55). Plus: depth's cost is
+      dimensions has no outline to extrude (T-55) — and note that "12 px"
+      is the shorthand, not the rule: measured, a pill carries faces once
+      its larger dimension reaches `3 × ARC_MIN_CHORD / π` = 11.4592, which
+      is why the first spec draft's "under `ARC_MIN_CHORD` in both
+      dimensions" was false across [11.4592, 12). `ShapeNode.extrude` and
+      `.depth` must also say that a shape too small to carry a face
+      resolves flat, since neither they nor the schema generated from them
+      nor the MCP resource mirroring it says so today, and a caller setting
+      `extrude: true` on a 10 × 8 pill currently sees nothing happen with
+      no documented reason. Plus: depth's cost is
       linear at about 82 B per px and is bounded by nothing, which `out`,
       `span` and `bow` each already say of themselves and `depth` does not
       (T-74); and `docs/agents.md` has no depth section at all, so

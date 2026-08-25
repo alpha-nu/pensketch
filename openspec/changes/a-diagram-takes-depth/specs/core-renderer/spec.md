@@ -21,8 +21,13 @@ one node and a flat diagram can extrude one.
 
 A shape too small or too degenerate to carry a face SHALL resolve flat,
 whatever the pair says: an outline enclosing no area, or a pill whose
-sampled outline has collapsed to a chord because both dimensions fall under
-`ARC_MIN_CHORD`. The anchor follows the ink. A depth that draws no faces
+sampled outline has collapsed to a chord. The rule SHALL be read off what
+the pen actually draws rather than restated from a constant — measured, a
+pill carries faces once its **larger** dimension reaches
+`3 × ARC_MIN_CHORD / π` (11.4592 px), so an 11.9 × 11.9 pill, under
+`ARC_MIN_CHORD` in both dimensions, draws its faces and a 1 × 11.46 pill
+draws them too. A box and a diamond carry faces at every non-zero size,
+mirrored dimensions included, since only the pill samples an arc. The anchor follows the ink. A depth that draws no faces
 while the anchors move would hand an edge a start point 13 px from the
 node's own outline, which is the same defect as an anchor formula that
 lands off the silhouette and is refused for the same reason. This is

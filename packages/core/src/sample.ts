@@ -89,6 +89,56 @@ export function arcPoints(
 }
 
 /**
+ * Whether a shape of this size carries a face at all - the question `draw`
+ * asks before it resolves a depth, and the one `check` has to ask before it
+ * sweeps a box. One rule read from two places, not two under one name: an
+ * anchor moved for a face the pen never drew hands an edge a start point off
+ * the node's own ink, which is the defect the moved anchors exist to avoid. A
+ * 10 x 8 pill at `depth: 12` renders byte-identical to the flat one, and its
+ * `r` anchor stood 13.8 px from the nearest stroke - against 0.04 px for the
+ * flat anchor - until this answered for it.
+ *
+ * Two ways a shape has no face to carry, both of them the pen's own guards
+ * read from outside. It is deliberately not the pen's guards themselves:
+ * those are correctness where they stand, and this is the question the two
+ * callers who have no pen have to ask before they move anything.
+ *
+ * An outline enclosing no area. `extrude` reads its winding off the outline's
+ * signed area, and an area of nought winds neither way, so no segment faces -
+ * every box, pill and diamond with a zero dimension. A *negative* dimension is
+ * not that case: it mirrors the outline, the winding comes back negative, and
+ * the faces are drawn. So the test below is whether the area is nought and not
+ * whether it is positive. A dimension that is not a number lands here too,
+ * which is where the pen puts it - `Math.sign(NaN)` is `NaN` and nothing
+ * dots positive with the vector.
+ *
+ * A pill whose sampled outline has collapsed to a chord. `pill` extrudes the
+ * ellipse `arcPoints` samples rather than the jittered points it strokes, and
+ * `ARC_MIN_CHORD` floors that sampling at `MIN_STEPS`: two chords, whose three
+ * points are one diameter with its first repeated, and a diameter encloses
+ * nothing. Three chords is the first outline with an area to wind, which a
+ * full sweep reaches at `max(w, h) = 3 x ARC_MIN_CHORD / PI` - 11.4592 px,
+ * bisected against the render and inclusive at the bound. Asked of
+ * `arcPoints` rather than written as that number: the bound is a consequence
+ * of three constants, and a number copied out of a formula is the copy that
+ * drifts.
+ *
+ * A box and a diamond have no arc in them - four literal corners at every
+ * size - and were rendered down to 0.001 px to confirm they extrude there.
+ * The pill's own bound is on the *larger* dimension: a 1 x 11.46 pill draws
+ * faces where an 11.45 x 11.45 one draws none, because one long axis is
+ * enough to earn a third chord.
+ */
+export function carriesFace(shape: string, w: number, h: number): boolean {
+  // `w * h` rather than `w && h`: nought on either side is no area, and a
+  // dimension that is not a number is no area either, both in one test.
+  if (!(w * h)) return false;
+  return (
+    shape !== 'pill' || arcPoints(0, 0, w / 2, h / 2, 0, 2 * Math.PI).length > 3
+  );
+}
+
+/**
  * The polygon a node's hatching is cut to: its own outline, standing
  * `HATCH_INSET` inside the line the shape is drawn with. Takes the node's box,
  * not an inset one, because how far inside the outline a shape has to be

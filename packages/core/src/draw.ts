@@ -18,6 +18,7 @@ import { pen } from './pen';
 import {
   bowPoints,
   bracePoints,
+  carriesFace,
   hatchClip,
   hopRuns,
   loopPoints,
@@ -38,14 +39,25 @@ import type {
  * by side rather than by coordinate, so moving, resizing or extruding a node
  * carries everything attached to it.
  *
- * `depth` is the node's *resolved* depth - `node.depth ?? options.depth ??
- * DEPTH` when its extrusion is on, and `0`, the default, when it is off;
- * anything non-positive reads as flat. When it is positive, `t` and `r` move
- * by the full extrusion vector `(depth, -DEPTH_RISE × depth)` - the flat
- * anchor plus the offset the pen drew the silhouette chain at, which lands
- * on ink for every shape: the box's back-edge midpoint, the diamond's offset
- * apex, the pill's offset arc to the sampling tolerance flat anchors already
- * carry. `l` and `b` sit on the front plane and do not move.
+ * `depth` is a **resolved** depth, not a request. This applies what it is
+ * given and resolves nothing: a positive value moves `t` and `r` by the full
+ * extrusion vector `(depth, -DEPTH_RISE × depth)` - the flat anchor plus the
+ * offset the pen drew the silhouette chain at, which lands on ink for every
+ * shape: the box's back-edge midpoint, the diamond's offset apex, the pill's
+ * offset arc to the sampling tolerance flat anchors already carry. `l` and
+ * `b` sit on the front plane and never move, and anything non-positive - `0`,
+ * the default - is the flat midpoint on all four sides.
+ *
+ * `draw` is what resolves the number it passes: `node.depth ?? options.depth
+ * ?? DEPTH` where `node.extrude ?? options.extrude ?? false` is on **and** the
+ * shape can carry a face at that size, and `0` everywhere else. That rule is
+ * private to `draw`, so two of its consequences have to be read here or not
+ * at all. A group never extrudes, whatever the pair on it says: hand this a
+ * positive depth for a group and it returns a point `draw` would never use,
+ * against a frame drawn flat with every edge on its flat midpoints. And a
+ * shape too small or too degenerate to carry a face resolves flat whatever
+ * its pair says, so `DEPTH` passed for a 10 x 8 pill reports a point 13.8 px
+ * from that pill's own ink.
  */
 export function anchor(node: DiagramNode, side: Side, depth = 0): Point {
   const sides: Record<Side, Point> = {
@@ -155,25 +167,46 @@ export function draw(
       ? n
       : undefined;
 
-  // A node's resolved depth: its own `depth` over the diagram's over `DEPTH`
-  // where it extrudes, and zero where it does not. One resolution read by the
-  // validation below, the edge pass and the node phase alike, so an edge
+  // The magnitude the pair asks for: the node's own `depth` over the
+  // diagram's over `DEPTH`. Written once and read twice below - by the
+  // resolution and by the validation - because the two must judge and draw
+  // the same number.
+  const magnitude = (n: { depth?: number }) =>
+    n.depth ?? options.depth ?? DEPTH;
+
+  // A node's resolved depth: that magnitude where the node extrudes *and* its
+  // shape can carry a face at its size, and zero everywhere else. One
+  // resolution read by the edge pass and the node phase alike, so an edge
   // attaches to the silhouette the pen will draw.
+  //
+  // The face test is not a second guard on the pen's: the pen keeps its own,
+  // and would draw nothing here either way. It is what stops the anchors
+  // moving for faces that never appear - a 10 x 8 pill renders byte-identical
+  // extruded or flat, and its `r` anchor stood 13.8 px off its own ink until
+  // this read `carriesFace`. `check` has to read that same predicate rather
+  // than a copy of it, which is the whole reason it lives in `sample`.
   const depthOf = (n: DiagramNode): number => {
     const up = extrudes(n);
-    return up ? (up.depth ?? options.depth ?? DEPTH) : 0;
+    return up && carriesFace(up.shape, up.w, up.h) ? magnitude(up) : 0;
   };
 
   // A depth is validated exactly where it is read: the options `depth`
   // whenever the diagram-wide `extrude` is on, and every extruded node's
-  // resolved depth - `depthOf`'s own answer, taken behind `extrudes`, the
-  // one predicate `depthOf` reads it behind, so the inherit corner is caught
-  // where a node's `extrude: true` reaches an invalid options `depth`. A
-  // depth nothing reads applies to nothing and is ignored, like the pair on
-  // a group. The pen reads anything undrawable as flat, so before this a
+  // magnitude - `magnitude` taken behind `extrudes`, the one predicate the
+  // resolution reads it behind, so the inherit corner is caught where a
+  // node's `extrude: true` reaches an invalid options `depth`. A depth
+  // nothing reads applies to nothing and is ignored, like the pair on a
+  // group. The pen reads anything undrawable as flat, so before this a
   // `depth` of `Infinity` moved `t` and `r` while the slab they moved for
   // went undrawn - and it throws here, before the first wash, so a bad depth
   // leaves an empty svg rather than a partial one.
+  //
+  // The magnitude and not the resolved depth, which is the one place the two
+  // part company: a shape that cannot carry a face resolves flat, and reading
+  // the resolution here would report its perfectly good `depth: 12` as a
+  // depth of 0 and throw on it. A number the caller wrote is judged for what
+  // it is, not for the box it landed in - `NaN` on a 10 x 8 pill is still a
+  // `NaN` its author meant something by, and the pill still draws flat.
   const accepts = 'a depth is a positive finite number of px';
   const drawable = (d: number) => Number.isFinite(d) && d > 0;
   if (
@@ -188,7 +221,7 @@ export function draw(
     // magnitude would silence exactly the case being validated.
     const up = extrudes(n);
     if (!up) continue;
-    const d = depthOf(n);
+    const d = magnitude(up);
     if (!drawable(d))
       throw new Error(
         up.depth !== undefined

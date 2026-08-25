@@ -76,7 +76,7 @@ never grows.
 - **THEN** the finding names that node and says the value was inherited, matching the words the renderer throws with
 
 #### Scenario: A shape that cannot carry a face is not a defect
-- **WHEN** a pill under `ARC_MIN_CHORD` in both dimensions carries a valid depth
+- **WHEN** a pill whose larger dimension falls under `3 × ARC_MIN_CHORD / π` carries a valid depth
 - **THEN** `check` reports no `undrawable-depth`, and measures that node by its flat box, because the renderer resolves it flat rather than refusing it
 
 #### Scenario: A label's room does not grow with depth

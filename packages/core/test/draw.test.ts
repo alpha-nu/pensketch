@@ -24,6 +24,7 @@ import { serialize } from './serialize.mjs';
 
 const {
   AMP,
+  ARC_MIN_CHORD,
   ARC_STEPS,
   DASH,
   DEPTH,
@@ -1807,6 +1808,179 @@ describe('draw() extrusion', () => {
       'hatching',
       'label',
     ]);
+  });
+
+  // A shape too small or too degenerate to carry a face resolves flat, pair
+  // or no pair. Everything below is measured off the render rather than
+  // reasoned about: the boundary was bisected against `draw` itself, and the
+  // constant it is expressed in is the one the sampling floor reads.
+  //
+  // What each of these would look like without the rule is one thing: the
+  // faces are undrawn either way, the pen having refused them, and only the
+  // anchors move - which is exactly the defect, an edge starting 13.8 px from
+  // the ink it is meant to leave. So every assertion here compares whole
+  // documents, where an anchor lives, rather than counting paths.
+  //
+  // The edge is what makes a resolution visible, and it is not decoration: a
+  // depth resolved for a shape that carries no face draws nothing either way,
+  // the pen refusing the faces and consuming nothing from the sequence. The
+  // anchor is the only thing that moves, so a document without an edge in it
+  // cannot tell the two apart.
+  const TARGET = {
+    id: 'b',
+    shape: 'box',
+    x: 300,
+    y: 300,
+    w: 60,
+    h: 40,
+  } as const;
+  const LEAVES: DiagramEdge[] = [{ from: ['n', 'r'], to: ['b', 'l'] }];
+  const carried = (shape: 'box' | 'pill' | 'diamond', w: number, h: number) => {
+    const node = { id: 'n', shape, x: 40, y: 40, w, h };
+    const flat = makeSvg();
+    draw(flat, { nodes: [node, TARGET], edges: LEAVES }, { seed: 7 });
+    const up = makeSvg();
+    draw(
+      up,
+      {
+        nodes: [{ ...node, extrude: true, depth: 12 }, TARGET],
+        edges: LEAVES,
+      },
+      { seed: 7 },
+    );
+    return serialize(up) === serialize(flat) ? 'flat' : 'extruded';
+  };
+
+  it('resolves a pill whose outline has collapsed to a chord flat', () => {
+    // 10 x 8: `arcPoints` floors at two chords here, whose ends are one
+    // diameter, and a diameter encloses no area to wind. The pen draws no
+    // faces - and the moved `r` anchor it used to hand the edge stood at
+    // (122, 95), 13.8 px from the nearest stroke of the pill's own outline.
+    const tiny = {
+      id: 'p',
+      shape: 'pill',
+      x: 100,
+      y: 100,
+      w: 10,
+      h: 8,
+    } as const;
+    const target = {
+      id: 'b',
+      shape: 'box',
+      x: 300,
+      y: 100,
+      w: 60,
+      h: 40,
+    } as const;
+    const edges: DiagramEdge[] = [{ from: ['p', 'r'], to: ['b', 'l'] }];
+    const svg = makeSvg();
+    draw(
+      svg,
+      { nodes: [{ ...tiny, extrude: true, depth: 12 }, target], edges },
+      { seed: 7 },
+    );
+    const flat = makeSvg();
+    draw(flat, { nodes: [tiny, target], edges }, { seed: 7 });
+
+    // The anchor follows the ink: the edge leaves the flat r midpoint.
+    expectNear(nth(pointsOf(nth(pathsOf(svg), 0)), 0), [110, 104]);
+    // And the whole document is the flat one, byte for byte - no faces, no
+    // moved anchor, nothing taken from the seeded sequence.
+    expect(serialize(svg)).toBe(serialize(flat));
+  });
+
+  it('resolves a node whose outline encloses no area flat', () => {
+    // A box of zero height is three collinear sides: signed area nought, so
+    // it winds neither way and no segment of it faces the vector.
+    const strip = {
+      id: 'n',
+      shape: 'box',
+      x: 100,
+      y: 100,
+      w: 80,
+      h: 0,
+    } as const;
+    const target = {
+      id: 'b',
+      shape: 'box',
+      x: 300,
+      y: 100,
+      w: 60,
+      h: 40,
+    } as const;
+    const edges: DiagramEdge[] = [{ from: ['n', 'r'], to: ['b', 'l'] }];
+    const svg = makeSvg();
+    draw(
+      svg,
+      { nodes: [strip, target], edges },
+      { extrude: true, depth: 20, seed: 7 },
+    );
+    const flat = makeSvg();
+    draw(
+      flat,
+      { nodes: [strip, { ...target, extrude: true }], edges },
+      { depth: 20, seed: 7 },
+    );
+
+    // Its r midpoint, unmoved, where a resolved 20 would have put it at
+    // (200, 85). The other node extrudes in both renders, which is what
+    // keeps this a statement about the degenerate one.
+    expectNear(nth(pointsOf(nth(pathsOf(svg), 0)), 0), [180, 100]);
+    expect(serialize(svg)).toBe(serialize(flat));
+  });
+
+  it('takes the pill boundary at three chords, not at ARC_MIN_CHORD', () => {
+    // Two chords is a diameter and three is the first outline with an area,
+    // which a full sweep reaches when `max(w, h) * PI` covers three chords of
+    // the sampling floor: 11.4592 px, bisected against the render.
+    const bound = (3 * ARC_MIN_CHORD) / Math.PI;
+    expect(carried('pill', bound - 0.01, 4)).toBe('flat');
+    expect(carried('pill', bound, 4)).toBe('extruded');
+    // Either dimension earns it, so the rule is on the larger one - not on
+    // both, and not on `ARC_MIN_CHORD` itself: an 11.9 x 11.9 pill is under
+    // that constant in both dimensions and draws its faces regardless.
+    expect(carried('pill', 4, bound)).toBe('extruded');
+    expect(carried('pill', 11.9, 11.9)).toBe('extruded');
+    expect(carried('pill', 11, 11)).toBe('flat');
+  });
+
+  it('extrudes a box and a diamond at sizes no pill would carry', () => {
+    // Only the pill samples an arc. Four literal corners enclose an area at
+    // any size at all, so these two take depth where a pill of the same box
+    // has no outline left to take it with.
+    expect(carried('box', 8, 8)).toBe('extruded');
+    expect(carried('diamond', 8, 8)).toBe('extruded');
+    expect(carried('pill', 8, 8)).toBe('flat');
+  });
+
+  it('leaves an ordinary pill extruded, faces and moved anchor alike', () => {
+    // The size this repository's own diagrams settle on. A predicate that
+    // answered no here would flatten every extruded shape in the project and
+    // still pass every assertion above.
+    const nodes: DiagramNode[] = [
+      {
+        id: 'p',
+        shape: 'pill',
+        x: 100,
+        y: 100,
+        w: 150,
+        h: 50,
+        extrude: true,
+        depth: 12,
+      },
+      { id: 'b', shape: 'box', x: 400, y: 100, w: 60, h: 40 },
+    ];
+    const svg = makeSvg();
+    draw(
+      svg,
+      { nodes, edges: [{ from: ['p', 'r'], to: ['b', 'l'] }] },
+      { seed: 7 },
+    );
+
+    // Its r anchor plus the full vector (12, -9), and the muted strip that
+    // says a face was drawn to attach to.
+    expectNear(nth(pointsOf(nth(pathsOf(svg), 0)), 0), [262, 116]);
+    expect(mutedPaths(svg).length).toBeGreaterThan(0);
   });
 });
 

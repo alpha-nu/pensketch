@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BRACE_DEPTH, BRACE_R } from '../src/constants';
+import { ARC_MIN_CHORD, BRACE_DEPTH, BRACE_R } from '../src/constants';
 import type { DiagramBrace, Point } from '../src/index';
 import { pen } from '../src/pen';
-import { bracePoints } from '../src/sample';
+import { bracePoints, carriesFace } from '../src/sample';
 import { makeSvg, pathsOf } from './helpers';
 
 // The span design.md D5 recorded its prototype against, and the numbers it
@@ -118,5 +118,104 @@ describe('bracePoints()', () => {
     for (let i = 0; i < 6; i++)
       p.stroke(points.slice(i * cut, i * cut + cut + 1) as Point[]);
     expect(pathsOf(six)).toHaveLength(12);
+  });
+});
+
+// The rule `draw` resolves a depth behind, and the one the checker has to
+// sweep a box behind. Stated here because it is the shared one: a second copy
+// of it in the checker is the copy that drifts, and nothing but a test says
+// so until the day the two disagree.
+describe('carriesFace()', () => {
+  it('refuses an outline that encloses no area, on every shape', () => {
+    for (const shape of ['box', 'pill', 'diamond']) {
+      expect(carriesFace(shape, 0, 40)).toBe(false);
+      expect(carriesFace(shape, 60, 0)).toBe(false);
+      // Not a number is not an area either, which is where the pen puts it:
+      // `Math.sign(NaN)` is `NaN` and no segment dots positive with the
+      // extrusion vector.
+      expect(carriesFace(shape, Number.NaN, 40)).toBe(false);
+    }
+  });
+
+  it('accepts a mirrored dimension, because the pen draws those faces', () => {
+    // A negative dimension flips the outline rather than emptying it: the
+    // signed area comes back negative, `extrude` reads the winding off its
+    // sign, and the faces are drawn. Asked as "is the area nought", never as
+    // "is it positive" - rendered at -60 x 40 and 60 x -40, both slabs.
+    for (const shape of ['box', 'pill', 'diamond']) {
+      expect(carriesFace(shape, -60, 40)).toBe(true);
+      expect(carriesFace(shape, 60, -40)).toBe(true);
+    }
+  });
+
+  it('takes the pill at three chords of the sampling floor', () => {
+    // `arcPoints` floors a full sweep at two chords, whose ends are one
+    // diameter; the third is the first that encloses anything. A full sweep
+    // reaches it when `max(w, h) * PI` covers three chords of ARC_MIN_CHORD -
+    // 11.4592 px, and the bound is inclusive.
+    const bound = (3 * ARC_MIN_CHORD) / Math.PI;
+    expect(carriesFace('pill', bound, 4)).toBe(true);
+    expect(carriesFace('pill', bound - 1e-9, 4)).toBe(false);
+    // The larger dimension carries it, so this is not "both dimensions under
+    // ARC_MIN_CHORD": a 1 x 11.46 pill has its third chord and an 11.45 x
+    // 11.45 one has not.
+    expect(carriesFace('pill', 4, bound)).toBe(true);
+    expect(carriesFace('pill', 1, 11.46)).toBe(true);
+    expect(carriesFace('pill', 11.45, 11.45)).toBe(false);
+  });
+
+  // The predicate has to answer where the ink is, not merely answer
+  // consistently, so this asks the pen itself over the sweep the rule was
+  // read off - the boundary on either side, both dimensions, the mirrored
+  // case, the degenerate ones, and one ordinary size per shape. Nothing here
+  // goes through `draw`: `draw` reads the predicate, so a render is the rule
+  // agreeing with itself. A pen call is the outline.
+  it('answers exactly where the pen draws faces', () => {
+    const bound = (3 * ARC_MIN_CHORD) / Math.PI;
+    const drawsFaces = (
+      shape: 'box' | 'pill' | 'diamond',
+      w: number,
+      h: number,
+    ) => {
+      const paths = (opts?: { depth: number }) => {
+        const svg = makeSvg();
+        const p = pen(svg, { seed: 7 });
+        const trace =
+          shape === 'box' ? p.rect : shape === 'pill' ? p.pill : p.diamond;
+        trace(40, 40, w, h, opts);
+        return pathsOf(svg).length;
+      };
+      return paths({ depth: 12 }) > paths();
+    };
+    const sizes: [number, number][] = [
+      [0, 40],
+      [40, 0],
+      [Number.NaN, 40],
+      [-60, 40],
+      [10, 8],
+      [8, 8],
+      [11.45, 11.45],
+      [11.9, 11.9],
+      [bound - 1e-9, 4],
+      [bound, 4],
+      [4, bound],
+      [150, 50],
+    ];
+    for (const shape of ['box', 'pill', 'diamond'] as const)
+      for (const [w, h] of sizes)
+        expect([shape, w, h, drawsFaces(shape, w, h)]).toEqual([
+          shape,
+          w,
+          h,
+          carriesFace(shape, w, h),
+        ]);
+  });
+
+  it('takes a box and a diamond at any size at all', () => {
+    // Four literal corners, no arc to collapse: the sizes that empty a pill's
+    // outline leave these two enclosing an area.
+    for (const shape of ['box', 'diamond'])
+      for (const s of [0.001, 1, 8, 11.45, 150])
+        expect(carriesFace(shape, s, s)).toBe(true);
   });
 });
