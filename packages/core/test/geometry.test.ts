@@ -8,6 +8,7 @@ import {
   intersects,
   labelBox,
   pointToSegment,
+  swept,
 } from '../src/geometry';
 import { loopPoints } from '../src/sample';
 import type { DiagramEdge, DiagramNode, Point, Side } from '../src/types';
@@ -85,6 +86,35 @@ describe('INFLATE', () => {
   it('tracks the constants it comes from, and is 2.1 with the current ones', () => {
     expect(INFLATE).toBe(AMP / 2 + WIDTH / 2);
     expect(INFLATE).toBeCloseTo(2.1);
+  });
+});
+
+describe('swept', () => {
+  // By hand from the vector `(d, -0.75d)` at d = 12: the box rises 9, keeps
+  // its left edge and its bottom edge, gains 12 of width and 9 of height.
+  const BOX = { x: 10, y: 20, w: 100, h: 40 };
+
+  it('carries the box by the extrusion vector and keeps what it sweeps', () => {
+    expect(swept(BOX, 12)).toEqual({ x: 10, y: 11, w: 112, h: 49 });
+  });
+
+  // Stated as its own case because the two rules that read it - the top a
+  // face rises to and the right it reaches - are the two corners
+  // `out-of-bounds` measures, and the bottom right is the one that moved in
+  // x and did not move in y.
+  it('leaves the bottom edge where it was and takes the right edge out', () => {
+    const b = swept(BOX, 12);
+    expect(b.y + b.h).toBe(60);
+    expect(b.x + b.w).toBe(122);
+  });
+
+  // The same object and not a copy of it: a flat diagram is measured through
+  // exactly the boxes it always was, which is what makes the identity below
+  // worth asserting rather than the field-by-field equality.
+  it('is the box itself at no depth, and at a depth that is not one', () => {
+    expect(swept(BOX, 0)).toBe(BOX);
+    expect(swept(BOX, -12)).toBe(BOX);
+    expect(swept(BOX, Number.NaN)).toBe(BOX);
   });
 });
 
@@ -168,6 +198,51 @@ describe('edgePath', () => {
     // chord would report.
     expect(apex).toBeGreaterThan(39);
     expect(apex).toBeLessThanOrEqual(40);
+  });
+
+  // The pair the renderer reads, read here: an edge leaving an extruded
+  // node's `t` or `r` is drawn from the silhouette, so the line this walks
+  // has to start there too. By hand at d = 12, whose vector is (12, -9):
+  // `a` right moves from (200, 80) to (212, 71), and `b` top from (350, 200)
+  // to (362, 191).
+  it('walks from the moved anchors when the pair is on', () => {
+    expect(
+      edgePath({ from: ['a', 'r'], to: ['b', 't'] }, BY_ID, {
+        extrude: true,
+        depth: 12,
+      }),
+    ).toEqual([
+      [212, 71],
+      [362, 191],
+    ]);
+  });
+
+  // The other two sides sit on the front plane, which the extrusion does not
+  // move - so a diagram-wide `extrude` changes half the anchors and no more.
+  it('leaves the front-plane anchors alone at the same depth', () => {
+    expect(
+      edgePath({ from: ['a', 'l'], to: ['b', 'b'] }, BY_ID, {
+        extrude: true,
+        depth: 12,
+      }),
+    ).toEqual([
+      [40, 80],
+      [350, 260],
+    ]);
+  });
+
+  // No opinion about depth is flat, which is what keeps every caller that
+  // predates the pair - and every flat diagram - measuring what it always
+  // measured.
+  it('walks the flat anchors when it is handed no pair at all', () => {
+    expect(edgePath({ from: ['a', 'r'], to: ['b', 't'] }, BY_ID)).toEqual([
+      [200, 80],
+      [350, 200],
+    ]);
+    expect(edgePath({ from: ['a', 'r'], to: ['b', 't'] }, BY_ID, {})).toEqual([
+      [200, 80],
+      [350, 200],
+    ]);
   });
 
   it('says nothing about an edge naming a node that does not exist', () => {

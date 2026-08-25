@@ -177,20 +177,44 @@ stands on rather than a test written after the fact.
       severity mutants each break it. A gate that cannot fail is not a
       gate, which is the whole reason this one landed before the work
 
-- [ ] 3.1 The swept box under every box-measuring rule, the moved anchors
+- [x] 3.1 The swept box under every box-measuring rule, the moved anchors
       under every edge-walking rule, options and node fields resolved by the
       renderer's idiom - reading `carriesFace` from `sample.ts` rather than
       restating it (T-60), and `depthOf`'s idiom rather than a second copy.
       Measure `./check` when the first rule lands, not at the gate: 3648 was
       sized over a rehearsal column that excluded this task's label split
       and per-rule anchor walks
-- [ ] 3.2 Tests: the face-past-the-viewBox case as the D6-recorded hero-5
+
+      **Landed with 3.2.** The resolution was not mirrored: `extrudes`,
+      `magnitude` and `depthOf` were hoisted out of `draw`'s closure to
+      module scope taking the pair as an argument, so `check` and
+      `edgePath` call the very function `draw` calls, and `carriesFace`
+      is read from `sample.ts` untouched. Nothing behavioural is
+      duplicated; the only repetition is the two-field type, written as
+      `Pick<DrawOptions, 'extrude' | 'depth'>` so a rename breaks both at
+      compile time. Sharing cost core 28 B - the extra parameter at nine
+      call sites - and that is the honest price of one rule in one place.
+      Measured the moment the first rule swept, as the task demanded:
+      `./check` was already at 3633 of 3648, which is the tripwire, and
+      the budget moves before 3.3 rather than at its gate
+- [x] 3.2 Tests: the face-past-the-viewBox case as the D6-recorded hero-5
       geometry — a box ending 10 px inside a 1200-wide viewBox at `d = 12`,
       face reaching 2 px past it (T-47; the hero file itself is untracked
       and since corrected, so the numbers here are the citable source) —
       sweep-only overlap, moved-anchor edge walk, the label-room rules
       pinned to the front box (T-56), and a flat run asserted byte-identical
       to today's findings
+
+      **Landed.** 21 tests. The vertical half of the sweep was pinned only
+      by geometry tests at first - the driver found mutants dropping
+      `0.75d` from `y` and `h` died in `geometry.test.ts` and nowhere a
+      rule could see, so two rule-level tests were added for the top and
+      bottom bounds. The 10x8 pill that `carriesFace` resolves flat
+      carries a same-geometry box as its control, so it cannot pass for
+      the wrong reason. The flat run is item 7 and was not re-tested: 3.0
+      froze it before the code could see depth, and its snapshot is
+      byte-identical after - a statement made in advance is a better
+      witness than a re-run of the changed code
 
 - [ ] 3.3 `undrawable-depth` (T-65): reported as an error wherever `draw`
       throws, naming the offender in the words the throw uses and telling a

@@ -6,6 +6,7 @@ import {
   TITLE_DY,
   TITLE_SIZE,
 } from './constants';
+import { depthOf } from './draw';
 import {
   type Box,
   boxToSegment,
@@ -15,9 +16,10 @@ import {
   intersects,
   labelBox,
   pointToSegment,
+  swept,
 } from './geometry';
 import { bracePoints } from './sample';
-import type { Diagram, DiagramNode, Point } from './types';
+import type { Diagram, DiagramNode, DrawOptions, Point } from './types';
 
 /**
  * How much a finding matters. An `error` is a defect in the picture — two
@@ -58,8 +60,19 @@ export interface Finding {
   estimated?: true;
 }
 
-/** Everything the caller can move. Every default is stated. */
-export interface CheckOptions {
+/**
+ * Everything the caller can move. Every default is stated.
+ *
+ * `extrude` and `depth` are inherited from `DrawOptions` rather than restated:
+ * the checker takes the same pair the renderer does, resolved by the same
+ * code, so it measures the diagram that will actually be drawn. Where a node
+ * extrudes, every rule that measures its **ink** measures the box the slab
+ * sweeps - `node-overlap`, `out-of-bounds`, its side of `group-escape`, and
+ * every connector leaving it, which leaves from the moved anchor. Every rule
+ * that measures its **label** keeps the front box, because the label sits on
+ * the front face and does not move with the slab.
+ */
+export interface CheckOptions extends Pick<DrawOptions, 'extrude' | 'depth'> {
   /**
    * `[minX, minY, width, height]`, the same four numbers the `<svg>` carries.
    * Without it, `out-of-bounds` cannot run and does not.
@@ -162,6 +175,12 @@ const RANK: Record<Severity, number> = { error: 0, warning: 1 };
  * Findings come back sorted by severity, then rule, then position, so the
  * same diagram always produces the same array.
  *
+ * Hand it the `extrude` and `depth` the render will use and it measures the
+ * slabs rather than the boxes: an extruded node's ink is the box its
+ * extrusion sweeps, and the connectors leaving it start where the arrows
+ * will. Given neither, nothing sweeps and the report is what it has always
+ * been.
+ *
  * @example
  * ```js
  * import { check } from '@pensketch/core/check';
@@ -239,12 +258,40 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
         [`node "${n.id}"`],
       );
 
+  // What each node's ink covers: its box, or the box its slab sweeps where the
+  // node extrudes. `depthOf` is `draw`'s own resolution, imported rather than
+  // mirrored, so the two agree on the `hop` idiom over the pair, on the group
+  // that never extrudes whatever it carries, and on the shape too small to
+  // hold a face - three rules stated once between the renderer and the
+  // checker rather than once each.
+  //
+  // Resolved a node at a time and kept, because the rules below are quadratic
+  // in the nodes and `depthOf` asks `carriesFace`, which samples a pill's
+  // whole outline to answer. Measured on 40 extruded pills wired in a chain:
+  // 0.158 ms a call against 0.660 recomputing, for 18 B. A flat diagram pays
+  // neither, at 0.095 ms either way, because the pair is read before the
+  // outline is - `extrudes` answers first and nothing is sampled at all.
+  // Keyed on the node itself: two nodes may share an id, which
+  // `duplicate-id` reports and no other rule has to survive.
+  //
+  // Every rule measuring a node's *ink* reads this. The two that measure its
+  // *label* - `text-overflow` and `text-collision` - read the node, and that
+  // split is load-bearing rather than an oversight: a label sits on the front
+  // face and is not carried anywhere by the slab behind it, so measuring one
+  // in the swept box would hand `text-overflow` d px of room no glyph can
+  // ever use.
+  const ink = new Map<DiagramNode, Box>(
+    nodes.map((n): [DiagramNode, Box] => [n, swept(n, depthOf(n, options))]),
+  );
+  const inkOf = (n: DiagramNode) => ink.get(n) as Box;
+
   // Groups are regions, so they overlap everything by design; only the drawn
   // shapes are compared against each other.
   const shapes = nodes.filter((n) => n.shape !== 'group');
   shapes.forEach((a, i) => {
+    const ia = inkOf(a);
     for (const b of shapes.slice(i + 1))
-      if (intersects(a, b))
+      if (intersects(ia, inkOf(b)))
         add(
           'node-overlap',
           `nodes "${a.id}" and "${b.id}" overlap; one is drawn over the other`,
@@ -257,9 +304,15 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // lane and a node wholly inside is where it belongs; the half-in case is
   // the only one that is unambiguously a mistake, so it is the whole rule -
   // no guessing about which group a node was meant to be in.
+  //
+  // Both sides through `inkOf`, and the group's side comes back flat because
+  // `depthOf` says a group never extrudes - read from the one rule rather
+  // than restated here as a second one. What crosses the frame, then, is a
+  // member's slab: a node sitting flush inside a group escapes it once its
+  // faces reach past the frame the group is drawn with.
   for (const g of nodes.filter((n) => n.shape === 'group'))
     for (const n of shapes)
-      if (intersects(g, n) && !contains(g, n))
+      if (intersects(inkOf(g), inkOf(n)) && !contains(inkOf(g), inkOf(n)))
         add(
           'group-escape',
           `node "${n.id}" is half inside group "${g.id}"; move it wholly in or wholly out`,
@@ -278,6 +331,12 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // than in a pass of its own: every loop that needs a box already computes it.
   const texts: [string, Box][] = [];
 
+  // The front box throughout this loop, `inkOf` deliberately unread: a label
+  // is painted on the front face, which is the one plane the extrusion does
+  // not move. Measuring its room in the swept box would give `text-overflow`
+  // d px of room no glyph can occupy - claimed slack that spills - and
+  // measuring its position there would drag every label up and right of where
+  // `draw` writes it, which is what `text-collision` compares.
   for (const n of nodes) {
     if (!n.lines) continue;
     const group = n.shape === 'group';
@@ -320,7 +379,7 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // anything to say about ink that is nowhere.
   const paths: { i: number; path: Point[] }[] = [];
   edges.forEach((e, i) => {
-    const path = edgePath(e, byId);
+    const path = edgePath(e, byId, options);
     if (path?.length) paths.push({ i, path });
   });
 
@@ -581,14 +640,25 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     const outside = (x: number, y: number) =>
       x < vx || y < vy || x > vx + vw || y > vy + vh;
 
-    for (const n of nodes)
-      if (outside(n.x, n.y) || outside(n.x + n.w, n.y + n.h))
+    // The ink and not the box, which is the defect this whole capability was
+    // written for: a slab whose box ended 10 px inside a 1200-wide frame
+    // carried its deep face 2 px outside it, the render clipped the face, and
+    // the eye caught what the checker could not. The two corners are the
+    // swept box's - `(x, y - .75d)` and `(x + w + d, y + h)` - so the top the
+    // faces rise to and the right they reach are both measured.
+    for (const n of nodes) {
+      const b = inkOf(n);
+      if (outside(b.x, b.y) || outside(b.x + b.w, b.y + b.h))
         add(
           'out-of-bounds',
           `node "${n.id}" reaches outside the viewBox, so part of it is clipped away`,
+          // The node's own corner, not the swept one: `at` is somewhere to go
+          // and look, and the place to look at a clipped slab is the node
+          // that casts it.
           [n.x, n.y],
           [`node "${n.id}"`],
         );
+    }
 
     // The path as drawn, both ends dropped. On every shape but a loop the ends
     // are anchors on a node's own side, so an anchor outside the frame is a

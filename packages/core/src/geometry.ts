@@ -1,7 +1,14 @@
-import { AMP, LINE_H, LOOP_OUT, LOOP_SPAN, WIDTH } from './constants';
-import { anchor } from './draw';
+import {
+  AMP,
+  DEPTH_RISE,
+  LINE_H,
+  LOOP_OUT,
+  LOOP_SPAN,
+  WIDTH,
+} from './constants';
+import { anchor, type DepthPair, depthOf } from './draw';
 import { bowPoints, loopPoints } from './sample';
-import type { DiagramEdge, DiagramNode, Point } from './types';
+import type { DiagramEdge, DiagramNode, Point, Side } from './types';
 
 // The geometry the checker reasons with. Internal: no entry point re-exports
 // any of it, so the published `./check` surface stays exactly the one D1
@@ -78,6 +85,27 @@ export function contains(outer: Box, inner: Box): boolean {
 }
 
 /**
+ * The box an extruded node's ink covers: the front box carried by the
+ * extrusion vector `(d, -DEPTH_RISE * d)` and everything it sweeps on the
+ * way, which is `(x, y - .75d, w + d, h + .75d)`. A depth of nought - every
+ * flat node, every group, every shape too small to carry a face - is the box
+ * itself, returned rather than copied, so a flat diagram is measured through
+ * exactly the objects it always was.
+ *
+ * The sweep stands for the faces. They are not modelled stroke by stroke
+ * here: a box fills its swept rectangle, a diamond and a pill do not, and the
+ * corners neither of them reaches are the price of one rule that holds for
+ * all three. It over-states, which is the direction this file already errs in
+ * - `INFLATE` and the glyph estimate both - because a false overlap costs one
+ * edit and a missed one costs a picture nobody looks at again.
+ */
+export function swept(b: Box, d: number): Box {
+  return d > 0
+    ? { x: b.x, y: b.y - DEPTH_RISE * d, w: b.w + d, h: b.h + DEPTH_RISE * d }
+    : b;
+}
+
+/**
  * The line an edge is drawn along, as points — the four shapes `draw` chooses
  * between, chosen on the same terms. A self-transition is the loop off its
  * side; an edge whose `bow` is not 0 is that arc; an edge with `via` is the
@@ -87,6 +115,14 @@ export function contains(outer: Box, inner: Box): boolean {
  * `bowPoints` the pen is handed, through the same exported `anchor` — so the
  * checker measures the line the renderer will draw, give or take the wobble,
  * and every rule here goes on reasoning in straight segments.
+ *
+ * The anchors are the renderer's, depth included: `depthOf` resolves each end
+ * from the same pair `draw` reads, so an edge leaving the `r` of an extruded
+ * node is walked from the silhouette midpoint the arrow will actually be
+ * drawn from rather than from the front box's side. Without it every rule
+ * downstream - `edge-overlap`, `label-collision`, `out-of-bounds` on a path -
+ * measures a line the picture does not contain. The pair defaults to nothing,
+ * so a caller that has no opinion about depth gets flat anchors.
  *
  * `null` when either end names a node the diagram does not define. `draw`
  * throws on that by name, so there is nothing the checker can usefully add.
@@ -109,21 +145,23 @@ export function contains(outer: Box, inner: Box): boolean {
 export function edgePath(
   e: DiagramEdge,
   byId: Map<string, DiagramNode>,
+  o: DepthPair = {},
 ): Point[] | null {
   const from = byId.get(e.from[0]);
   const to = byId.get(e.to[0]);
   if (!from || !to) return null;
   const bow = e.bow ?? 0;
+  const at = (n: DiagramNode, side: Side) => anchor(n, side, depthOf(n, o));
   return e.from[0] === e.to[0]
     ? loopPoints(
-        anchor(from, e.from[1]),
+        at(from, e.from[1]),
         e.from[1],
         e.out ?? LOOP_OUT,
         e.span ?? LOOP_SPAN,
       )
     : bow !== 0
-      ? bowPoints(anchor(from, e.from[1]), anchor(to, e.to[1]), bow)
-      : [anchor(from, e.from[1]), ...(e.via || []), anchor(to, e.to[1])];
+      ? bowPoints(at(from, e.from[1]), at(to, e.to[1]), bow)
+      : [at(from, e.from[1]), ...(e.via || []), at(to, e.to[1])];
 }
 
 /** Distance from a point to a box, and zero anywhere inside it. */

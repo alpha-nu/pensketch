@@ -48,13 +48,14 @@ import type {
  * `b` sit on the front plane and never move, and anything non-positive - `0`,
  * the default - is the flat midpoint on all four sides.
  *
- * `draw` is what resolves the number it passes: `node.depth ?? options.depth
- * ?? DEPTH` where `node.extrude ?? options.extrude ?? false` is on **and** the
- * shape can carry a face at that size, and `0` everywhere else. That rule is
- * private to `draw`, so two of its consequences have to be read here or not
- * at all. A group never extrudes, whatever the pair on it says: hand this a
- * positive depth for a group and it returns a point `draw` would never use,
- * against a frame drawn flat with every edge on its flat midpoints. And a
+ * `depthOf` below is what resolves the number `draw` and `check` both pass:
+ * `node.depth ?? options.depth ?? DEPTH` where `node.extrude ??
+ * options.extrude ?? false` is on **and** the shape can carry a face at that
+ * size, and `0` everywhere else. That rule is stated once, there, and is not
+ * this function's - which is why two of its consequences have to be read here
+ * or not at all. A group never extrudes, whatever the pair on it says: hand
+ * this a positive depth for a group and it returns a point `draw` would never
+ * use, against a frame drawn flat with every edge on its flat midpoints. And a
  * shape too small or too degenerate to carry a face resolves flat whatever
  * its pair says, so `DEPTH` passed for a 10 x 8 pill reports a point 13.8 px
  * from that pill's own ink.
@@ -70,6 +71,69 @@ export function anchor(node: DiagramNode, side: Side, depth = 0): Point {
   return depth > 0 && (side === 't' || side === 'r')
     ? [x + depth, y - DEPTH_RISE * depth]
     : [x, y];
+}
+
+/**
+ * The pair that turns depth on and says how much, as everything that reads it
+ * takes it. Picked off `DrawOptions` rather than written out again, so the
+ * two fields are declared - and documented - in exactly one place, and
+ * `CheckOptions`, which picks the same two, satisfies it by construction.
+ */
+export type DepthPair = Pick<DrawOptions, 'extrude' | 'depth'>;
+
+// Whether a node's extrusion is on, by the `hop` idiom: `extrude` on the
+// node opts out of a diagram-wide switch or in from a flat diagram. Never
+// for a group, which bounds a set rather than standing as an object, so a
+// group carrying the pair keeps flat anchors on the same terms it keeps a
+// flat frame.
+//
+// Written once and read twice, by `depthOf` and by the validation in `draw`,
+// because a restatement is a second rule and the copy that drifts is the
+// one nothing notices. It was stated twice until a mutation dropped the
+// inherit from the validation's own copy and every test stayed green.
+//
+// It answers with the node rather than with a boolean: only a drawn shape
+// carries the pair, `DiagramNode` is a union with a group in it, and the
+// narrowing that says so is the same fact as the rule. A bare boolean
+// hands its caller no type to read `depth` off, which is what kept the
+// group test inline at both sites in the first place.
+const extrudes = (n: DiagramNode, o: DepthPair) =>
+  n.shape !== 'group' && (n.extrude ?? o.extrude ?? false) ? n : undefined;
+
+// The magnitude the pair asks for: the node's own `depth` over the diagram's
+// over `DEPTH`. Written once and read twice - by the resolution and by
+// `draw`'s validation - because the two must judge and draw the same number.
+const magnitude = (n: { depth?: number }, o: DepthPair) =>
+  n.depth ?? o.depth ?? DEPTH;
+
+/**
+ * A node's resolved depth: that magnitude where the node extrudes *and* its
+ * shape can carry a face at its size, and zero everywhere else. One
+ * resolution read by the edge pass, the node phase and the checker alike, so
+ * an edge attaches to the silhouette the pen will draw and a rule measures
+ * the box that pen fills.
+ *
+ * The options are taken as an argument rather than closed over, which is the
+ * whole reason this stands at module scope: `check` takes its own options
+ * object and has to reach the same answer through the same code. Mirroring it
+ * there would be a second copy of the `hop` idiom, the group narrowing and
+ * the face test, and the copy that drifts is the one nothing notices.
+ *
+ * The face test is not a second guard on the pen's: the pen keeps its own,
+ * and would draw nothing here either way. It is what stops the anchors
+ * moving for faces that never appear - a 10 x 8 pill renders byte-identical
+ * extruded or flat, and its `r` anchor stood 13.8 px off its own ink until
+ * this read `carriesFace`. That predicate lives in `sample` for the same
+ * reason this function lives here: so the two callers with no pen between
+ * them ask one question rather than two.
+ *
+ * Not exported from any entry point. `check` imports it across the source
+ * tree, and the bundles are built with splitting off, so each entry carries
+ * its own copy of the code and neither carries the other's.
+ */
+export function depthOf(n: DiagramNode, o: DepthPair): number {
+  const up = extrudes(n, o);
+  return up && carriesFace(up.shape, up.w, up.h) ? magnitude(up, o) : 0;
 }
 
 /**
@@ -146,50 +210,6 @@ export function draw(
       : `known ids are ${head.join(', ')}`;
   };
 
-  // Whether a node's extrusion is on, by the `hop` idiom: `extrude` on the
-  // node opts out of a diagram-wide switch or in from a flat diagram. Never
-  // for a group, which bounds a set rather than standing as an object, so a
-  // group carrying the pair keeps flat anchors on the same terms it keeps a
-  // flat frame.
-  //
-  // Written once and read twice, by `depthOf` and by the validation below,
-  // because a restatement is a second rule and the copy that drifts is the
-  // one nothing notices. It was stated twice until a mutation dropped the
-  // inherit from the validation's own copy and every test stayed green.
-  //
-  // It answers with the node rather than with a boolean: only a drawn shape
-  // carries the pair, `DiagramNode` is a union with a group in it, and the
-  // narrowing that says so is the same fact as the rule. A bare boolean
-  // hands its caller no type to read `depth` off, which is what kept the
-  // group test inline at both sites in the first place.
-  const extrudes = (n: DiagramNode) =>
-    n.shape !== 'group' && (n.extrude ?? options.extrude ?? false)
-      ? n
-      : undefined;
-
-  // The magnitude the pair asks for: the node's own `depth` over the
-  // diagram's over `DEPTH`. Written once and read twice below - by the
-  // resolution and by the validation - because the two must judge and draw
-  // the same number.
-  const magnitude = (n: { depth?: number }) =>
-    n.depth ?? options.depth ?? DEPTH;
-
-  // A node's resolved depth: that magnitude where the node extrudes *and* its
-  // shape can carry a face at its size, and zero everywhere else. One
-  // resolution read by the edge pass and the node phase alike, so an edge
-  // attaches to the silhouette the pen will draw.
-  //
-  // The face test is not a second guard on the pen's: the pen keeps its own,
-  // and would draw nothing here either way. It is what stops the anchors
-  // moving for faces that never appear - a 10 x 8 pill renders byte-identical
-  // extruded or flat, and its `r` anchor stood 13.8 px off its own ink until
-  // this read `carriesFace`. `check` has to read that same predicate rather
-  // than a copy of it, which is the whole reason it lives in `sample`.
-  const depthOf = (n: DiagramNode): number => {
-    const up = extrudes(n);
-    return up && carriesFace(up.shape, up.w, up.h) ? magnitude(up) : 0;
-  };
-
   // A depth is validated exactly where it is read: the options `depth`
   // whenever the diagram-wide `extrude` is on, and every extruded node's
   // magnitude - `magnitude` taken behind `extrudes`, the one predicate the
@@ -219,9 +239,9 @@ export function draw(
     // Guarded on `extrudes` and not on a resolved depth of nought: `extrude:
     // true` with `depth: 0` has to reach the throw below, and skipping on the
     // magnitude would silence exactly the case being validated.
-    const up = extrudes(n);
+    const up = extrudes(n, options);
     if (!up) continue;
-    const d = magnitude(up);
+    const d = magnitude(up, options);
     if (!drawable(d))
       throw new Error(
         up.depth !== undefined
@@ -315,21 +335,21 @@ export function draw(
     // about here.
     return loop
       ? loopPoints(
-          anchor(from, e.from[1], depthOf(from)),
+          anchor(from, e.from[1], depthOf(from, options)),
           e.from[1],
           e.out ?? LOOP_OUT,
           e.span ?? LOOP_SPAN,
         )
       : bow !== 0
         ? bowPoints(
-            anchor(from, e.from[1], depthOf(from)),
-            anchor(to, e.to[1], depthOf(to)),
+            anchor(from, e.from[1], depthOf(from, options)),
+            anchor(to, e.to[1], depthOf(to, options)),
             bow,
           )
         : [
-            anchor(from, e.from[1], depthOf(from)),
+            anchor(from, e.from[1], depthOf(from, options)),
             ...(e.via || []),
-            anchor(to, e.to[1], depthOf(to)),
+            anchor(to, e.to[1], depthOf(to, options)),
           ];
   });
 
@@ -396,7 +416,7 @@ export function draw(
       // the front outline, so an extruded node lays down front outline,
       // faces, face shading, then its `hatch: true` shading and label below
       // - the slab rises whole under an animated reveal.
-      const d = depthOf(n);
+      const d = depthOf(n, options);
       shape(n.x, n.y, n.w, n.h, {
         color: n.accent ? theme.pen : theme.ink,
         ...(d > 0 ? { depth: d } : {}),

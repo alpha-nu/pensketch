@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as subpath from '../src/check';
-import { check } from '../src/check';
+import { type CheckOptions, check } from '../src/check';
 import { INFLATE } from '../src/geometry';
 import type { Diagram, DiagramEdge, DiagramNode } from '../src/index';
-import { BUDGETS, SAMPLER } from './fixtures';
 
 const box = (id: string, x: number, y: number): DiagramNode => ({
   id,
@@ -1288,6 +1287,304 @@ describe('a brace is checked as the shape it draws', () => {
   });
 });
 
+// An extruded node is bigger than its box, and the checker measures what the
+// pen puts down. Every number below is worked out by hand from the vector
+// `(d, -0.75d)` and the swept box `(x, y - .75d, w + d, h + .75d)`, and every
+// case is stated twice - flat and extruded - so that what the sweep changed
+// is visible rather than asserted.
+describe('an extruded node is measured extruded', () => {
+  const DEEP = { extrude: true, depth: 12 } as const;
+  // No edges reach the nodes in a few of these, and the rule that would say
+  // so has nothing to do with depth.
+  const QUIET = { rules: { 'orphan-node': 'off' } } as const;
+
+  // design.md D6's motivating defect, at the geometry it recorded: hero-5's
+  // TOOL SCHEMA box ended at x = 1190 in a 1200-wide viewBox - 10 px inside
+  // it - and at the default depth its face reached 1202, 2 px past. The
+  // render clipped the face and the owner caught it by eye, a day before the
+  // design was written; this is that eye made mechanical.
+  describe('a face crossing the viewBox', () => {
+    const HERO = [0, 0, 1200, 600] as const;
+    const FRAME: Diagram = {
+      nodes: [
+        { id: 'agent', shape: 'box', x: 100, y: 200, w: 200, h: 80 },
+        { id: 'schema', shape: 'box', x: 990, y: 200, w: 200, h: 80 },
+      ],
+      edges: [{ from: ['agent', 'r'], to: ['schema', 'l'] }],
+    };
+
+    it('is reported where the flat box passes', () => {
+      expect(check(FRAME, { viewBox: HERO })).toEqual([]);
+    });
+
+    it('is reported as out-of-bounds, naming the node that casts it', () => {
+      const findings = check(FRAME, { viewBox: HERO, ...DEEP });
+      expect(rules(findings)).toEqual(['out-of-bounds']);
+      expect(findings[0]).toMatchObject({
+        severity: 'error',
+        subjects: ['node "schema"'],
+        // The node's own corner: `at` is somewhere to go and look, and the
+        // place to look at a clipped slab is the node casting it.
+        at: [990, 200],
+      });
+    });
+
+    // The other end of the same vector, and its own case because the sweep
+    // is measured at two corners and only one of them moved in x. `agent`
+    // sits 5 px below the top of the frame and rises 9, so its face is 4 px
+    // above it while its box is inside; nothing here crosses the right-hand
+    // edge, so the rise is the whole reason for the finding.
+    it('is reported where the face rises above the top of the frame', () => {
+      const HIGH: Diagram = {
+        nodes: [
+          { id: 'agent', shape: 'box', x: 100, y: 5, w: 200, h: 80 },
+          { id: 'schema', shape: 'box', x: 600, y: 200, w: 200, h: 80 },
+        ],
+        edges: [{ from: ['agent', 'r'], to: ['schema', 'l'] }],
+      };
+      expect(check(HIGH, { viewBox: HERO })).toEqual([]);
+
+      const findings = check(HIGH, { viewBox: HERO, ...DEEP });
+      expect(rules(findings)).toEqual(['out-of-bounds']);
+      expect(findings[0]).toMatchObject({ subjects: ['node "agent"'] });
+    });
+
+    // The sweep only ever adds. A slab rises, so its box's own bottom edge is
+    // the swept box's bottom edge too - `y - .75d` plus `h + .75d` is `y + h`
+    // - and a node hanging 5 px below a 600-tall frame goes on being reported
+    // once it extrudes. A sweep that moved the box up instead of growing it
+    // would withdraw this finding, which is the one thing depth must never do.
+    it('goes on reporting a box that hangs below the frame', () => {
+      const LOW: Diagram = {
+        nodes: [
+          { id: 'agent', shape: 'box', x: 100, y: 200, w: 200, h: 80 },
+          { id: 'schema', shape: 'box', x: 600, y: 525, w: 200, h: 80 },
+        ],
+        edges: [{ from: ['agent', 'r'], to: ['schema', 'l'] }],
+      };
+      for (const o of [{}, DEEP])
+        expect(rules(check(LOW, { viewBox: HERO, ...o }))).toEqual([
+          'out-of-bounds',
+        ]);
+    });
+
+    // The margin the case turns on, asserted rather than described: two more
+    // pixels of frame and the face fits, so the rule is measuring the face
+    // and not merely firing near it.
+    it('says nothing once the frame is two pixels wider', () => {
+      expect(check(FRAME, { viewBox: [0, 0, 1202, 600], ...DEEP })).toEqual([]);
+    });
+  });
+
+  // By hand: `a` sweeps to x 0..112 and `b` starts at 108, so the two slabs
+  // share 4 px of the picture that neither box does.
+  it('reports a pair whose slabs meet where their boxes do not', () => {
+    const APART: Diagram = {
+      nodes: [
+        { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 40 },
+        { id: 'b', shape: 'box', x: 108, y: 0, w: 100, h: 40 },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+    };
+    expect(check(APART)).toEqual([]);
+
+    const findings = check(APART, DEEP);
+    expect(rules(findings)).toEqual(['node-overlap']);
+    expect(findings[0]).toMatchObject({
+      severity: 'error',
+      subjects: ['node "a"', 'node "b"'],
+      at: [108, 0],
+    });
+  });
+
+  // The anchor an edge leaves, measured through a rule rather than read off
+  // `anchor`: at depth 40 the vector is (40, -30), so `a`'s right anchor
+  // moves from (200, 120) to (240, 90) and the connector is drawn from
+  // there. The note sits on that point and 23.5 px clear of the flat line -
+  // margin is 6.1 - so the two walks disagree about it.
+  describe('an edge walked from the moved anchor', () => {
+    const walk = (extrude: boolean): Diagram => ({
+      nodes: [
+        {
+          id: 'a',
+          shape: 'box',
+          x: 100,
+          y: 100,
+          w: 100,
+          h: 40,
+          extrude,
+          depth: 40,
+        },
+        { id: 'b', shape: 'box', x: 400, y: 100, w: 100, h: 40 },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+      notes: [{ x: 240, y: 90, lines: ['x'] }],
+    });
+
+    it('leaves the note alone while the node is flat', () => {
+      expect(check(walk(false))).toEqual([]);
+    });
+
+    it('reports the note the moved line is drawn through', () => {
+      const findings = check(walk(true));
+      expect(rules(findings)).toEqual(['label-collision']);
+      expect(findings[0]).toMatchObject({
+        subjects: ['note 0', 'edge 0'],
+        estimated: true,
+      });
+      expect(findings[0]?.message).toBe(
+        'note 0 lies under edge 0, which will be drawn through it',
+      );
+    });
+  });
+
+  // T-56, and the reason the checker splits its rules in two rather than
+  // sweeping a node wholesale. A label is painted on the front face, which
+  // the extrusion does not move: give `text-overflow` the swept box and it
+  // hands every extruded node d px of room no glyph can occupy, which is
+  // claimed slack that spills, and it drags every label box up and right of
+  // where `draw` writes it, which is what `text-collision` compares.
+  //
+  // By hand at the defaults - size 13.5, advance 0.55, padding 8 - `tight`
+  // has 100 - 16 = 84 px of room and a twelve-character label needs
+  // 12 * 13.5 * 0.55 = 89.1, so it overflows by 5. Swept it would have
+  // 112 - 16 = 96 and the finding would vanish. `a`'s label is centred on
+  // (250, 20) and the note's box starts at (240, 13.5); swept, that centre
+  // moves to (256, 15.5) and the finding survives at a different place.
+  describe("a label's room does not grow with depth", () => {
+    const TEXT: Diagram = {
+      nodes: [
+        {
+          id: 'tight',
+          shape: 'box',
+          x: 0,
+          y: 0,
+          w: 100,
+          h: 40,
+          lines: ['twelve chars'],
+        },
+        {
+          id: 'a',
+          shape: 'box',
+          x: 200,
+          y: 0,
+          w: 100,
+          h: 40,
+          lines: ['label'],
+        },
+      ],
+      edges: [{ from: ['tight', 'r'], to: ['a', 'l'] }],
+      notes: [{ x: 240, y: 20, lines: ['x'] }],
+    };
+    const text = (d: Diagram, o: CheckOptions) =>
+      check(d, o).filter(
+        (f) => f.rule === 'text-overflow' || f.rule === 'text-collision',
+      );
+
+    it('reports both text rules flat, which is what the pair must not move', () => {
+      const flat = text(TEXT, {});
+      expect(rules(flat)).toEqual(['text-collision', 'text-overflow']);
+      expect(flat[1]?.message).toBe(
+        'the label on node "tight" needs about 89px and has 84px; widen the box or shorten the text',
+      );
+    });
+
+    it('reports exactly the same two findings extruded', () => {
+      expect(text(TEXT, DEEP)).toEqual(text(TEXT, {}));
+    });
+
+    // The overflow on its own, because it is the one that would disappear
+    // rather than move: 89.1 fits inside a swept 96 and the warning would be
+    // silently withdrawn from a label that still spills its pill.
+    it("keeps the front box's room in the message it prints", () => {
+      expect(text(TEXT, DEEP)[1]?.message).toContain('has 84px');
+    });
+  });
+
+  // A group bounds a set; it is not an object, and it never extrudes. So the
+  // frame stays where it is drawn and the member's slab is what crosses it.
+  // By hand: `in` runs x 220..280 against a group ending at 280, which is
+  // flush and therefore contained, and sweeps to x 220..292, which is not.
+  describe("a member's slab escaping its group", () => {
+    const LANE: Diagram = {
+      nodes: [
+        {
+          id: 'lane',
+          shape: 'group',
+          x: 20,
+          y: 20,
+          w: 260,
+          h: 160,
+          lines: ['lane'],
+        },
+        { id: 'in', shape: 'box', x: 220, y: 60, w: 60, h: 40 },
+      ],
+    };
+
+    it('is contained while it is flat, flush against the frame', () => {
+      expect(check(LANE, QUIET)).toEqual([]);
+    });
+
+    it('is reported against the flat frame once it extrudes', () => {
+      const findings = check(LANE, { ...DEEP, ...QUIET });
+      expect(rules(findings)).toEqual(['group-escape']);
+      expect(findings[0]).toMatchObject({
+        severity: 'warning',
+        subjects: ['node "in"', 'node "lane"'],
+        at: [220, 60],
+      });
+    });
+  });
+
+  // The predicate `draw` resolves a depth behind, read from `sample` rather
+  // than restated: a pill whose larger dimension falls under
+  // 3 * ARC_MIN_CHORD / PI - 11.4592 px - samples to an outline with no area,
+  // draws no faces at all, and so is measured by its flat box however good
+  // its `depth`. The box beside it is the control: same numbers, same
+  // options, and it does sweep, which is what stops this passing for the
+  // wrong reason.
+  it('measures a shape that cannot carry a face by its flat box', () => {
+    const small = (shape: 'pill' | 'box'): Diagram => ({
+      nodes: [{ id: 'p', shape, x: 85, y: 40, w: 10, h: 8 }],
+    });
+    const opts = { viewBox: [0, 0, 100, 100] as const, ...DEEP, ...QUIET };
+
+    expect(check(small('pill'), opts)).toEqual([]);
+    // 85 + 10 + 12 = 107, which is 7 px past the frame.
+    expect(rules(check(small('box'), opts))).toEqual(['out-of-bounds']);
+  });
+
+  // The override cuts both ways, on the checker's side of the line too: a
+  // node's own `extrude` beats the diagram's, and the depth follows the node
+  // that carries it.
+  it("reads the pair by the renderer's idiom, node over options", () => {
+    const pair: Diagram = {
+      nodes: [
+        { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 40, extrude: false },
+        { id: 'b', shape: 'box', x: 108, y: 0, w: 100, h: 40 },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+    };
+    // `a` opts out, so nothing sweeps into `b` and the 8 px gap holds.
+    expect(check(pair, DEEP)).toEqual([]);
+    // And the other way: a flat diagram with one node raised out of it.
+    expect(
+      rules(
+        check(
+          {
+            ...pair,
+            nodes: [
+              { ...pair.nodes?.[0], extrude: true } as DiagramNode,
+              pair.nodes?.[1] as DiagramNode,
+            ],
+          },
+          {},
+        ),
+      ),
+    ).toEqual(['node-overlap']);
+  });
+});
+
 // The gate the rest of group 3 stands on, landed before any rule learns to
 // sweep: whatever the checker says about a diagram that extrudes nothing, it
 // SHALL keep saying once it can measure depth. The reference diagrams are
@@ -1295,6 +1592,13 @@ describe('a brace is checked as the shape it draws', () => {
 // sampler reports nothing at all - so the subject is a diagram built to
 // trip as many rules at once as one drawing can, and the assertion is the
 // whole report: rule, severity and message, in order.
+//
+// It held. 3.1 taught six rules to sweep and moved every anchor an edge is
+// walked from, and this snapshot did not move a byte - which is the whole of
+// the requirement that a flat check reports exactly what it always reported,
+// asserted against a statement frozen before the code could see depth rather
+// than against a run of the code that changed. A second assertion here would
+// only restate it against a weaker witness.
 describe('a flat diagram is measured as it always was', () => {
   const said = (diagram: Diagram, viewBox: [number, number, number, number]) =>
     check(diagram, { viewBox }).map(
@@ -1306,16 +1610,78 @@ describe('a flat diagram is measured as it always was', () => {
       said(
         {
           nodes: [
-            { id: 'grp', shape: 'group', x: 20, y: 20, w: 260, h: 160, lines: ['a group'] },
-            { id: 'in', shape: 'box', x: 40, y: 60, w: 120, h: 50, lines: ['inside'] },
-            { id: 'out', shape: 'box', x: 220, y: 120, w: 140, h: 60, lines: ['escapes the frame'] },
-            { id: 'over', shape: 'box', x: 300, y: 150, w: 120, h: 60, lines: ['overlaps'] },
-            { id: 'clip', shape: 'pill', x: 700, y: 60, w: 160, h: 50, lines: ['past the edge'] },
-            { id: 'lonely', shape: 'diamond', x: 420, y: 40, w: 100, h: 60, lines: ['orphan'] },
-            { id: 'tight', shape: 'box', x: 60, y: 220, w: 60, h: 40, lines: ['far too wide for this'] },
+            {
+              id: 'grp',
+              shape: 'group',
+              x: 20,
+              y: 20,
+              w: 260,
+              h: 160,
+              lines: ['a group'],
+            },
+            {
+              id: 'in',
+              shape: 'box',
+              x: 40,
+              y: 60,
+              w: 120,
+              h: 50,
+              lines: ['inside'],
+            },
+            {
+              id: 'out',
+              shape: 'box',
+              x: 220,
+              y: 120,
+              w: 140,
+              h: 60,
+              lines: ['escapes the frame'],
+            },
+            {
+              id: 'over',
+              shape: 'box',
+              x: 300,
+              y: 150,
+              w: 120,
+              h: 60,
+              lines: ['overlaps'],
+            },
+            {
+              id: 'clip',
+              shape: 'pill',
+              x: 700,
+              y: 60,
+              w: 160,
+              h: 50,
+              lines: ['past the edge'],
+            },
+            {
+              id: 'lonely',
+              shape: 'diamond',
+              x: 420,
+              y: 40,
+              w: 100,
+              h: 60,
+              lines: ['orphan'],
+            },
+            {
+              id: 'tight',
+              shape: 'box',
+              x: 60,
+              y: 220,
+              w: 60,
+              h: 40,
+              lines: ['far too wide for this'],
+            },
           ],
           edges: [
-            { from: ['in', 'r'], to: ['out', 'l'], label: 'on the line', lx: 190, ly: 118 },
+            {
+              from: ['in', 'r'],
+              to: ['out', 'l'],
+              label: 'on the line',
+              lx: 190,
+              ly: 118,
+            },
             { from: ['in', 'r'], to: ['over', 'l'] },
             { from: ['tight', 'r'], to: ['clip', 'l'] },
           ],
