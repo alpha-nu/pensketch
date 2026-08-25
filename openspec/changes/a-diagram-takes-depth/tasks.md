@@ -124,11 +124,18 @@ Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
       the re-decision is the server's alone. README row moved to match.
       The armed tripwire fires; the re-decision is recorded in D7 when
       taken, not here
-- [ ] 2.4 Types exported by name, JSDoc on the new fields written so the
+- [x] 2.4 Types exported by name, JSDoc on the new fields written so the
       schema generates right, `npm run schema` clean. `GroupNode` omits the
       pair (T-49) so the strict schema refuses it on a group, and the
       MODIFIED closed-surface requirement (T-42) is what legislates
       `ShapeOptions`
+
+      **Closed out as verification: the substance landed earlier and this
+      task confirms it.** `ShapeOptions` exported and in the built dts
+      (1.1/T-42); the pair JSDoc'd on `ShapeNode` and `DrawOptions` with
+      the schema regenerated and ajv-verified both directions (2.1);
+      `GroupNode` clean in source and dts; `npm run schema` idempotent at
+      exit 0 on the current tree. Nothing remained to write
 
 - [ ] 2.5 Probe renders (T-53), eye-checked and recorded in D8: `hatch: true`
       beside depth — front hatch pen-coloured inset, face hatch muted
