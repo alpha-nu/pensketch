@@ -139,16 +139,21 @@ Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
 
 - [x] 2.5 Probe renders (T-53), eye-checked and recorded in D8: `hatch: true`
       beside depth — front hatch pen-coloured inset, face hatch muted
-      outside, phase offset `(w + 0.75d + 8) mod 11` so some widths align
-      the two families — an accent node's pen-coloured faces over muted
-      shading, and a dotted raw shape's dotted faces. Guidance lands with
-      5.1
+      outside, some widths aligning the two families — an accent node's
+      pen-coloured faces over muted shading, and a dotted raw shape's
+      dotted faces. Guidance lands with 5.1
 
-      **Rendered and judged.** Aligned width beside a control: the fold
-      survives alignment, colour and inset separate the planes, no rule
-      needed. Accent coherent. Dotted extrudes as a ghost slab, dashed
-      outlines with solid shading - deliberate, documented, unchanged.
-      Probe geometry in D8; renders regenerable at seed 83
+      **Rendered and judged, then re-judged (T-61).** Accent coherent.
+      Dotted extrudes as a ghost slab, dashed outlines with solid
+      shading - deliberate, documented, unchanged. The phase leg was
+      wrong twice over: the offset formula this task carried had `0.75d`
+      in it, and the width it called aligned was 3/11 off, so the first
+      render never tested alignment at all. Derived properly the offset
+      is `(w - 8) mod 11` for a box and depth cancels; re-rendered at the
+      truly aligned 173 beside 170 and 176 at two depths, the fold still
+      reads, because the front hatch's 4 px inset dominates phase. Same
+      verdict, different evidence, and the evidence is the part that was
+      missing. D8 carries the derivation and the numbers
 
 Gate: full suite, goldens untouched, `openspec validate --strict`.
 
@@ -184,13 +189,34 @@ Gate: full suite, generated files fresh in CI's sense.
 
 - [ ] 5.1 The field tables and pen tables in both READMEs, `docs/agents.md`
       (type block, constants table, and one worked slab example),
-      `CONTRIBUTING.md` if any gate changed, and the JSDoc on `DEPTH` and
-      `ShapeOptions.depth` re-read against shipped behaviour (T-46 made the
-      constants comment the fifth hand-written place this list once
-      missed). Per-shape guidance written to the evidence: a box extrudes
+      `CONTRIBUTING.md` if any gate changed, and **six** JSDoc sites re-read
+      against shipped behaviour, not two (T-68 counted them: `constants.DEPTH`,
+      `ShapeOptions.depth`, `ShapeNode.depth`, `DrawOptions.depth`,
+      `ShapeNode.extrude`, `DrawOptions.extrude` — per-shape guidance and the
+      override rule already ship in all six). Two hazards to fix while there:
+      `ShapeOptions.depth` promises an undrawable depth "leaves the shape's
+      bytes exactly what they were", true of the pen and false of `draw`,
+      which now throws first — write the level split down; and
+      `ShapeNode.depth` never says an undrawable depth throws at all.
+
+      Per-shape guidance written to the evidence: a box extrudes
       at any scale, a pill wants depth near a third of its height, a
       diamond prefers flat (T-48), and a pill under ~12 px in both
-      dimensions has no outline to extrude (T-55)
+      dimensions has no outline to extrude (T-55). Plus: depth's cost is
+      linear at about 82 B per px and is bounded by nothing, which `out`,
+      `span` and `bow` each already say of themselves and `depth` does not
+      (T-74); and `docs/agents.md` has no depth section at all, so
+      `pensketch://spec` describes a renderer that cannot extrude while
+      `pensketch://schema` documents the fields (T-72) — 4.2 confirms both
+      resources move together.
+
+      Two pre-existing records to correct in passing, both confirmed:
+      `draw`'s throws-JSDoc says "Nothing else is validated" while a
+      non-finite `bow`, `out` or `span` still dies as a bare TypeError from
+      the sampler (T-69 — a named message is a follow-up, not this change),
+      and the comment above the edge pass claiming a diagram "throws before
+      anything is drawn" is false whenever a group exists, ten children deep
+      (T-70)
 - [ ] 5.2 `openspec validate --strict` clean; self-review of the full diff;
       every finding fixed before hand-off
 

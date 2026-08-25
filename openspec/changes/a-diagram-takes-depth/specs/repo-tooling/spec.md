@@ -1,8 +1,11 @@
 # repo-tooling — Delta Specification
 
-> Two budgets move for depth, in one step, sized from a built rehearsal of
-> the whole core-side surface, reverted after it was read: the arithmetic is
-> in a-diagram-takes-depth/design.md D7 and beside the numbers in
+> Two budgets move for depth, in three steps. `./check` and `./server` were
+> first sized in one step from a built rehearsal of the whole core-side
+> surface, reverted after it was read; then `./server` moved again when the
+> validation the spec actually demands falsified that arithmetic by 118 B,
+> re-decided at a green gate in its own commit. The numbers and the reasons
+> are in a-diagram-takes-depth/design.md D7 and beside each budget in
 > `tools/check-size.mjs`.
 
 ## MODIFIED Requirements

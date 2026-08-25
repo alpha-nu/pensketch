@@ -196,15 +196,36 @@ d = 12 and d = 8; proportional — pill 220 × 90 at d = 30 and 45, diamond
 160 × 120 at d = 24 and 36. The renders go in front of the owner at the
 group boundary.
 
-**The 2.5 interaction probes (2026-08-25, seed 83, 960 × 300):** the
-feared hatch-phase collision is a non-issue — at the aligned width
-(w = 170, d = 12, (w + 0.75d + 8) mod 11 = 0) the fold stays legible,
-because the front hatch is pen-coloured and inset where the face hatch is
-muted and outside the outline; colour and inset separate the planes at
-any width. An accent node's pen faces over muted shading read coherent.
-A dotted raw shape extrudes as a ghost slab — dashed outlines, solid
-muted shading — a deliberate look to use knowingly, recorded for 5.1's
-guidance rather than changed.
+**The 2.5 interaction probes (2026-08-25, seed 83).** An accent node's
+pen faces over muted shading read coherent. A dotted raw shape extrudes
+as a ghost slab — dashed outlines, solid muted shading — a deliberate
+look to use knowingly, recorded for 5.1's guidance rather than changed.
+
+**The hatch-phase question, got wrong once and then measured (T-61).**
+The first probe recorded the offset between the two hatch families as
+`(w + 0.75d + 8) mod 11` and rendered w = 170 as "the aligned width". Both
+were wrong. Derived from the code — the front hatch rules
+`hatch(x+4, y+4, w−8, h−8)` and the face strip rules from `x + w` with
+`maxy = y + h`, and a hatch line's constant is `c = x + i − y` — the
+`0.75d` cancels identically:
+
+    box:     Δ ≡ (w − 8)            mod 11
+    diamond: Δ ≡ (w/2 + h/2 − 8)    mod 11
+    pill:    depends on w and h both
+
+**Depth does not enter any of them**, and neither does the seed. So the
+aligned widths for a box are `w ≡ 8 (mod 11)` — 162, 173, 184 — and
+w = 170 sits 3/11 off, which is to say the probe that concluded "the
+fold survives alignment" never rendered an aligned case.
+
+Re-rendered at w = 173 beside 170 and 176, at d = 12 and d = 40: **the
+verdict survives, now on evidence.** The fold reads at alignment, and the
+measurement says why — the closest front-ink-to-face-ink distance is
+about 5 px at the aligned widths against 3.7 px at the misaligned 176,
+because the front hatch's 4 px inset dominates the phase entirely. The
+two families are separated by colour, by inset, and by the fold stroke;
+phase was never doing the work. No rule needed, for the reason now
+written down rather than the reason first guessed.
 
 Decision under the owner's session delegation: the geometry ships for all
 three shapes as the delta states, the default stays box-calibrated, and the

@@ -13,8 +13,9 @@ same pair. A group never extrudes: it bounds, it is not an object, and the
 pair on a group is a field that does not apply — `draw` SHALL ignore it,
 while the published schema refuses it on a group the way it already refuses
 `hatch` and `accent` there, and that split is stated here so it is read
-rather than discovered. Resolution SHALL be the `hop` idiom exactly: extrusion is on for a node
-iff `node.extrude ?? options.extrude ?? false`, and its magnitude is
+rather than discovered. For a **shape** node — never a group, whatever
+either field says — resolution SHALL be the `hop` idiom exactly: extrusion
+is on iff `node.extrude ?? options.extrude ?? false`, and its magnitude is
 `node.depth ?? options.depth ?? DEPTH` — so an extruded diagram can flatten
 one node and a flat diagram can extrude one. `pen.rect`, `pen.pill` and
 `pen.diamond` SHALL accept `depth` in their options; no pen member SHALL be
@@ -81,9 +82,11 @@ unknown shape, an edge `label` without numeric `lx`/`ly`, a brace's `lines`
 without them, an edge whose `from`
 and `to` name the same node but **different** sides, an edge or note combining
 `bow` with `via`, a self-transition carrying `via` or `bow`, and a `depth`
-that is not a positive finite number where it is read: the options `depth`
-whenever `options.extrude` is true, and every extruded node's resolved
-depth, `node.depth ?? options.depth ?? DEPTH`. Each message
+that is not a positive finite number in either of two places: the options
+`depth` whenever `options.extrude` is true — whether or not any node goes
+on to read it, since a diagram-wide switch pointed at an undrawable value
+is a contradiction on its face — and every extruded node's resolved depth,
+`node.depth ?? options.depth ?? DEPTH`. Each message
 SHALL carry what the caller needs to fix it without reading the source — the
 ids that do exist, the shapes that are accepted, why a label needs coordinates,
 that a loop attaches to one side, or what already describes the path a second
