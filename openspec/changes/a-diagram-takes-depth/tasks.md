@@ -75,8 +75,9 @@ Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
 ## 2. The renderer
 
 - [ ] 2.1 `draw` plumbing: the options pair, the per-node pair, the `hop`
-      resolution idiom, faces drawn wash → front → faces → face shading →
-      front `hatch: true` → label within the node phase. Groups never
+      resolution idiom, faces drawn front → faces → face shading →
+      front `hatch: true` → label within the node phase (no wash: that is
+      the group treatment). Groups never
       extrude (T-49): the pair on a group is ignored by `draw`, refused by
       the schema, and a test pins the flat group frame under a diagram-wide
       `extrude: true`

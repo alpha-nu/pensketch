@@ -63,10 +63,11 @@ winding is read off the outline's signed area rather than assumed, so a
 mirrored dimension extrudes outward like any other — and a zero-area
 outline has no winding, no outward, and takes no faces at all.
 
-The front face keeps everything it has today: wash, `hatch: true` shading,
-label. Within the node phase the hand order is wash, front outline, faces,
-face shading, the front's own `hatch: true`, label — so an animated reveal
-raises each slab whole. The phase
+The front face keeps everything it has today: `hatch: true` shading and
+label (a shape node draws no wash — that is the group treatment). Within
+the node phase the hand order is front outline, faces, face shading, the
+front's own `hatch: true`, label — so an animated reveal raises each slab
+whole. The phase
 order in "Diagram render order is normative" does not move.
 
 ## D3. Anchors move to the silhouette

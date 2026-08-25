@@ -36,8 +36,10 @@ degenerates to a top face and a right face with only the right face shaded.
 The front face SHALL keep its wash, its `hatch: true` shading and its label
 unchanged.
 
-Within the node phase the hand order SHALL be wash, front outline, faces,
-face shading, the front face's own `hatch: true` shading, label; the phase order of "Diagram render order is normative" SHALL
+Within the node phase the hand order SHALL be front outline, faces,
+face shading, the front face's own `hatch: true` shading, label — a shape
+node draws no wash, that is the group's treatment and a group never
+extrudes; the phase order of "Diagram render order is normative" SHALL
 NOT change. When a node is extruded, its `t` and `r` anchors SHALL move by the full
 extrusion vector — `t` to `(x + w/2 + d, y − DEPTH_RISE × d)`, `r` to
 `(x + w + d, y + h/2 − DEPTH_RISE × d)`, each the flat anchor plus `E`,
