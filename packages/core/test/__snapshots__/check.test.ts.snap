@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`a flat diagram is measured as it always was > reports what it always reported, rule by rule 1`] = `
+[
+  "error node-overlap nodes "out" and "over" overlap; one is drawn over the other",
+  "error out-of-bounds node "clip" reaches outside the viewBox, so part of it is clipped away",
+  "warning group-escape node "out" is half inside group "grp"; move it wholly in or wholly out",
+  "warning label-collision the label on edge 0 lies on the line it labels; move it clear or put the text in a box instead",
+  "warning orphan-node no edge names node "lonely"; check the from and to of every edge that should reach it",
+  "warning text-collision node "grp" lies under note 0, which will be drawn through it",
+  "warning text-overflow the label on node "tight" needs about 156px and has 44px; widen the box or shorten the text",
+  "warning text-overflow the label on node "out" needs about 126px and has 124px; widen the box or shorten the text",
+]
+`;

@@ -3,6 +3,7 @@ import * as subpath from '../src/check';
 import { check } from '../src/check';
 import { INFLATE } from '../src/geometry';
 import type { Diagram, DiagramEdge, DiagramNode } from '../src/index';
+import { BUDGETS, SAMPLER } from './fixtures';
 
 const box = (id: string, x: number, y: number): DiagramNode => ({
   id,
@@ -1284,5 +1285,44 @@ describe('a brace is checked as the shape it draws', () => {
         notes: [{ x: 120, y: 150, lines: ['x'] }],
       }),
     ).toEqual([]);
+  });
+});
+
+// The gate the rest of group 3 stands on, landed before any rule learns to
+// sweep: whatever the checker says about a diagram that extrudes nothing, it
+// SHALL keep saying once it can measure depth. The reference diagrams are
+// too well behaved to hold that on their own - at their real viewBoxes the
+// sampler reports nothing at all - so the subject is a diagram built to
+// trip as many rules at once as one drawing can, and the assertion is the
+// whole report: rule, severity and message, in order.
+describe('a flat diagram is measured as it always was', () => {
+  const said = (diagram: Diagram, viewBox: [number, number, number, number]) =>
+    check(diagram, { viewBox }).map(
+      (f) => `${f.severity} ${f.rule} ${f.message}`,
+    );
+
+  it('reports what it always reported, rule by rule', () => {
+    expect(
+      said(
+        {
+          nodes: [
+            { id: 'grp', shape: 'group', x: 20, y: 20, w: 260, h: 160, lines: ['a group'] },
+            { id: 'in', shape: 'box', x: 40, y: 60, w: 120, h: 50, lines: ['inside'] },
+            { id: 'out', shape: 'box', x: 220, y: 120, w: 140, h: 60, lines: ['escapes the frame'] },
+            { id: 'over', shape: 'box', x: 300, y: 150, w: 120, h: 60, lines: ['overlaps'] },
+            { id: 'clip', shape: 'pill', x: 700, y: 60, w: 160, h: 50, lines: ['past the edge'] },
+            { id: 'lonely', shape: 'diamond', x: 420, y: 40, w: 100, h: 60, lines: ['orphan'] },
+            { id: 'tight', shape: 'box', x: 60, y: 220, w: 60, h: 40, lines: ['far too wide for this'] },
+          ],
+          edges: [
+            { from: ['in', 'r'], to: ['out', 'l'], label: 'on the line', lx: 190, ly: 118 },
+            { from: ['in', 'r'], to: ['over', 'l'] },
+            { from: ['tight', 'r'], to: ['clip', 'l'] },
+          ],
+          notes: [{ x: 62, y: 40, lines: ['a group title sits here'] }],
+        },
+        [0, 0, 760, 300],
+      ),
+    ).toMatchSnapshot();
   });
 });

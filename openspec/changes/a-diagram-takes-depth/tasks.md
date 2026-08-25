@@ -159,9 +159,31 @@ Gate: full suite, goldens untouched, `openspec validate --strict`.
 
 ## 3. The checker
 
+Sequenced on the group 2 SWAT's advice: the flat-run gate lands **first**,
+before any rule learns to sweep, so that every later commit in this group
+is measured against a frozen statement of what the checker said when it
+could not see depth at all. That is the 1.2 analogue - the gate the group
+stands on rather than a test written after the fact.
+
+- [x] 3.0 The flat-run gate: a diagram built to trip as many rules at once
+      as one drawing can, its whole report frozen - rule, severity and
+      message, in order.
+
+      **Landed.** The reference diagrams were tried first and rejected as
+      the subject: at their real viewBoxes the sampler reports nothing and
+      the budgets report two orphans, and a mutation proved the gate did
+      not move when a rule's severity was flipped. The fixture that
+      replaced them fires seven rules across eight findings, and two
+      severity mutants each break it. A gate that cannot fail is not a
+      gate, which is the whole reason this one landed before the work
+
 - [ ] 3.1 The swept box under every box-measuring rule, the moved anchors
       under every edge-walking rule, options and node fields resolved by the
-      renderer's idiom
+      renderer's idiom - reading `carriesFace` from `sample.ts` rather than
+      restating it (T-60), and `depthOf`'s idiom rather than a second copy.
+      Measure `./check` when the first rule lands, not at the gate: 3648 was
+      sized over a rehearsal column that excluded this task's label split
+      and per-rule anchor walks
 - [ ] 3.2 Tests: the face-past-the-viewBox case as the D6-recorded hero-5
       geometry — a box ending 10 px inside a 1200-wide viewBox at `d = 12`,
       face reaching 2 px past it (T-47; the hero file itself is untracked
@@ -169,6 +191,11 @@ Gate: full suite, goldens untouched, `openspec validate --strict`.
       sweep-only overlap, moved-anchor edge walk, the label-room rules
       pinned to the front box (T-56), and a flat run asserted byte-identical
       to today's findings
+
+- [ ] 3.3 `undrawable-depth` (T-65): reported as an error wherever `draw`
+      throws, naming the offender in the words the throw uses and telling a
+      node's own depth from an inherited one. Additive `RuleId` member, so
+      the union's own test and the severity table move with it
 
 Gate: full suite; `./check` budget from 1.3 still holds.
 
