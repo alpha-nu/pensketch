@@ -17,7 +17,18 @@ rather than discovered. For a **shape** node — never a group, whatever
 either field says — resolution SHALL be the `hop` idiom exactly: extrusion
 is on iff `node.extrude ?? options.extrude ?? false`, and its magnitude is
 `node.depth ?? options.depth ?? DEPTH` — so an extruded diagram can flatten
-one node and a flat diagram can extrude one. `pen.rect`, `pen.pill` and
+one node and a flat diagram can extrude one.
+
+A shape too small or too degenerate to carry a face SHALL resolve flat,
+whatever the pair says: an outline enclosing no area, or a pill whose
+sampled outline has collapsed to a chord because both dimensions fall under
+`ARC_MIN_CHORD`. The anchor follows the ink. A depth that draws no faces
+while the anchors move would hand an edge a start point 13 px from the
+node's own outline, which is the same defect as an anchor formula that
+lands off the silhouette and is refused for the same reason. This is
+resolution, not validation: nothing throws, no dimension is judged, and the
+rule SHALL exist in exactly one place, read by `draw` and by `check`
+alike. `pen.rect`, `pen.pill` and
 `pen.diamond` SHALL accept `depth` in their options; no pen member SHALL be
 added for it.
 
@@ -45,7 +56,14 @@ NOT change. When a node is extruded, its `t` and `r` anchors SHALL move by the f
 extrusion vector — `t` to `(x + w/2 + d, y − DEPTH_RISE × d)`, `r` to
 `(x + w + d, y + h/2 − DEPTH_RISE × d)`, each the flat anchor plus `E`,
 which lands on the silhouette's ink for every shape — and `l` and `b` SHALL
-NOT move; `anchor` SHALL report the same points edges attach to.
+NOT move; `anchor` SHALL report the same points edges attach to **when
+handed the depth `draw` resolved**. Its third parameter is a resolved depth,
+not a request: `anchor` SHALL apply what it is given and SHALL NOT resolve,
+so a caller passing a positive depth for a group — which `draw` never does —
+gets a moved point for a frame that never extrudes. That asymmetry SHALL be
+stated in the function's own documentation, since the resolution rule is
+otherwise private and a caller reading only the signature would take the
+flat point for the attachment point.
 When extrusion is off for the diagram and every node, the depth path SHALL
 draw nothing and consume nothing from the seeded sequence.
 

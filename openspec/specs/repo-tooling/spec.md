@@ -48,26 +48,6 @@ left to drift.
 - **WHEN** `@pensketch/mcp` appears in the dependencies of any rendering package
 - **THEN** the manifest test fails
 
-> **Size budgets** is edited in one sentence: `@pensketch/core/server` goes from
-> 4300 to 4480, and `@pensketch/animation` is added at 768. The
-> self-contained-entry rule, the README comparison gate, the `@pensketch/mcp`
-> exemption and the paragraph requiring a budget to move before the code are
-> unchanged — that last one being the clause this change obeys by moving both
-> numbers in group 1, before any of the work that needs them.
->
-> 4480 is the prototype's measured 4374 plus the conventional 100 B of gzip
-> headroom, taken up to the next multiple of 64; built, the entry measures 4378.
->
-> The animation budget was first set at 704 by the same arithmetic on a 546 B
-> prototype, and is **re-decided to 768 here** because the finished package
-> measures 614. Nothing failed — 614 fits 704. What failed was the arithmetic:
-> it left 90 B where this repository's standard is 100, and a margin smaller
-> than the 2 B of gzip noise an entry has already been measured moving on
-> identical code is not a margin. 614 plus 100 is 714, taken up to 768. A budget
-> sized from a prototype is a claim, and a claim that the finished thing
-> falsifies SHALL be re-decided deliberately rather than left standing because
-> it happened to hold.
-
 ### Requirement: Dual-format builds with types
 Each package SHALL build with tsup to ESM + CJS + `.d.ts` (minified,
 sourcemapped, target es2020) with a conditional `exports` map resolving

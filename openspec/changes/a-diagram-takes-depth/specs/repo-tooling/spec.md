@@ -34,6 +34,16 @@ declared. It SHALL NOT be raised at a failing gate to make that gate pass: a
 budget corrected after the fact records only that something grew, where one
 corrected before records what was decided and on what evidence.
 
+A budget sized from a prototype is a claim, and a claim the finished work
+falsifies SHALL be re-decided deliberately rather than left standing because
+it happened to hold. Such a re-decision SHALL be taken while the gate is
+still green, in its own commit, with the new arithmetic beside the number
+and the reason the first was wrong — it is a correction of a decision, not a
+raise for work, and the "in one step" rule above governs the raise, not the
+correction. Where a change knows in advance that its own estimate may not
+survive contact, it SHALL say so where the estimate is recorded, so that the
+correction is a plan being followed rather than a surprise being absorbed.
+
 #### Scenario: Budget breach
 - **WHEN** a change pushes core's min+gzip ESM output over 5120 bytes
 - **THEN** `npm run size` fails and CI goes red

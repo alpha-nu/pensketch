@@ -220,6 +220,15 @@ Gate: full suite, generated files fresh in CI's sense.
 - [ ] 5.2 `openspec validate --strict` clean; self-review of the full diff;
       every finding fixed before hand-off
 
+- [ ] 5.3 **T-57, and it applies to every change from here**: a delta's
+      header blockquote is a note to the reviewer of that change, not spec
+      text, and `openspec archive` copies it into the base spec wherever it
+      happens to land — the animation change's budget note spent a week
+      inside the "Scoped packages" requirement, which is not about budgets.
+      Strip this change's four headers at archive. Done once already for
+      the stranded one, and its single load-bearing sentence promoted into
+      the requirement body it was always about rather than deleted with it
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`
