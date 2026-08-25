@@ -196,6 +196,16 @@ d = 12 and d = 8; proportional — pill 220 × 90 at d = 30 and 45, diamond
 160 × 120 at d = 24 and 36. The renders go in front of the owner at the
 group boundary.
 
+**The 2.5 interaction probes (2026-08-25, seed 83, 960 × 300):** the
+feared hatch-phase collision is a non-issue — at the aligned width
+(w = 170, d = 12, (w + 0.75d + 8) mod 11 = 0) the fold stays legible,
+because the front hatch is pen-coloured and inset where the face hatch is
+muted and outside the outline; colour and inset separate the planes at
+any width. An accent node's pen faces over muted shading read coherent.
+A dotted raw shape extrudes as a ghost slab — dashed outlines, solid
+muted shading — a deliberate look to use knowingly, recorded for 5.1's
+guidance rather than changed.
+
 Decision under the owner's session delegation: the geometry ships for all
 three shapes as the delta states, the default stays box-calibrated, and the
 per-shape guidance lands in the field tables at task 5.1 — a box extrudes

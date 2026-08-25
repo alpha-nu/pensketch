@@ -137,12 +137,18 @@ Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
       `GroupNode` clean in source and dts; `npm run schema` idempotent at
       exit 0 on the current tree. Nothing remained to write
 
-- [ ] 2.5 Probe renders (T-53), eye-checked and recorded in D8: `hatch: true`
+- [x] 2.5 Probe renders (T-53), eye-checked and recorded in D8: `hatch: true`
       beside depth — front hatch pen-coloured inset, face hatch muted
       outside, phase offset `(w + 0.75d + 8) mod 11` so some widths align
       the two families — an accent node's pen-coloured faces over muted
       shading, and a dotted raw shape's dotted faces. Guidance lands with
       5.1
+
+      **Rendered and judged.** Aligned width beside a control: the fold
+      survives alignment, colour and inset separate the planes, no rule
+      needed. Accent coherent. Dotted extrudes as a ghost slab, dashed
+      outlines with solid shading - deliberate, documented, unchanged.
+      Probe geometry in D8; renders regenerable at seed 83
 
 Gate: full suite, goldens untouched, `openspec validate --strict`.
 
