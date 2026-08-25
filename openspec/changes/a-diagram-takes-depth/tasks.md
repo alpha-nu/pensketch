@@ -397,60 +397,73 @@ Gate: full suite, generated files fresh in CI's sense.
 
 ## 5. Write it down
 
-- [ ] 5.1 The field tables and pen tables in both READMEs, `docs/agents.md`
-      (type block, constants table, and one worked slab example),
-      `CONTRIBUTING.md` if any gate changed, and **six** JSDoc sites re-read
-      against shipped behaviour, not two (T-68 counted them: `constants.DEPTH`,
-      `ShapeOptions.depth`, `ShapeNode.depth`, `DrawOptions.depth`,
-      `ShapeNode.extrude`, `DrawOptions.extrude` — per-shape guidance and the
-      override rule already ship in all six). Two hazards to fix while there:
-      `ShapeOptions.depth` promises an undrawable depth "leaves the shape's
-      bytes exactly what they were", true of the pen and false of `draw`,
-      which now throws first — write the level split down; and
-      `ShapeNode.depth` never says an undrawable depth throws at all.
+- [x] 5.1 The field tables and pen tables in both READMEs, `docs/agents.md`
 
-      Per-shape guidance written to the evidence: a box extrudes
-      at any scale, a pill wants depth near a third of its height, a
-      diamond prefers flat (T-48), and a pill under ~12 px in both
-      dimensions has no outline to extrude (T-55) — and note that "12 px"
-      is the shorthand, not the rule: measured, a pill carries faces once
-      its larger dimension reaches `3 × ARC_MIN_CHORD / π` = 11.4592, which
-      is why the first spec draft's "under `ARC_MIN_CHORD` in both
-      dimensions" was false across [11.4592, 12). `ShapeNode.extrude` and
-      `.depth` must also say that a shape too small to carry a face
-      resolves flat, since neither they nor the schema generated from them
-      nor the MCP resource mirroring it says so today, and a caller setting
-      `extrude: true` on a 10 × 8 pill currently sees nothing happen with
-      no documented reason. The checker's rule-and-severity table is
-      hand-written in **three** places — `README.md`, `docs/agents.md` and
-      `packages/core/README.md` — and none carries `undrawable-depth`;
-      `docs/agents.md` is mirrored into the MCP resources, so
-      `npm run resources` regenerates with it — and the count is asserted
-      as a fact in a **fourth** hand-written place the earlier list missed,
-      `examples/showcase/index.html`, which labels a node "nine rules" and
-      is mirrored into the MCP resources (T-86). Two sentences are owed
-      beside those tables: that `check` validates a depth's *form* and not
-      its cost, so a depth it passes in half a millisecond can be one
-      `draw` spends 150 ms and 8 MB on (T-84); and that the swept box
-      over-reports by roughly `d`, measured at 110 px of clear air between
-      two diamonds reported as overlapping at depth 40 (T-88). Plus:
-      depth's cost is
-      linear at about 82 B per px and is bounded by nothing, which `out`,
-      `span` and `bow` each already say of themselves and `depth` does not
-      (T-74); and `docs/agents.md` has no depth section at all, so
-      `pensketch://spec` describes a renderer that cannot extrude while
-      `pensketch://schema` documents the fields (T-72) — 4.2 confirms both
-      resources move together.
+      **Swept in three parallel passes over disjoint files - the sources, the
+      two READMEs, `docs/agents.md` plus the tool descriptions - against one
+      fact sheet measured on the tree rather than copied out of this file.
+      That mattered: two of the numbers this task recorded were wrong.** The
+      cost is about **80 B per px** and not 82, fitted over depths 100 to
+      1000; and the fixed face cost is **4,126 B**, measured as the markup's
+      growth over flat as the depth approaches nought. `check` passes
+      `depth: 20000` in 0.43 ms where drawing it emits 6,386 paths, 1.6 MB of
+      markup and 34 MB of heap. `constants` exports 42, not 40; the checker
+      has 10 rules; the showcase says "ten rules" and its PNGs were
+      re-rendered.
 
-      Two pre-existing records to correct in passing, both confirmed:
-      `draw`'s throws-JSDoc says "Nothing else is validated" while a
-      non-finite `bow`, `out` or `span` still dies as a bare TypeError from
-      the sampler (T-69 — a named message is a follow-up, not this change),
-      and the comment above the edge pass claiming a diagram "throws before
-      anything is drawn" is false whenever a group exists, ten children deep
+      **The 109 px figure was true and its use was misleading.** T-88's
+      number reproduces, but two 100 x 100 diamonds already report
+      `node-overlap` **flat** with 69 px of clear air between their outlines -
+      the slack any shape that does not fill its box has always had. Depth
+      adds the sweep resolved along the diagonal the two approach on,
+      `(d + 0.75d) / sqrt(2)`, measured constant at **1.237 d** across depths
+      12, 20, 40 and 80, so the pair is reported at 119 px at `depth: 40`.
+      Citing 109 beside "over-reports by roughly `d`" invited a reader to
+      charge 70 px of pre-existing geometry to the feature. All three files
+      now separate the two and state which distance is meant.
+
+      **The drivers corrected the brief twice, and the review a third time.**
+      The brief said `draw` validates each node's *resolved* depth; it
+      validates the **magnitude**, and the difference is real - a 10 x 8 pill
+      carries no face, so resolution answers nought, yet `depth: 0` on it
+      still throws. Both deltas said "resolved depth", which under
+      `depthOf`'s own documented meaning demands a finding for every
+      face-less shape whose depth is good and forbids one for the shape whose
+      depth is bad: wrong in both directions at once. The code and its tests
+      were right throughout. The brief also handed out 38 ms as `draw`'s
+      cost when it is `renderToString`'s - jsdom takes 22 times that - so the
+      JSDoc carries no timing at all and the READMEs name the path.
+
+      **The review found four more, none of which the gates could.** The
+      phrase survived in `docs/agents.md`, 33 lines from a paragraph saying
+      the opposite, in the file served verbatim as `pensketch://spec`. The
+      `depth` tool description never said a bad value throws, kept the
+      sentence the JSDoc had just replaced, and hedged where D8 measured.
+      `packages/mcp/README.md` claimed seven resources against eight and four
+      example diagrams against five - the "nine rules" defect again, in the
+      document whose whole job is telling an agent what it can fetch. And a
+      sentence added here was simply false: `node-overlap` is an error, so
+      the sweep does not "err toward warning".
+
+      **Three counts are now pinned instead of proof-read.** The showcase's
+      "ten rules" and "ten primitives" are held to `RuleId`'s members and
+      `Pen`'s; the package README's resource and example counts are held to
+      what the server registers. `FACE_MIN`, the one number a tool
+      description duplicates from a formula core declines to write down, is
+      held to the renderer from both sides - the size it promises must
+      extrude and a hundredth under it must not - and both rounding mutants
+      die. That is what "nine rules" lacked for a whole change
       (T-70)
-- [ ] 5.2 `openspec validate --strict` clean; self-review of the full diff;
+- [x] 5.2 `openspec validate --strict` clean; self-review of the full diff;
       every finding fixed before hand-off
+
+      **All 14 gates green from a cold tree in dependency order, 579 tests,
+      `0 errors, 0 warnings across 15 diagrams`.** Build before typecheck:
+      a cold `npm run typecheck` exits 2 without the workspace declaration
+      files, which is an ordering trap and not a type error. The review's
+      four blocking findings are fixed except the one that is not a fix -
+      that nothing shipped extrudes is a decision, carried to the owner as
+      5.4 rather than settled here
 
 - [ ] 5.3 **T-57, and it applies to every change from here**: a delta's
       header blockquote is a note to the reviewer of that change, not spec
@@ -460,6 +473,42 @@ Gate: full suite, generated files fresh in CI's sense.
       Strip this change's four headers at archive. Done once already for
       the stranded one, and its single load-bearing sentence promoted into
       the requirement body it was always about rather than deleted with it
+
+- [ ] 5.4 **OWNER CALL**, raised by the group 5 review: **nothing this
+      repository ships extrudes**, and neither outcome is recorded. Grepping
+      `examples/` and `docs/` for `extrude` returns only the worked snippet in
+      `docs/agents.md`, which no loader reads and no gate checks. Two
+      consequences. First, `openspec/specs/documentation-and-examples/spec.md`
+      says `showcase/` "SHALL reach for the breadth of the data model in one
+      diagram" and then enumerates what that means - every drawn shape,
+      `accent` and `hatch`, both kinds of brace, and so on - a closed list
+      that depth has silently made incomplete. This change carries **no
+      `documentation-and-examples` delta at all**, so `--strict` cannot see
+      it. Second, task 4.0's two envelopes exist for the day a shipped page
+      passes `options`, and that day has not come: the whole of 4.0 is still
+      exercised only by pages that pass none.
+
+      The options, and the reason this is not the agent's call: the owner has
+      already said they have **mixed feelings about mixed depth diagrams**,
+      and depth is a register rather than an accent - the ontologies hero
+      extrudes everything, the article figures extrude nothing. So the
+      question is which picture, if any, changes register.
+
+      (a) **Leave every shipped example flat**, and amend the enumeration to
+          say so with the reason. Cheapest, changes no published image, and
+          leaves 4.0 exercised by nothing.
+      (b) **Extrude the hero** (`tools/hero-diagram.mjs`), which is a
+          marketing image, is already its own diagram, and is where depth was
+          prototyped. Changes two committed PNGs and nothing a caller copies.
+      (c) **Extrude the showcase**, which is the diagram the requirement is
+          actually about. Puts depth under `npm run diagrams` and through the
+          MCP resource, and changes the README's largest image.
+
+      The recommendation is **(b)**: it exercises 4.0's envelopes through
+      `render-assets.mjs`, demonstrates the feature where a reader meets the
+      project, and keeps the data-model breadth diagram flat, which is what
+      "mixed feelings about mixed depth" argues for. Whichever is chosen, the
+      delta is owed
 
 ## 6. Release
 

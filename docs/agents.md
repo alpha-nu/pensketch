@@ -106,7 +106,12 @@ type DiagramNode =
       lines?: string[];    // omit for an unlabelled shape
       size?: number;       // label font px, default 13.5
       accent?: boolean;    // stroke in --ps-pen instead of --ps-ink
-      hatch?: boolean };   // diagonal shading inside the outline, inset 4px
+      hatch?: boolean;     // diagonal shading inside the outline, inset 4px
+      extrude?: boolean;   // draw it as a slab. The node's own flag wins over
+                           // the diagram-wide one either way, so `false`
+                           // flattens one node in an extruded diagram
+      depth?: number };    // how deep the slab stands, px, default 12. A shape
+                           // too small to carry a face resolves flat
 
 interface DiagramEdge {
   from: [string, Side];    // node id + which side to leave
@@ -156,6 +161,11 @@ draw(svg: SVGSVGElement, diagram: Diagram, options?: {
   hops?: boolean;             // default false — every arrow goes over the ones
                               // it crosses. An edge's own `hop` wins either way,
                               // so `hop: false` opts one arrow out
+  extrude?: boolean;          // default false. Draw every node as a slab; a
+                              // node's own `extrude` wins either way, and a
+                              // group never extrudes whatever it carries
+  depth?: number;             // how deep, px, for every extruded node carrying
+                              // no depth of its own. Default 12
   order?: boolean;            // default false — stamp every element with how far
                               // through the drawing it is, so it can be animated
   theme?: Partial<Theme>;
@@ -187,6 +197,8 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `AMP` | 2.6 | jitter amplitude — a point wanders ±1.3 |
 | `OVERSHOOT` | 4 | how far box corners overrun |
 | `HATCH_INSET` | 4 | hatching inset from the node's outline |
+| `DEPTH` | 12 | how deep an extruded node stands, when `depth` is not given |
+| `DEPTH_RISE` | 0.75 | how far a slab rises per px of depth, not overridable |
 | `HOP_GAP` | 10 | the break left in a line where another crosses over it |
 | `LOOP_OUT` | 30 | how far a self-transition projects, when `out` is not given |
 | `LOOP_SPAN` | 40 | how far apart its two anchors sit, when `span` is not given |
@@ -194,7 +206,7 @@ For a validator that wants a path — or an editor `$schema` reference — it is
 | `TITLE_DX`/`TITLE_DY` | 14 / 18 | group title offset from its corner |
 | `SEED` | 1 | default seed |
 
-All 40 are exported as `constants`.
+All 42 are exported as `constants`.
 
 Proportions that read well, from this project's own diagrams: a labelled box
 about **150 × 46**, rows about **80** apart, a group title needing about **30 px**
@@ -208,6 +220,84 @@ reads as a loop, much less flattens it into a dome, and much more closes it
 into a spike growing out of the node's outline. Nothing reports either — it is
 the one number here that no rule can check for you.
 
+## Giving a diagram depth
+
+Two fields stand a drawing up into slabs: `extrude` and `depth`, on `draw`'s
+options for the whole diagram and on any drawn node for itself. A brace's
+`depth` is a different field with a different meaning, the tip's offset from
+its span, and nothing extrudes it.
+
+```js
+// every node a slab 12 deep, except the two that say otherwise
+draw(svg, {
+  nodes: [
+    { id: 'queue', shape: 'box',     x: 40,  y: 40, w: 150, h: 46, lines: ['queue'] },
+    // a third of its height: at the default 12 a pill reads as a double outline
+    { id: 'done',  shape: 'pill',    x: 240, y: 40, w: 150, h: 46, lines: ['done'], depth: 15 },
+    // a diamond reads as a folded corner at any depth, so this one stays flat
+    { id: 'ok',    shape: 'diamond', x: 440, y: 30, w: 150, h: 66, lines: ['ok?'], extrude: false },
+  ],
+  edges: [
+    { from: ['queue', 'r'], to: ['done', 'l'] },
+    // `ok` gets one too, or `check` warns `orphan-node` about it - which is
+    // the point of running `check` on the examples you copy from
+    { from: ['done', 'r'], to: ['ok', 'l'] },
+  ],
+}, { extrude: true, seed: 7 });
+```
+
+Both resolve by the `hop` idiom exactly: `node.extrude ?? options.extrude ??
+false` for whether, `node.depth ?? options.depth ?? DEPTH` for how much. The
+per-node value cuts both ways, so `extrude: true` raises one node out of a
+flat diagram and `extrude: false` flattens one in an extruded diagram.
+
+A shape of depth `d` is redrawn offset by `(d, -0.75 d)`, up and to the right,
+and joined to its front outline. The light is fixed top-left, as everywhere
+else here: that 0.75 is `DEPTH_RISE`, it is a fixed aesthetic constant, and no
+option moves it. The angle is the look; the magnitude is your data.
+
+**A group never extrudes.** `draw` ignores the pair on a group, and the
+published schema refuses it there, as it already refuses `hatch` and `accent`.
+
+**Per shape**, calibrated on renders at 1200 × 600 and at 700 × 150: a **box**
+reads as a slab at any scale. A **pill** wants a depth near a third of its
+height to read as a coin, and at the default 12 it reads as a double outline.
+A **diamond** reads as a folded corner at every depth probed, so prefer it
+flat.
+
+**A shape too small to carry a face resolves flat.** A pill draws faces once
+its *larger* dimension reaches `3 × ARC_MIN_CHORD / π` = **11.4592 px**: a
+1 × 11.46 pill draws them, an 11.45 × 11.45 pill does not. "Under 12 px in
+both dimensions" is the shorthand, not the rule, and it is false across
+[11.4592, 12). A box and a diamond carry faces at every non-zero size. This is
+resolution and not validation: the pair is read, nothing throws, no faces are
+drawn, and the anchors do not move.
+
+**Anchors move.** When a node extrudes, `t` and `r` move by the whole
+extrusion vector, so an edge attaches to the silhouette rather than to the
+front box; `l` and `b` stay where they were. In the diagram above the
+connector leaves `queue` at (202, 54) rather than at the flat (190, 63).
+`anchor(node, side, depth)` applies the depth it is handed and never resolves
+one.
+
+**A bad depth is refused where it is read.** `draw` throws before it draws
+anything: on the options `depth` whenever the diagram-wide `extrude` is on,
+and on the depth every extruded node asks for,
+`node.depth ?? options.depth ?? DEPTH`, an inherited options value included.
+That is the number the pair names, not the one resolution yields: a shape too
+small to carry a face resolves flat and its depth is judged all the same, so a
+10 x 8 pill at `depth: 0` throws though it would have drawn flat either way. A `depth` nothing reads is ignored. A `pen` driven by hand throws on
+none of them: an absent, zero, negative or non-finite depth draws no faces,
+consumes nothing from the seeded sequence, and renders bytes identical to the
+call that asked for no depth at all. `check` reports what `draw` throws on, in
+the same words, as `undrawable-depth`.
+
+**The cost is linear and nothing bounds it.** About **80 B per px** of depth
+(least squares over depths 100 to 1000 on one 150 × 46 box), on top of a fixed
+**4,126 B** for the faces themselves, which is what the markup grows by as the
+depth approaches nought. One box at `depth: 1000` renders 86 kB. No rule caps a depth, and `check` reads its form
+rather than its price.
+
 ## Errors you will hit, and what they mean
 
 | message | cause |
@@ -220,14 +310,19 @@ the one number here that no rule can check for you.
 | `edge N carries bow; its path is already described by via` | a path is described once — drop whichever of the two the arrow is not to take. A note pointer carrying both says `note N` and means the same |
 | `edge N carries via; its path is already described by the side it hangs off, out and span` | a self-transition's path is settled by those three, so a corner to turn at contradicts it. `bow` on one is refused the same way and says so |
 | `brace N has lines but lx and ly are not both numbers` | the same rule an edge label is held to, for the same reason: nothing measures text, so nothing can place it for you |
+| `the options depth is …; a depth is a positive finite number of px` | the diagram-wide `depth`, read whenever the diagram-wide `extrude` is on, whether or not any node goes on to use it |
+| `node "x" has depth …; a depth is a positive finite number of px` | that node's own `depth`, where the node extrudes. A node carrying none of its own and inheriting a bad one says `node "x" extrudes at the options depth …` instead, and names the field to fix |
 
 `draw` stops at the first defect it meets, and it is not a transaction. The
 element is emptied when drawing starts and filled phase by phase, so a throw
 leaves on the page whatever had been drawn before it. A note refused for
 carrying `bow` with a non-empty `via` leaves every group, edge and node above
 it standing — and its own text too, because a note's lines are drawn before
-its pointer is looked at. Fix and redraw. Do not read an element after a throw
-as though it were empty.
+its pointer is looked at. Not every refusal lands that late, though nothing
+about the message says which: the duplicate id and both depth checks are
+raised before the first stroke, so a diagram stopped by one of those leaves
+the element empty rather than half-drawn. Fix and redraw. Do not read an
+element after a throw as though it were empty.
 
 ## A complete example
 
@@ -314,7 +409,8 @@ things look for you, in increasing order of what they can tell:
 
 - **`draw` throws** on unknown ids, duplicate ids, unknown shapes, a label
   without coordinates — a brace's `lines` counts — a self-transition naming two
-  different sides, and a path described twice: `bow` with `via`, or either on a
+  different sides, a depth that gets read and is not a positive finite number,
+  and a path described twice: `bow` with `via`, or either on a
   self-transition. It stops at the first one.
 - **The JSON Schema** rejects malformed data, including misspelled keys.
 - **`check` finds the rest** — every trap in the list above — and reports all
@@ -330,8 +426,9 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 | rule | fires when | default |
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
-| `node-overlap` | two node boxes share area | **error** |
+| `node-overlap` | two nodes' ink shares area: their boxes, or the boxes their slabs sweep | **error** |
 | `out-of-bounds` | a box, a point along the line an edge or a brace draws, or a label lies outside the `viewBox` | **error** |
+| `undrawable-depth` | a depth that gets read is not a positive finite number | **error** |
 | `label-collision` | a label sits within `clearance` (default 4) of a connector or a brace | warning |
 | `text-overflow` | the widest line exceeds `w - 2 × padding` (default 8) | warning |
 | `group-escape` | a node is half inside a group | warning |
@@ -350,10 +447,37 @@ leave the frame while the node is wholly inside it and nothing says so. And it
 names the first point outside rather than every one, because a curve leaves in
 a run and ten findings about one bulge are one finding.
 
+Where a node extrudes, every rule that measures its **ink** measures the box
+its slab sweeps, `(x, y - 0.75d, w + d, h + 0.75d)`: `node-overlap`,
+`out-of-bounds` and `group-escape` all read it, and every rule that walks an
+edge walks it from the moved anchor, so it follows the line `draw` will
+attach. That rectangle stands for the faces rather than tracing them stroke by
+stroke, so a shape that does not fill its box is reported further apart than
+its ink is. Two 100 × 100 diamonds do that flat already: the worst offset
+`node-overlap` still fires at is (99, -99), where **69 px** separates the two
+outlines. Depth adds the sweep resolved along that diagonal,
+`(d + 0.75d) / √2` = **1.237 d**, so at `depth: 40` the worst reported offset
+is (139, -129) and the gap is **119 px**. Distances between the ideal
+outlines, which is what a caller can recompute; the drawn strokes wander
+`INFLATE` either side of them. The
+two label rules keep the **front** box on purpose, because a label sits on the
+front face and no slab carries it anywhere: measuring `text-overflow` or
+`text-collision` in the swept box would hand a label `d` px of room no glyph
+can use.
+
+`undrawable-depth` reports what `draw` would refuse rather than what it would
+draw, in the same words the throw uses, as `duplicate-id` does. It reads a
+depth's form and never its cost: `check` passes `depth: 20000` on a one-box
+diagram in **0.46 ms**, where `draw` on the same diagram takes **38 ms**,
+emits **1.6 MB** of markup and allocates **34 MB** of heap.
+
 Findings arrive sorted by severity, then rule, then position, so the array is
-stable enough to snapshot. `at` is a point in the diagram's own coordinates —
-the place to look. Anything resting on the width estimate carries
-`estimated: true`.
+stable enough to snapshot. `at` is a point in the diagram's own coordinates,
+the place to look. One kind of finding is about the **call** rather than about
+the drawing: it names `options` among its subjects and reports the origin as
+its `at`, because an option is nowhere in the picture to go and look at.
+`undrawable-depth` on the options `depth` is the only one today. Anything
+resting on the width estimate carries `estimated: true`.
 
 What it does not know about: no rule compares an edge with a node's outline,
 so an arrow drawn straight through a box, or along the edge of one, is not

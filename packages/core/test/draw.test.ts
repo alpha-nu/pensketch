@@ -234,6 +234,30 @@ describe('draw() validation', () => {
     );
   });
 
+  // Edge validation runs before any edge is drawn, and that is the whole of
+  // what it guarantees: the group phase has already put its frame, its wash
+  // and its title in the tree by the time the first edge is looked at. Only
+  // the depth guard, which runs at the top of `draw`, hands back an empty
+  // element. Pinned because the comment on the edge pass claimed the stronger
+  // thing for two groups, and nothing here could tell the difference.
+  it('leaves the groups it already drew when an edge names an unknown node', () => {
+    const svg = makeSvg();
+    expect(() =>
+      draw(svg, {
+        nodes: [
+          { id: 'g', shape: 'group', x: 0, y: 0, w: 320, h: 120, lines: ['g'] },
+          ...nodes,
+        ],
+        edges: [{ from: ['a', 'r'], to: ['ghost', 'l'] }],
+      }),
+    ).toThrowError(
+      new Error(
+        'edge 0 names unknown node "ghost" in to; known ids are "g", "a", "b"',
+      ),
+    );
+    expect(childrenOf(svg).length).toBeGreaterThan(0);
+  });
+
   // The message is not asserted because there is nothing to assert: the pen
   // refuses an empty point list, and that is the whole fix. What is asserted
   // is that it throws at all - without the guard in `arcPoints` this samples

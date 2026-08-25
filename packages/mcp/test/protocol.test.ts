@@ -211,7 +211,10 @@ const AT_EDGE = { id: 'a', shape: 'box', x: 150, y: 30, w: 100, h: 40 };
 interface Listed {
   name: string;
   inputSchema?: {
-    properties?: Record<string, { properties?: Record<string, unknown> }>;
+    properties?: Record<
+      string,
+      { description?: string; properties?: Record<string, unknown> }
+    >;
   };
 }
 
@@ -509,6 +512,42 @@ describe('the tool boundary refuses what it cannot carry', () => {
         ).toContain(field);
     },
   );
+
+  // `extrude`'s description promises a pill size, and that number is a second
+  // copy of a formula core deliberately declines to write down: `carriesFace`
+  // asks `arcPoints` for the bound instead, on the grounds that a number
+  // copied out of a formula is the copy that drifts. A description cannot
+  // call a function, so the copy stays - and this holds it to the renderer
+  // rather than to the formula. The size it names must be one that draws
+  // faces, and a hundredth under it must not, which pins the bound from both
+  // sides: whichever of the two moves, the sentence an agent reads goes red
+  // rather than quiet.
+  it('promises a pill size the renderer actually extrudes', async () => {
+    const { tools } = await published();
+    const said = tools
+      .map((t) => String(t.inputSchema?.properties?.extrude?.description ?? ''))
+      .join(' ');
+    const promised = Number(/larger dimension of ([\d.]+) px/.exec(said)?.[1]);
+    expect(promised, `no pill size named in: ${said}`).toBeGreaterThan(0);
+
+    // One px tall, so only the width can earn the third chord - the bound is
+    // on the larger dimension, and this makes the width the larger one. Each
+    // width is its own control, drawn twice: a wider pill writes longer
+    // coordinates whether or not it extrudes, so the comparison that means
+    // anything is the same pill with the switch on and off.
+    const pill = async (w: number, extrude: boolean) => {
+      const r = await called('render_diagram', {
+        diagram: { nodes: [{ id: 'p', shape: 'pill', x: 0, y: 0, w, h: 1 }] },
+        viewBox: BOX,
+        extrude,
+      });
+      return r.content?.[0]?.text ?? '';
+    };
+    const carries = async (w: number) =>
+      (await pill(w, true)) !== (await pill(w, false));
+    expect(await carries(promised)).toBe(true);
+    expect(await carries(promised - 0.01)).toBe(false);
+  });
 
   // The boundary is strict at this level and no deeper, and that is a choice
   // rather than an oversight: the fields inside a member are described by

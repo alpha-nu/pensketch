@@ -184,8 +184,17 @@ export const drawable = (d: number) => Number.isFinite(d) && d > 0;
  * sides, an edge or note describes its path twice - `bow` with `via`, or
  * either on a self-transition - or a depth that is read is not a positive
  * finite number: the options `depth` whenever the diagram-wide `extrude` is
- * on, and every extruded node's resolved depth, an inherited options value
- * included. A `depth` nothing reads is ignored. Nothing else is validated.
+ * on, and the depth every extruded node asks for, an inherited options value
+ * included and a shape too small to carry a face included - the number is
+ * judged for what it is, not for the box it lands in. A `depth` nothing
+ * reads is ignored.
+ *
+ * Nothing else is validated, which is not the same as nothing else failing.
+ * A `bow`, `out` or `span` that is not a finite number samples to no points
+ * and dies in the pen's arrowhead as a bare `TypeError` naming no field,
+ * part-way through a document whose earlier elements are already in the
+ * tree. `check` reports nothing for it either: a path with no points is ink
+ * that is nowhere.
  *
  * @example
  * ```js
@@ -310,7 +319,11 @@ export function draw(
   // Every path first, then every arrow. An edge that hops has to know where
   // the others run, and nothing below `draw` can see a second edge: the pen
   // draws one stroke and the checker is not in this bundle. Validation stays
-  // in this pass, so a diagram still throws before anything is drawn.
+  // in this pass, so no edge is drawn until every edge is checked - which is
+  // not the same as throwing before anything is drawn. The group phase above
+  // has already run, and `afterGroups` counted what it left, so a throw here
+  // hands back an element holding every group frame and title. Only the depth
+  // guard at the top of this function fires ahead of the first wash.
   const edgeList = diagram.edges || [];
   const paths = edgeList.map((e, i): Point[] => {
     const from = byId.get(e.from[0]);

@@ -10,6 +10,7 @@ import {
   SCHEMA_URI,
   SPEC_URI,
 } from '../src/resources';
+import { EXAMPLES } from '../src/resources.generated';
 
 const ROOT = join(import.meta.dirname, '..', '..', '..');
 const source = (path: string) => readFileSync(join(ROOT, path), 'utf8');
@@ -127,5 +128,68 @@ describe('the examples are served as data', () => {
   it('never claims to carry the raw escape hatch', async () => {
     for (const key of EXAMPLE_KEYS)
       expect(await readResource(exampleUri(key))).not.toContain('"raw"');
+  });
+});
+
+// Two counts the showcase states in its own labels, and the diagram is served
+// as `pensketch://example/showcase`, so both are published facts rather than
+// decoration. One went stale already - it read "nine rules" for the whole of
+// the change that added the tenth - and nothing caught it, because
+// `npm run diagrams` fails on errors and a label is only ever a warning.
+// Held to the source rather than to a number typed twice: add a rule or a pen
+// member and this goes red naming the label to move.
+describe('the showcase counts what the code has', () => {
+  const WORDS = [
+    'zero',
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+    'six',
+    'seven',
+    'eight',
+    'nine',
+    'ten',
+    'eleven',
+    'twelve',
+  ];
+  const showcase = () => source('examples/showcase/index.html');
+
+  it('names as many rules as `RuleId` has members', () => {
+    const union = /export type RuleId =([\s\S]*?);/.exec(
+      source('packages/core/src/check.ts'),
+    )?.[1];
+    const rules = (union?.match(/'[a-z-]+'/g) ?? []).length;
+    expect(rules).toBeGreaterThan(0);
+    expect(showcase()).toContain(`'${WORDS[rules]} rules'`);
+  });
+
+  it('names as many primitives as `Pen` has members', () => {
+    const body = /export interface Pen \{([\s\S]*?)\n\}/.exec(
+      source('packages/core/src/types.ts'),
+    )?.[1];
+    const members = (body?.match(/^ {2}[a-z][A-Za-z]*\(/gm) ?? []).length;
+    expect(members).toBeGreaterThan(0);
+    expect(showcase()).toContain(`'${WORDS[members]} primitives'`);
+  });
+});
+
+// The package README tells an agent what it can fetch, which makes its two
+// counts the same kind of published fact - and both had gone stale: it said
+// seven resources where the server registers eight, and four example diagrams
+// where it serves five, the showcase having been added without them.
+describe('the README counts what the server registers', () => {
+  const readme = () => source('packages/mcp/README.md');
+
+  it('counts the resources the server actually registers', () => {
+    expect(readme()).toContain(
+      `## ${['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'][Object.keys(resourcesOf()).length]} resources`,
+    );
+  });
+
+  it('lists every example key it serves', () => {
+    for (const key of Object.keys(EXAMPLES))
+      expect(readme(), `README does not name ${key}`).toContain(key);
   });
 });

@@ -137,11 +137,11 @@
             },
             "extrude": {
               "type": "boolean",
-              "description": "Extrude this node into a slab: the run of its outline facing up-right is redrawn offset by `(depth, -0.75 × depth)` and joined to it at the two silhouette points, with the right-facing strip hatched in `theme.muted`. Default: the diagram's `extrude` option, then `false`. The override cuts both ways - `true` raises this node out of a flat diagram, and `false` flattens it in an extruded one."
+              "description": "Extrude this node into a slab: the run of its outline facing up-right is redrawn offset by `(depth, -0.75 × depth)` and joined to it at the two silhouette points, with the right-facing strip hatched in `theme.muted`. Default: the diagram's `extrude` option, then `false`. The override cuts both ways - `true` raises this node out of a flat diagram, and `false` flattens it in an extruded one.\n\nA shape too small to carry a face is drawn flat whatever this says, and nothing reports it: the pair is read, nothing throws, no face appears and the anchors do not move, so `true` on a 10 × 8 pill renders the bytes the flat node does. Only a pill has such a size - under `3 × ARC_MIN_CHORD / π`, 11.4592 px, in its larger dimension - and a box or a diamond extrudes at any non-zero one."
             },
             "depth": {
               "type": "number",
-              "description": "Depth in px when this node extrudes, over the diagram's `depth` option and then `12`. The default is calibrated on a box, which reads as a slab at any scale; a pill wants a depth near a third of its height to read as a coin, and a diamond prefers staying flat - the per-shape record sits on `constants.DEPTH`. When extrusion is off for this node the field applies to nothing and is ignored."
+              "description": "Depth in px when this node extrudes, over the diagram's `depth` option and then `12`. The default is calibrated on a box, which reads as a slab at any scale; a pill wants a depth near a third of its height to read as a coin, and a diamond prefers staying flat - the per-shape record sits on `constants.DEPTH`. When extrusion is off for this node the field applies to nothing and is ignored.\n\nWhere it is read it has to be a positive finite number of px, or `draw` throws naming this node before it draws anything - `0`, a negative, `NaN` and `Infinity` alike. An inherited options depth is judged on the same terms and reported against the node that inherited it, and `check` reports both in the same words, as `undrawable-depth`, an error.\n\nThe number is judged for what it is, not for the box it lands in: a shape too small to carry a face has its depth validated and then draws flat anyway, so `12` on a 10 × 8 pill is accepted, changes no byte and moves no anchor, on the terms `extrude` above states."
             }
           },
           "required": [
@@ -359,7 +359,7 @@
         },
         "bow": {
           "type": "number",
-          "description": "How far the pointer bows off the straight line between its two ends, in px, with the meaning `bow` carries on an edge: positive is to the right of travel, and `0` is that straight line. Default: `0`.\n\nA pointer is the case a bow was wanted for first — it starts at text and ends at whatever the text is about, and a straight run between those two often crosses the very thing it points at.\n\nRefused alongside `via`, and non-finite, exactly as on an edge."
+          "description": "How far the pointer bows off the straight line between its two ends, in px, with the meaning `bow` carries on an edge: positive is to the right of travel, and `0` is that straight line. Default: `0`.\n\nA pointer is the case a bow was wanted for first — it starts at text and ends at whatever the text is about, and a straight run between those two often crosses the very thing it points at.\n\nRefused alongside a non-empty `via`, exactly as on an edge, with a named message. A non-finite value is not refused in that sense: it reaches the sampler and dies there as a bare `TypeError` naming no field, the way `out`, `span` and an edge's own `bow` do. A named message for the four is a follow-up, not a promise this line should imply."
         },
         "arrowTo": {
           "$ref": "#/definitions/Point",

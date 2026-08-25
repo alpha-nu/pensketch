@@ -48,14 +48,23 @@ diagram's `raw` array.
 |---|---|
 | `stroke(pts, opts?)` | A polyline through the points, jittered and traced twice. |
 | `arrow(pts, opts?)` | The same, plus two barbs at the last point. |
-| `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. |
-| `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
+| `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. A `depth` in `opts` raises it into a slab. |
+| `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. A `depth` raises it into a coin. |
 | `arc(cx, cy, rx, ry, from, to, opts?)` | An elliptical arc around a centre point, swept between two angles in radians. |
-| `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
+| `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. A `depth` reads as a folded corner rather than as a solid. |
 | `hatch(x, y, w, h, color?, clip?)` | Diagonal shading across the box, clipped to it — or to `clip`, a polygon of your own, which is how a pill and a diamond are shaded inside themselves. |
 | `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |
 | `wash(x, y, w, h, fill?)` | A plain rounded background rect. |
 | `rng()` | The pen's seeded PRNG; calling it advances the sequence. |
+
+That `depth` is the run of the outline facing up-right, redrawn offset by
+`(depth, -0.75 × depth)` and joined back at the two silhouette points. It is
+what a node's `extrude` asks for, resolved as an edge's `hop` is against
+`hops` - `node.extrude ?? options.extrude ?? false`, at
+`node.depth ?? options.depth ?? 12` - and a group never extrudes. A shape too
+small to carry a face resolves flat, which is a pill whose larger dimension is
+under 11.4592 px. The pen ignores an absent, zero, negative or non-finite
+depth; `draw` throws on one: `a depth is a positive finite number of px`.
 
 ## Theming
 
@@ -103,13 +112,15 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 | rule | fires when | default |
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
-| `node-overlap` | two node boxes share area | **error** |
+| `node-overlap` | two nodes' ink shares area: their boxes, or the boxes their slabs sweep | **error** |
 | `out-of-bounds` | a box, a point along the line an edge or a brace draws, or a label lies outside the `viewBox` | **error** |
+| `undrawable-depth` | a depth `draw` would read is not a positive finite number of px | **error** |
 | `label-collision` | a label sits within `clearance` of a connector or a brace | warning |
 | `text-overflow` | the widest line is wider than its box allows | warning |
 | `group-escape` | a node is half inside a group | warning |
 | `orphan-node` | no edge names a node | warning |
 | `edge-overlap` | two edges draw as one line: the whole way, or along a run of 40px out of a shared anchor | warning |
+| `text-collision` | two pieces of text - a node label, a group title, an edge or brace label, a note - have overlapping boxes | warning |
 
 Raise, lower or silence any of them with
 `check(diagram, { rules: { 'orphan-node': 'off' } })`. It never renders, never
@@ -120,9 +131,20 @@ problem is and leaves the fix to you.
 are sampled, so a curve that swings out of the frame is reported where it
 leaves, rather than passing because both its ends are inside.
 
-Text is never measured, so `text-overflow` and `label-collision` rest on an
-estimate of `length × fontSize × 0.55`. It over-states on purpose, and any
-finding depending on it carries `estimated: true`.
+Text is never measured, so `text-overflow`, `label-collision` and
+`text-collision` rest on an estimate of `length × fontSize × 0.55`. It
+over-states on purpose, and any finding depending on it carries
+`estimated: true`.
+
+An extruded node is measured as the box its slab sweeps,
+`(x, y - 0.75d, w + d, h + 0.75d)`, which stands for the faces rather than
+modeling them, so a shape that does not fill its box is reported further apart
+than its ink is. Two 100 × 100 diamonds do it flat - `node-overlap` at 69 px of
+clear air - and depth adds `(d + 0.75d) / √2` on the diagonal they approach on,
+so at `depth: 40` the pair is reported at 119 px. And it reads a depth's form, not its
+cost - `depth: 20000` on one box passes in under half a millisecond, where
+drawing it emits 6,386 paths and 1.6 MB of markup, depth costing about 80 B
+per px with nothing to bound it.
 
 ## Rendering without a browser
 

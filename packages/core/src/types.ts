@@ -38,11 +38,23 @@ export interface ShapeOptions extends StrokeOptions {
    * polyline, joined to the outline at its two silhouette points, and the
    * right-facing faces are hatched in `theme.muted`. Winding is read off the
    * outline's signed area, so a mirrored dimension still extrudes outward.
-   * Absent, zero, negative
-   * or non-finite draws no faces, consumes nothing from the seeded sequence,
-   * and leaves the shape's bytes exactly what they were. Default: absent. A
-   * pill under about 12 px in both dimensions has collapsed to a chord by
-   * `ARC_MIN_CHORD`'s own floor and has no outline to extrude.
+   * Default: absent.
+   *
+   * Absent, zero, negative or non-finite draws no faces, consumes nothing
+   * from the seeded sequence, and leaves the shape's bytes exactly what the
+   * optionless call drew. That is the pen ignoring a depth rather than the
+   * library accepting one: hand the same zero, negative or non-finite number
+   * to `draw` where something reads it and it throws before drawing anything,
+   * naming the node or the option that carried it. A pen validates nothing;
+   * the renderer above it does.
+   *
+   * A pill has a size below which there is no outline to extrude, and the
+   * bound is on its *larger* dimension: faces appear once that reaches
+   * `3 × ARC_MIN_CHORD / π`, 11.4592 px, because below it the sampled
+   * ellipse is two chords - one diameter, enclosing no area to wind. So a
+   * 1 x 11.46 pill extrudes and an 11.45 x 11.45 one does not. A box and a
+   * diamond have four literal corners at every size and extrude at any
+   * non-zero one.
    */
   depth?: number;
 }
@@ -232,6 +244,13 @@ interface ShapeNode extends NodeBox {
    * Default: the diagram's `extrude` option, then `false`. The override cuts
    * both ways - `true` raises this node out of a flat diagram, and `false`
    * flattens it in an extruded one.
+   *
+   * A shape too small to carry a face is drawn flat whatever this says, and
+   * nothing reports it: the pair is read, nothing throws, no face appears and
+   * the anchors do not move, so `true` on a 10 × 8 pill renders the bytes the
+   * flat node does. Only a pill has such a size - under
+   * `3 × ARC_MIN_CHORD / π`, 11.4592 px, in its larger dimension - and a box
+   * or a diamond extrudes at any non-zero one.
    */
   extrude?: boolean;
   /**
@@ -241,6 +260,17 @@ interface ShapeNode extends NodeBox {
    * a coin, and a diamond prefers staying flat - the per-shape record sits
    * on `constants.DEPTH`. When extrusion is off for this node the field
    * applies to nothing and is ignored.
+   *
+   * Where it is read it has to be a positive finite number of px, or `draw`
+   * throws naming this node before it draws anything - `0`, a negative,
+   * `NaN` and `Infinity` alike. An inherited options depth is judged on the
+   * same terms and reported against the node that inherited it, and `check`
+   * reports both in the same words, as `undrawable-depth`, an error.
+   *
+   * The number is judged for what it is, not for the box it lands in: a
+   * shape too small to carry a face has its depth validated and then draws
+   * flat anyway, so `12` on a 10 × 8 pill is accepted, changes no byte and
+   * moves no anchor, on the terms `extrude` above states.
    */
   depth?: number;
 }
@@ -396,7 +426,11 @@ export interface DiagramNote {
    * ends at whatever the text is about, and a straight run between those two
    * often crosses the very thing it points at.
    *
-   * Refused alongside `via`, and non-finite, exactly as on an edge.
+   * Refused alongside a non-empty `via`, exactly as on an edge, with a named
+   * message. A non-finite value is not refused in that sense: it reaches the
+   * sampler and dies there as a bare `TypeError` naming no field, the way
+   * `out`, `span` and an edge's own `bow` do. A named message for the four is
+   * a follow-up, not a promise this line should imply.
    */
   bow?: number;
   /** Where the pointer arrow ends. Drawn only when both ends are given. */
@@ -504,14 +538,31 @@ export interface DrawOptions extends PenOptions {
    * A node's own `extrude` wins over this either way, as an edge's `hop`
    * wins over `hops`: an extruded diagram can flatten one node and a flat
    * diagram can raise one. A group never extrudes - it bounds a set rather
-   * than being an object - so its frame draws flat whatever this says.
+   * than being an object - so its frame draws flat whatever this says, and so
+   * does a shape with no face to carry at its size: a pill under 11.4592 px
+   * in its larger dimension, and nothing else at any non-zero one.
    */
   extrude?: boolean;
   /**
    * Depth in px for every node extruded without a `depth` of its own.
    * Default: `12`, calibrated on a box; a pill wants a depth near a third
    * of its height and a diamond prefers staying flat - the per-shape record
-   * sits on `constants.DEPTH`. Read only where extrusion is on.
+   * sits on `constants.DEPTH`.
+   *
+   * Validated wherever it could be read, which is wider than where it is
+   * drawn: `draw` throws on anything that is not a positive finite number of
+   * px whenever `extrude` above is on - with every node opted out, and with
+   * no nodes at all - and again through each node that extrudes on its own
+   * and reaches for this. A value neither the switch nor any node reads is
+   * ignored.
+   *
+   * Bounded by nothing, and the most expensive number in this object. Depth
+   * costs about 80 B of markup per px - least squares over depths of 100 to
+   * 1000 on one 150 x 46 box - on top of about 4 kB for the faces
+   * themselves, so that one box at `depth: 1000` renders 86 kB. `check`
+   * reads this number's form and not its cost: it passes `depth: 20000` in
+   * under a millisecond, where drawing the same one-box diagram emits 1.6 MB
+   * of markup.
    */
   depth?: number;
   /**

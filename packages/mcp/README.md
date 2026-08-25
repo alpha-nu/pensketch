@@ -46,13 +46,13 @@ Run `check_diagram` before rendering and again after moving anything. It is
 the only one of the three that answers *does this fit* — see the font note
 below for why the picture cannot.
 
-## Seven resources
+## Eight resources
 
 | uri | what it holds |
 |---|---|
 | `pensketch://spec` | The whole type surface, the constants worth designing around, every error the renderer throws, and the traps a type system cannot express. Read this first. |
 | `pensketch://schema` | JSON Schema for a diagram, generated from the TypeScript types. |
-| `pensketch://example/{pipeline,lifecycle,incident,atm}` | Four complete diagrams with real coordinates — a CI pipeline, an order lifecycle, an incident at the stage it has reached, an ATM state machine. All four are whole pictures: none of them draws with `raw` any more, so none carries the `rawOmitted` line that says which stroke a served copy is missing. One that did would. |
+| `pensketch://example/{pipeline,lifecycle,incident,atm,showcase}` | Five complete diagrams with real coordinates — a CI pipeline, an order lifecycle, an incident at the stage it has reached, an ATM state machine, and this library's own architecture, which is the one that reaches for the breadth of the data model in a single picture. All five are whole pictures: none of them draws with `raw` any more, so none carries the `rawOmitted` line that says which stroke a served copy is missing. One that did would. |
 | `pensketch://constants` | Every aesthetic constant and its value, read from the installed renderer. |
 
 Each mirrors a file that exists in the repository for another reason, and a

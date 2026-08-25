@@ -114,8 +114,12 @@ and `to` name the same node but **different** sides, an edge or note combining
 that is not a positive finite number in either of two places: the options
 `depth` whenever `options.extrude` is true — whether or not any node goes
 on to read it, since a diagram-wide switch pointed at an undrawable value
-is a contradiction on its face — and every extruded node's resolved depth,
-`node.depth ?? options.depth ?? DEPTH`. Each message
+is a contradiction on its face - and the depth every extruded node asks for,
+`node.depth ?? options.depth ?? DEPTH`. That is the magnitude the pair names
+and **not** the depth resolution yields: a shape too small to carry a face
+resolves flat, and its depth is still judged for what it is, so a 10 × 8 pill
+at `depth: 0` throws though it would have drawn flat either way. The number
+is validated for what it is, not for the box it lands in. Each message
 SHALL carry what the caller needs to fix it without reading the source — the
 ids that do exist, the shapes that are accepted, why a label needs coordinates,
 that a loop attaches to one side, or what already describes the path a second

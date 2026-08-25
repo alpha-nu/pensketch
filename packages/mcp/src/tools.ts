@@ -75,6 +75,15 @@ const viewBox = z
   .tuple([z.number(), z.number(), z.number(), z.number()])
   .describe('[minX, minY, width, height], the four numbers the <svg> carries.');
 
+// The size a pill has to reach before it has an outline to extrude at all:
+// three chords, which a full sweep first draws at `3 x ARC_MIN_CHORD / PI` =
+// 11.4592 px on its *larger* dimension. Derived from the constant rather than
+// typed, as `depth`'s default is, and rounded *up* to the hundredth (the
+// x 100 in the middle), so the number this promises is one that does extrude:
+// the bound itself carries faces, and a rounded-down 11.45 would name a pill
+// that draws flat.
+const FACE_MIN = Math.ceil((3 * constants.ARC_MIN_CHORD * 100) / Math.PI) / 100;
+
 // The diagram-wide depth pair, declared once and taken by all three tools -
 // two rendering tools because it moves where the ink lands, and the checker
 // because it moves what every rule measures. Both defaults are stated, and
@@ -84,14 +93,14 @@ const extrude = z
   .boolean()
   .optional()
   .describe(
-    "Draw every node as a slab: its outline redrawn offset up and to the right and joined to it. A node's own `extrude` wins over this either way, so an extruded diagram can flatten one node and a flat one can raise one. A group never extrudes. Default false.",
+    `Draw every node as a slab: its outline redrawn offset up and to the right and joined to it. A node's own \`extrude\` wins over this either way, so an extruded diagram can flatten one node and a flat one can raise one. A group never extrudes. Nor does a shape too small to carry a face: it draws flat, with nothing thrown, and its anchors stay where they were. A pill needs a larger dimension of ${FACE_MIN} px or more; a box and a diamond carry faces at any non-zero size. Default false.`,
   );
 
 const depth = z
   .number()
   .optional()
   .describe(
-    `How deep a slab is drawn, in px, for every node without a \`depth\` of its own. Default ${constants.DEPTH}, calibrated on a box; a pill wants about a third of its height and a diamond usually reads better flat. Read only where extrusion is on.`,
+    `How deep a slab is drawn, in px, for every node without a \`depth\` of its own. Default ${constants.DEPTH}, calibrated on a box; a pill wants about a third of its height, and a diamond reads as a folded corner at every depth probed, so prefer it flat. Must be a positive finite number wherever it could be read - whenever extrude is on, and through any node extruding on its own - or the render is refused naming the field. A value nothing reads is ignored.`,
   );
 
 // The same four substitutions core makes when it serializes an attribute.
@@ -135,7 +144,7 @@ export function registerTools(server: McpServer): void {
     'check_diagram',
     {
       title: 'Check a diagram for layout defects',
-      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding, and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. Run this before rendering, and again after moving anything.`,
+      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding, and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. Run this before rendering, and again after moving anything.`,
       inputSchema: z.strictObject(
         {
           diagram,

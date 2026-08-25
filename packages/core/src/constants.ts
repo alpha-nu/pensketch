@@ -96,6 +96,10 @@ export const ARC_MIN_CHORD = 12;
  * wants a depth near a third of its height to read as a coin, and a diamond
  * reads as a fold at any depth probed, so prefer it flat. The renders and
  * the probes are recorded in a-diagram-takes-depth design.md D8.
+ *
+ * `draw`'s default and `check`'s, not the pen's: it is the last hop of
+ * `node.depth ?? options.depth ?? DEPTH`, and a pen handed a shape with no
+ * `depth` draws no faces rather than falling back to this.
  */
 export const DEPTH = 12;
 /**

@@ -69,9 +69,17 @@ readings together and does not breach this.
 `check` SHALL report `undrawable-depth` as an **error** wherever `draw`
 would throw for the same diagram: an options `depth` that is not a positive
 finite number while `options.extrude` is true, and any extruded node whose
-resolved depth is not a positive finite number. The finding SHALL name the
-offender the way the throw does, distinguishing a node's own depth from an
-inherited options depth.
+asked-for depth, `node.depth ?? options.depth ?? DEPTH`, is not a positive
+finite number. The finding SHALL name the offender the way the throw does,
+distinguishing a node's own depth from an inherited options depth.
+
+The quantity judged is the magnitude the pair names, not the depth
+resolution yields. The two differ exactly where a shape cannot carry a face:
+resolution answers nought there, so reading it instead would report every
+face-less shape whose depth is perfectly good, and report nothing for the
+face-less shape whose depth is not, inverting the rule in both directions
+at once. A 10 × 8 pill at `depth: 12` SHALL report nothing and the same pill
+at `depth: 0` SHALL report `undrawable-depth`.
 
 Reporting rather than throwing is the checker's standing difference from
 the renderer, already written into `duplicate-id`: `draw` stops at the first
@@ -97,8 +105,12 @@ never grows.
 - **THEN** it reports `undrawable-depth` as an error, together with every other finding, where the same diagram makes `draw` throw
 
 #### Scenario: An inherited undrawable depth names the node
-- **WHEN** an extruded node's resolved depth is invalid because it inherited it from the options
+- **WHEN** an extruded node's asked-for depth is invalid because it inherited it from the options
 - **THEN** the finding names that node and says the value was inherited, matching the words the renderer throws with
+
+#### Scenario: A depth is judged for what it is, not for the box it lands in
+- **WHEN** a shape too small to carry a face extrudes at a valid depth, and another the same size extrudes at an invalid one
+- **THEN** `check` reports nothing for the first and `undrawable-depth` for the second, because what is judged is the depth the pair asks for and not the nought that resolution answers for a face-less shape
 
 #### Scenario: A refused depth is reported once, not compounded
 - **WHEN** a node extrudes at a depth the renderer refuses, inside a viewBox its swept box would otherwise escape

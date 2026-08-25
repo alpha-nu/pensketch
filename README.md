@@ -14,7 +14,7 @@
 - **Determinism is the contract.** Same data, same seed, same package version,
   same engine, same bytes - so a diagram can be snapshot-tested like anything
   else.
-- **The core is tiny and dependency-free.** About 4 KB minified and gzipped,
+- **The core is tiny and dependency-free.** About 5 KB minified and gzipped,
   and it adds nothing to your lockfile.
 - **Themed with CSS variables.** Colors are `var(--ps-*)` references, so dark
   mode is a variable the page redefines rather than a diagram it redraws.
@@ -189,6 +189,8 @@ obstacle.
 | `size` | `number` | `13.5` | Label font size in px. Drawn shapes only; a group's title is always 14. |
 | `accent` | `boolean` | `false` | Stroke in `--ps-pen` rather than `--ps-ink`. Drawn shapes only. |
 | `hatch` | `boolean` | `false` | Shade the node with diagonal lines, inset 4 px, in `--ps-pen`. Drawn shapes only. The shading follows the outline the shape is drawn with, so a pill is shaded inside its ellipse and a diamond inside its four sides. |
+| `extrude` | `boolean` | the diagram's `extrude`, then `false` | Redraw the run of the outline facing up-right offset by the extrusion vector and join it back, so the shape reads as a slab lit from the top left. Drawn shapes only: a group bounds a set rather than being an object, so it never extrudes, and the schema refuses the pair there as it refuses `hatch` and `accent`. Overrides the diagram's `extrude` either way, as `hop` overrides `hops`, so `true` raises one node out of a flat diagram and `false` flattens one in an extruded diagram. |
+| `depth` | `number` | the diagram's `depth`, then `12` | How far the slab stands off, in px: the shape is redrawn offset by `(depth, -0.75 × depth)`, and that rise is a fixed ratio rather than a second knob, so every slab in a picture recedes the same way whatever its depth. Read only where extrusion is on. The default is calibrated on a box, which reads as a slab at any scale; a pill wants a depth near a third of its height to read as a coin, and a diamond reads as a folded corner at every depth probed, so prefer it flat. `draw` throws on a depth it reads that is not a positive finite number, an inherited option included. A shape too small to carry a face resolves flat instead - nothing throws, no faces draw, the anchors do not move - which is a pill whose larger dimension is under `3 × ARC_MIN_CHORD / π` = 11.4592 px, and nothing else: a box and a diamond carry faces at every non-zero size. |
 
 ### `DiagramEdge`
 
@@ -217,7 +219,7 @@ what is inside it.
 |---|---|---|---|
 | `from` | `Point` | required | Where the span starts. |
 | `to` | `Point` | required | Where the span ends. |
-| `depth` | `number` | `26` | How far the tip stands off the midpoint of the span, perpendicular to it. Positive is to the right of travel, the sign `bow` carries, so flipping a brace to the other side is a minus sign. |
+| `depth` | `number` | `26` | How far the tip stands off the midpoint of the span, perpendicular to it. Unrelated to a node's `depth` above, which is an extrusion: nothing extrudes a brace. Positive is to the right of travel, the sign `bow` carries, so flipping a brace to the other side is a minus sign. |
 | `kind` | `'curly' \| 'square'` | `'curly'` | A brace, or a bracket with no curve in it. |
 | `lines` | `string[]` | none | Label lines, one `<text>` each, in `--ps-pen`. Requires `lx` and `ly`. |
 | `lx`, `ly` | `number` | none | Where the label sits. `draw` throws when `lines` is set and these are not numbers. |
@@ -256,6 +258,10 @@ a node carries everything attached to it:
 | `l` | Left edge, halfway down |
 | `r` | Right edge, halfway down |
 
+When a node extrudes, `t` and `r` move by the full extrusion vector, so an
+arrow attaches to the silhouette rather than to the flat outline behind it.
+`l` and `b` do not move.
+
 The `via` points are used exactly as given, in order, between the two anchors:
 the arrow walks the legs you describe, and nothing else is inferred.
 
@@ -281,14 +287,20 @@ p.label(395, 65, ['a pill', '(two lines)']);
 |---|---|
 | `stroke(pts, opts?)` | A polyline through the points, jittered and traced twice. |
 | `arrow(pts, opts?)` | The same, plus two barbs at the last point. |
-| `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. |
-| `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. |
+| `rect(x, y, w, h, opts?)` | Four independent sides, each overshooting its corners. A `depth` in `opts` raises it into a slab. |
+| `pill(x, y, w, h, opts?)` | An ellipse inscribed in the box. A `depth` raises it into a coin. |
 | `arc(cx, cy, rx, ry, from, to, opts?)` | An elliptical arc around a centre point, swept between two angles in radians. |
-| `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. |
+| `diamond(x, y, w, h, opts?)` | A diamond through the midpoints of the box's sides. A `depth` reads as a folded corner rather than as a solid. |
 | `hatch(x, y, w, h, color?, clip?)` | Diagonal shading across the box, clipped to it — or to `clip`, a polygon of your own, which is how a pill and a diamond are shaded inside themselves. |
 | `label(x, y, lines, opts?)` | One `<text>` per line, centered on the point. |
 | `wash(x, y, w, h, fill?)` | A plain rounded background rect. |
 | `rng()` | The pen's seeded PRNG; calling it advances the sequence. |
+
+That `depth` is the extrusion a node's `extrude` asks for: the run of the
+outline facing up-right, redrawn offset by `(depth, -0.75 × depth)`, joined
+back at the two silhouette points, with the right-facing strip hatched. The
+pen ignores an absent, zero, negative or non-finite depth - no faces, and
+nothing taken from the sequence - where `draw` throws on the same value.
 
 Every call consumes numbers from that sequence, so the order of the calls is
 part of the output.
@@ -425,8 +437,9 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 | rule | fires when | default |
 |---|---|---|
 | `duplicate-id` | two nodes share an `id` | **error** |
-| `node-overlap` | two node boxes share area | **error** |
+| `node-overlap` | two nodes' ink shares area: their boxes, or the boxes their slabs sweep | **error** |
 | `out-of-bounds` | a box, a point along the line an edge or a brace draws, or a label lies outside the `viewBox` | **error** |
+| `undrawable-depth` | a depth `draw` would read is not a positive finite number of px | **error** |
 | `label-collision` | a label sits within `clearance` of a connector or a brace | warning |
 | `text-overflow` | the widest line is wider than its box allows | warning |
 | `group-escape` | a node is half inside a group | warning |
@@ -450,6 +463,23 @@ the documented handwriting stack and deliberately wider than every real label
 in it. It over-states, so it warns early rather than missing an overflow, and
 any finding that depends on it carries `estimated: true`. All-capitals text
 runs near 0.99 and needs `glyphWidth` raised.
+
+An extruded node is measured as the box its slab sweeps:
+`(x, y - 0.75d, w + d, h + 0.75d)`. That rectangle stands for the faces rather
+than modeling them stroke by stroke, so a shape that does not fill its box is
+reported further apart than its ink ever is. Two 100 × 100 diamonds already do
+that flat: `node-overlap` fires with 69 px of clear air between their outlines,
+which is the slack a diamond in a rectangle has always had. Depth adds to it by
+the sweep resolved along the diagonal the two approach on, `(d + 0.75d) / √2`,
+so at `depth: 40` the same pair is reported at 119 px. Both over-state, which
+is the direction the whole checker errs in.
+
+**`check` validates a depth's form, not its cost.** A `depth: 20000` on one box
+passes in under half a millisecond, and drawing that same diagram emits 6,386
+paths, 1.6 MB of markup and 34 MB of heap - 38 ms through `renderToString`, and
+around twenty times that through jsdom. Depth costs about 80 B per px on top of
+a fixed 4.1 kB for the faces, and nothing bounds it: no rule here reports a
+number that is merely expensive.
 
 This repository runs the checker over its own examples and its README image
 on every push, because rules the author's own diagrams break are rules nobody
@@ -520,7 +550,7 @@ measured at 4.6.6.
 
 **Reach for pensketch** when the picture is boxes and arrows that belong in
 version control: one plain object your reviewers can read, rendering to the
-same bytes on every run, for about 4 KB and no new entries in your lockfile.
+same bytes on every run, for about 5 KB and no new entries in your lockfile.
 
 **Reach for rough.js** when the picture is arbitrary - a sketchy chart, a game,
 a texture, anything worth composing stroke by stroke, on canvas or SVG.
