@@ -263,6 +263,10 @@ own group stays a finding rather than being handed room it cannot reach.
 - **WHEN** two pieces of text sit close together without their boxes intersecting
 - **THEN** no `text-collision` finding is produced
 
+#### Scenario: A block with no lines is not text
+- **WHEN** a node, a group, a brace or a note carries `lines: []`, which the pen writes no `<text>` for
+- **THEN** no rule measures it - no room to overflow, no box to collide with and no label to lie on a stroke - because what the rules measure is the text the drawing lays down
+
 #### Scenario: A mirrored node is the rectangle it covers, with no depth in play
 - **WHEN** a flat diagram writes a node from its far corner with negative `w` and `h`, and another node or a group laps the rectangle it covers
 - **THEN** `check` reports `node-overlap` and `group-escape` exactly as it does for the upright spelling, and reports no `text-overflow` against a label that fits inside it

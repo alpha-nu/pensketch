@@ -427,7 +427,13 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // measuring its position there would drag every label up and right of where
   // `draw` writes it, which is what `text-collision` compares.
   for (const n of nodes) {
-    if (!n.lines) continue;
+    // `?.length`, because an empty array is truthy and `p.label` writes no
+    // `<text>` for one. Measured as a label it is a phantom: nought characters
+    // against a room that goes negative on a box narrower than the padding, so
+    // `text-overflow` reported "needs about 0px and has -6px" about text the
+    // drawing does not contain, and `labelBox` handed `text-collision` a block
+    // one line shorter than none - a negative height - to compare with.
+    if (!n.lines?.length) continue;
     const group = n.shape === 'group';
     const size = group ? TITLE_SIZE : n.size || SIZE;
     const sub = `node "${n.id}"`;
@@ -665,7 +671,11 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   });
 
   braces.forEach((b, i) => {
-    if (!b.lines || typeof b.lx !== 'number' || typeof b.ly !== 'number')
+    if (
+      !b.lines?.length ||
+      typeof b.lx !== 'number' ||
+      typeof b.ly !== 'number'
+    )
       return;
     const box = labelBox(
       b.lx,
@@ -691,6 +701,9 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   });
 
   notes.forEach((nt, i) => {
+    // As above: no lines is no text, and a note is the one carrier whose
+    // `lines` the type demands, so `[]` is the only way to write it empty.
+    if (!nt.lines.length) return;
     const box = labelBox(
       nt.x,
       nt.y,

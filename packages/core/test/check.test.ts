@@ -2312,3 +2312,88 @@ describe('a flat node written from its far corner is the rectangle it covers', (
     ]);
   });
 });
+
+// An empty `lines` array is not a label. `p.label` writes no `<text>` for one,
+// so nothing is drawn, nothing occupies room and nothing can be collided with -
+// yet `[]` is truthy, and every guard here was written as `if (!x.lines)`. The
+// checker was measuring text the drawing does not contain: a block nought
+// characters wide against a room that goes negative on any box narrower than
+// twice the padding, and a `labelBox` one line shorter than none, whose height
+// came out at `size * (1 - LINE_H)` - a negative number handed to the geometry.
+//
+// The tests below assert against `draw` rather than against a number, because
+// the rule is not "an empty array is special" but "the checker measures what
+// the pen draws", and the pen is the only thing that can settle that.
+describe('an empty lines array is not a label', () => {
+  const drawn = (d: Diagram) => {
+    const svg = makeSvg();
+    draw(svg, d, { seed: 7 });
+    return svg.innerHTML;
+  };
+
+  it('draws no text, so it is measured as none', () => {
+    const narrow: Diagram = {
+      nodes: [{ id: 'n', shape: 'box', x: 0, y: 0, w: 10, h: 20, lines: [] }],
+    };
+    expect(drawn(narrow)).not.toContain('<text');
+    expect(rules(check(narrow, { rules: { 'orphan-node': 'off' } }))).toEqual(
+      [],
+    );
+  });
+
+  it('gives a group with no title nothing to overflow', () => {
+    const untitled: Diagram = {
+      nodes: [{ id: 'g', shape: 'group', x: 0, y: 0, w: 12, h: 60, lines: [] }],
+    };
+    expect(drawn(untitled)).not.toContain('<text');
+    expect(rules(check(untitled))).toEqual([]);
+  });
+
+  // A zero-width box is not a harmless one: `intersects` only needs the far
+  // edge of one to clear the near edge of the other, so a block with no width
+  // still laps text either side of it.
+  it('gives an empty note no box to collide with', () => {
+    const over: Diagram = {
+      nodes: [
+        { id: 'n', shape: 'box', x: 0, y: 0, w: 200, h: 40, lines: ['label'] },
+      ],
+      notes: [{ x: 100, y: 20, lines: [] }],
+    };
+    expect(drawn(over)).not.toContain('<text>');
+    expect(rules(check(over, { rules: { 'orphan-node': 'off' } }))).toEqual([]);
+  });
+
+  it('gives an empty brace label nothing to lie on', () => {
+    const onIt: Diagram = {
+      braces: [{ from: [0, 0], to: [200, 0], lines: [], lx: 100, ly: 26 }],
+    };
+    expect(drawn(onIt)).not.toContain('<text');
+    expect(rules(check(onIt))).toEqual([]);
+  });
+
+  // The other direction, or the fix is "report nothing": one real line in the
+  // same places still reports everything it did.
+  it('still measures a block that has a line in it', () => {
+    expect(
+      rules(
+        check(
+          {
+            nodes: [
+              {
+                id: 'n',
+                shape: 'box',
+                x: 0,
+                y: 0,
+                w: 10,
+                h: 20,
+                lines: ['far too wide'],
+              },
+            ],
+            notes: [{ x: 5, y: 10, lines: ['on top of it'] }],
+          },
+          { rules: { 'orphan-node': 'off' } },
+        ),
+      ),
+    ).toEqual(['text-collision', 'text-overflow']);
+  });
+});

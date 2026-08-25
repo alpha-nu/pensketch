@@ -211,7 +211,21 @@ export function edgePath(
       : [at(from, e.from[1]), ...(e.via || []), at(to, e.to[1])];
 }
 
-/** Distance from a point to a box, and zero anywhere inside it. */
+/**
+ * Distance from a point to a box, and zero anywhere inside it.
+ *
+ * This one and `hitsBox` below do carry the non-negative precondition that
+ * `intersects` and `contains` were relieved of, and deliberately: their only
+ * caller is `struckBy`, which is handed `labelBox` output alone. A text block
+ * is upright by construction - its width is a character count and its height a
+ * line count, both taken from the anchor rather than from a caller's numbers -
+ * so there is no mirrored spelling of one to get wrong. Documented rather than
+ * normalised because the two bytes would buy nothing: a box that cannot be
+ * written backwards needs no reading of both spellings. The one path that
+ * could once reach here denormalised was a `lines: []` block, whose height
+ * came out one line short of nothing; `check` now skips an empty block where
+ * the pen writes no text for it.
+ */
 function pointToBox(b: Box, [x, y]: Point): number {
   return Math.hypot(
     Math.max(b.x - x, 0, x - (b.x + b.w)),
