@@ -75,16 +75,31 @@ Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
 ## 2. The renderer
 
 - [ ] 2.1 `draw` plumbing: the options pair, the per-node pair, the `hop`
-      resolution idiom, faces drawn wash → front → faces → shading → label
-      within the node phase
+      resolution idiom, faces drawn wash → front → faces → face shading →
+      front `hatch: true` → label within the node phase. Groups never
+      extrude (T-49): the pair on a group is ignored by `draw`, refused by
+      the schema, and a test pins the flat group frame under a diagram-wide
+      `extrude: true`
 - [ ] 2.2 Anchors: `t` and `r` to the silhouette midpoints when extruded,
       `anchor` reporting the same points, edges attaching there. Tests pin
       the two moved anchors and the two unmoved ones at a known `d`
-- [ ] 2.3 Validation: a used `depth` that is not a positive finite number
-      throws in `bow`'s words; an unused one is ignored. Tests for both, and
-      for the override cutting both ways
+- [ ] 2.3 Validation (T-54's reading): the options `depth` validates
+      whenever `options.extrude` is true, and every extruded node's resolved
+      depth validates — the inherit corner included, where a node's
+      `extrude: true` reaches an invalid options `depth`. An unread depth is
+      ignored. Tests for all three, and for the override cutting both ways
 - [ ] 2.4 Types exported by name, JSDoc on the new fields written so the
-      schema generates right, `npm run schema` clean
+      schema generates right, `npm run schema` clean. `GroupNode` omits the
+      pair (T-49) so the strict schema refuses it on a group, and the
+      MODIFIED closed-surface requirement (T-42) is what legislates
+      `ShapeOptions`
+
+- [ ] 2.5 Probe renders (T-53), eye-checked and recorded in D8: `hatch: true`
+      beside depth — front hatch pen-coloured inset, face hatch muted
+      outside, phase offset `(w + 0.75d + 8) mod 11` so some widths align
+      the two families — an accent node's pen-coloured faces over muted
+      shading, and a dotted raw shape's dotted faces. Guidance lands with
+      5.1
 
 Gate: full suite, goldens untouched, `openspec validate --strict`.
 
@@ -93,9 +108,13 @@ Gate: full suite, goldens untouched, `openspec validate --strict`.
 - [ ] 3.1 The swept box under every box-measuring rule, the moved anchors
       under every edge-walking rule, options and node fields resolved by the
       renderer's idiom
-- [ ] 3.2 Tests: the face-past-the-viewBox case (the hero-5 defect, now a
-      fixture), sweep-only overlap, moved-anchor edge walk, and a flat run
-      asserted byte-identical to today's findings
+- [ ] 3.2 Tests: the face-past-the-viewBox case as the D6-recorded hero-5
+      geometry — a box ending 10 px inside a 1200-wide viewBox at `d = 12`,
+      face reaching 2 px past it (T-47; the hero file itself is untracked
+      and since corrected, so the numbers here are the citable source) —
+      sweep-only overlap, moved-anchor edge walk, the label-room rules
+      pinned to the front box (T-56), and a flat run asserted byte-identical
+      to today's findings
 
 Gate: full suite; `./check` budget from 1.3 still holds.
 
@@ -116,9 +135,13 @@ Gate: full suite, generated files fresh in CI's sense.
 
 - [ ] 5.1 The field tables and pen tables in both READMEs, `docs/agents.md`
       (type block, constants table, and one worked slab example),
-      `CONTRIBUTING.md` if any gate changed. The four hand-written places a
-      data-model field goes stale are exactly the list above; check each
-      against the shipped behavior, not the plan
+      `CONTRIBUTING.md` if any gate changed, and the JSDoc on `DEPTH` and
+      `ShapeOptions.depth` re-read against shipped behaviour (T-46 made the
+      constants comment the fifth hand-written place this list once
+      missed). Per-shape guidance written to the evidence: a box extrudes
+      at any scale, a pill wants depth near a third of its height, a
+      diamond prefers flat (T-48), and a pill under ~12 px in both
+      dimensions has no outline to extrude (T-55)
 - [ ] 5.2 `openspec validate --strict` clean; self-review of the full diff;
       every finding fixed before hand-off
 

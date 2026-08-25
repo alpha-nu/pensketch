@@ -42,3 +42,15 @@ corrected before records what was decided and on what evidence.
 #### Scenario: A published comparison cannot go stale
 - **WHEN** an entry grows and the README still prints the size it had before
 - **THEN** `npm run size` fails, naming both numbers, rather than leaving the repository's front page to be corrected at release time
+
+#### Scenario: A budget moves before the code does
+- **WHEN** a change knows from a prototype that a feature will not fit an entry's budget
+- **THEN** the budget is raised in its own commit, before the feature is written, carrying the measurement that justifies the new number
+
+#### Scenario: The server's download weight is visible
+- **WHEN** `@pensketch/mcp` is packed
+- **THEN** its tarball size is reported, so the wait an `npx` user pays for is a known number rather than an accident
+
+#### Scenario: A drawing feature is caught in the entry that carries it
+- **WHEN** a feature is added to `draw` and only the root entry is measured
+- **THEN** `@pensketch/core/server` is measured too and fails on its own account, because it bundles its own copy of the renderer and pays for the feature whether or not anyone imports it

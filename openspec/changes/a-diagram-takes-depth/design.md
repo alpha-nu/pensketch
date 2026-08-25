@@ -18,6 +18,14 @@ line the validation requirement already draws; a `depth` that extrusion will
 actually use must be a positive finite number or `draw` throws, as `bow`
 already does.
 
+Groups never extrude. A group bounds a set; it is not an object, and a slab
+frame with a hatched flank drawn across its members' edges would be noise
+pretending to be depth. The pair on a group is a field that does not apply:
+`draw` ignores it, the published schema refuses it on a group as it already
+refuses `hatch` and `accent` there, and the checker never sweeps a group's
+own box, while members' swept boxes still count against the group's flat
+frame.
+
 React needs nothing: `hops` never became a `PenSketch` prop (its props are
 `animate`, `diagram`, `seed`, `theme`), so the precedent is that draw options
 are not react surface, and per-node fields flow through `diagram` untouched.
@@ -33,9 +41,11 @@ Every pen shape is already emitted as an outline polyline. A segment carries a
 face exactly when its outward normal dots positive with the extrusion vector.
 The facing chain is offset by the vector and drawn as **one** polyline between
 the two silhouette points, plus the two connectors — all ordinary double-pass
-strokes, no second way of drawing. Shading: the quads swept by segments whose
-outward normal has a **positive x component** are hatched muted at
-`HATCH_GAP` through the clip arm. On a box this degenerates to:
+strokes, no second way of drawing. Shading: the strip swept by the contiguous facing sub-chain whose outward
+normals have a **positive x component** is hatched muted at `HATCH_GAP`
+through the clip arm — one call over one region, which the goldens will
+freeze, so it is stated: not one hatch per quad. On a box this degenerates
+to:
 
 | face | drawn (normal · (1, -.75) > 0) | shaded (normal.x > 0) |
 |---|---|---|
@@ -43,19 +53,26 @@ outward normal has a **positive x component** are hatched muted at
 | right, normal (1,0) | yes (1) | yes |
 | bottom, left | no | — |
 
-which is exactly the slab the five hero figures shipped. A diamond shades its
-two right faces; a pill's 26-segment arc resolves under the same rule with no
-case of its own. Convex outlines only, which is every shape the pen has.
+which is exactly the slab the five hero figures shipped. A diamond shades
+both right faces only when taller than 0.75 of its width; the common wide
+diamond has one facing run wrapping its top seam and one shaded face, which
+the wrap test pins. A pill's ideal outline (arcPoints at full radii, denser
+than 26 chords past ~215 px wide) resolves under the same rule with no case
+of its own. Convex outlines only, which is every shape the pen has.
 
 The front face keeps everything it has today: wash, `hatch: true` shading,
 label. Within the node phase the hand order is wash, front outline, faces,
-shading, label — so an animated reveal raises each slab whole. The phase
+face shading, the front's own `hatch: true`, label — so an animated reveal
+raises each slab whole. The phase
 order in "Diagram render order is normative" does not move.
 
 ## D3. Anchors move to the silhouette
 
-An anchor on an extruded side moves to the midpoint of the silhouette edge:
-`r` to `(x + w + d, y + h/2 - .75d)`, `t` to `(x + w/2 + d/2, y - .75d)`.
+An anchor on an extruded side moves by the full extrusion vector — the flat
+anchor plus `E`: `t` to `(x + w/2 + d, y - .75d)`, `r` to
+`(x + w + d, y + h/2 - .75d)`. One rule, both sides, and it lands on ink for
+all three shapes: the box's back-edge midpoint, the diamond's offset apex,
+the pill's offset arc to the sampling tolerance flat anchors already carry.
 `l` and `b` sit on the front plane and do not move. Without this, every
 left-to-right diagram self-occludes — hero-1's spine arrows had to be
 hand-routed around exactly this. `anchor` reports the same points `draw`

@@ -8,8 +8,12 @@
 
 ### Requirement: A shape can take depth
 `draw()` SHALL accept `extrude?: boolean` and `depth?: number` beside `hops`,
-as the diagram-wide default, and every node SHALL be able to carry the same
-pair. Resolution SHALL be the `hop` idiom exactly: extrusion is on for a node
+as the diagram-wide default, and every shape node SHALL be able to carry the
+same pair. A group never extrudes: it bounds, it is not an object, and the
+pair on a group is a field that does not apply — `draw` SHALL ignore it,
+while the published schema refuses it on a group the way it already refuses
+`hatch` and `accent` there, and that split is stated here so it is read
+rather than discovered. Resolution SHALL be the `hop` idiom exactly: extrusion is on for a node
 iff `node.extrude ?? options.extrude ?? false`, and its magnitude is
 `node.depth ?? options.depth ?? DEPTH` — so an extruded diagram can flatten
 one node and a flat diagram can extrude one. `pen.rect`, `pen.pill` and
@@ -24,19 +28,21 @@ dots positive with that vector. The facing chain SHALL be offset by the
 vector and drawn as one polyline between the two silhouette points, plus the
 two connectors — assembled from the same double-pass strokes as every other
 primitive, `reference/renderer.html` untouched, under the clause "Hand-sketch
-primitive fidelity" fixed for `arc`. The quads swept by facing segments whose
-outward normal has a positive x component SHALL be hatched in the muted
-theme color at `HATCH_GAP` through `hatch`'s clip arm. On a box this
+primitive fidelity" fixed for `arc`. The strip swept by the facing sub-chain whose
+outward normal has a positive x component SHALL be hatched as one region, in
+the muted theme color at `HATCH_GAP` through `hatch`'s clip arm — one call,
+one clip polygon, since the sub-chain is contiguous on a convex outline. On a box this
 degenerates to a top face and a right face with only the right face shaded.
 The front face SHALL keep its wash, its `hatch: true` shading and its label
 unchanged.
 
 Within the node phase the hand order SHALL be wash, front outline, faces,
-shading, label; the phase order of "Diagram render order is normative" SHALL
-NOT change. When a node is extruded, its `t` and `r` anchors SHALL move to
-the midpoints of the silhouette edges — `r` to `(x + w + d, y + h/2 −
-DEPTH_RISE × d)`, `t` to `(x + w/2 + d/2, y − DEPTH_RISE × d)` — and `l` and
-`b` SHALL NOT move; `anchor` SHALL report the same points edges attach to.
+face shading, the front face's own `hatch: true` shading, label; the phase order of "Diagram render order is normative" SHALL
+NOT change. When a node is extruded, its `t` and `r` anchors SHALL move by the full
+extrusion vector — `t` to `(x + w/2 + d, y − DEPTH_RISE × d)`, `r` to
+`(x + w + d, y + h/2 − DEPTH_RISE × d)`, each the flat anchor plus `E`,
+which lands on the silhouette's ink for every shape — and `l` and `b` SHALL
+NOT move; `anchor` SHALL report the same points edges attach to.
 When extrusion is off for the diagram and every node, the depth path SHALL
 draw nothing and consume nothing from the seeded sequence.
 
@@ -56,6 +62,10 @@ draw nothing and consume nothing from the seeded sequence.
 - **WHEN** an edge leaves side `r` of an extruded node
 - **THEN** it starts at the silhouette edge's midpoint, the same point `anchor` reports for that side
 
+#### Scenario: A group never extrudes
+- **WHEN** a diagram carrying a group is drawn with `extrude: true`
+- **THEN** the group's frame draws flat, and `extrude` or `depth` on the group itself is ignored as a field that does not apply
+
 #### Scenario: The override cuts both ways
 - **WHEN** a flat diagram carries one node with `extrude: true`, and an extruded diagram carries one node with `extrude: false`
 - **THEN** exactly that node is extruded in the first and exactly that node is flat in the second
@@ -69,8 +79,9 @@ unknown shape, an edge `label` without numeric `lx`/`ly`, a brace's `lines`
 without them, an edge whose `from`
 and `to` name the same node but **different** sides, an edge or note combining
 `bow` with `via`, a self-transition carrying `via` or `bow`, and a `depth`
-that extrusion will actually use — on the options or on a node whose
-extrusion is on — that is not a positive finite number. Each message
+that is not a positive finite number where it is read: the options `depth`
+whenever `options.extrude` is true, and every extruded node's resolved
+depth, `node.depth ?? options.depth ?? DEPTH`. Each message
 SHALL carry what the caller needs to fix it without reading the source — the
 ids that do exist, the shapes that are accepted, why a label needs coordinates,
 that a loop attaches to one side, or what already describes the path a second
@@ -102,9 +113,37 @@ validation, no console warnings, and no silent fallbacks in library code.
 - **THEN** `draw()` throws, in the words an edge label is refused in, because the reason is the same one: nothing here measures text
 
 #### Scenario: A depth that cannot be drawn
-- **WHEN** `draw()` is called with `extrude: true` and a `depth` of `NaN`, `-3` or `Infinity`, on the options or on an extruded node
+- **WHEN** `draw()` is called with `extrude: true` and a `depth` of `NaN`, `-3` or `Infinity`, on the options or on an extruded node — including a node whose `extrude: true` inherits the invalid options `depth`
 - **THEN** it throws naming the field and what it accepts, rather than reading it as absent and drawing the default slab
 
 #### Scenario: A depth that applies to nothing is ignored
 - **WHEN** a node carries `depth: 40` and extrusion is off for it and for the diagram
 - **THEN** the node draws flat and nothing throws, because the field does not apply
+
+### Requirement: The public API surface is closed
+`@pensketch/core` SHALL export exactly: `mulberry32`, `pen`, `draw`, `anchor`,
+`defaultTheme`, the frozen `constants` object, and the types in design.md D2
+plus `ShapeOptions` — the options `rect`, `pill` and `diamond` take, `depth`
+among them — and nothing else. `DEPTH` and `DEPTH_RISE` SHALL sit inside the
+frozen `constants` object like every other aesthetic constant, not beside it.
+`Pen` SHALL expose exactly `stroke`, `arrow`, `rect`,
+`pill`, `arc`, `diamond`, `hatch`, `label`, `wash`, and `rng`. `label` SHALL
+accept a `string` (normalized to a one-element array) or a `string[]`.
+
+Every type a caller can write into a diagram SHALL be exported by name,
+`DiagramBrace` among them. A field table in a README and a `$defs` entry in the
+schema are not a substitute: a caller who factors a brace into a helper needs
+to annotate it, and a type that only the schema names cannot be annotated at
+all.
+
+#### Scenario: No accidental exports
+- **WHEN** the built module's export names are enumerated
+- **THEN** they match the design.md D2 surface plus `ShapeOptions` exactly
+
+#### Scenario: The surface opens by exactly one name
+- **WHEN** a pen's own members are enumerated
+- **THEN** they are the names above and no others, `arc` being the only one its own change added
+
+#### Scenario: A member type is nameable
+- **WHEN** a TypeScript caller imports a diagram member's type from the package root
+- **THEN** it resolves, for every member the data model accepts
