@@ -111,10 +111,11 @@ const PACKAGES = [
     // 3648 from 3520 for `depth`: the checker learns the swept box an
     // extruded node occupies and the anchors the renderer moves. The built
     // rehearsal of the whole change lands this entry at 3500, leaving 20 B -
-    // and a margin smaller than the 2 B of gzip noise this file has already
-    // measured on identical code is not a margin, which is the same line the
-    // 3520 raise above states. 3500 plus the same 100 B of headroom is 3600,
-    // taken up to 3648.
+    // but that margin is measured over a rehearsal of groups that had not
+    // landed, an estimate rather than code, and the requirement's one step
+    // means the raise rides now with the server's or waits to be taken at a
+    // failing gate, which the paragraph above it forbids. 3500 plus the
+    // same 100 B of headroom is 3600, taken up to 3648.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
     budget: 3648,

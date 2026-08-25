@@ -131,12 +131,26 @@ it to be priced and reverted after the numbers were read.
 
 The raises follow the house arithmetic — measured need plus 100 B of gzip
 headroom, taken up to the next multiple of 64: 4868 + 100 = 4968 → 4992,
-and 3500 + 100 = 3600 → 3648. `./check` moves although 3500 fits 3520,
-because 20 B is smaller than the 2 B-per-run gzip noise already measured on
-identical code, and the 3520 raise's own words rule that a margin below the
-noise is not a margin. One step for the whole change: if groups 2–3 land
-materially over their rehearsal, the arithmetic was wrong and the number is
-re-decided with the reason recorded where it is declared, not nudged.
+and 3500 + 100 = 3600 → 3648. `./check` moves although 3500 fits 3520: that
+20 B margin is measured over a rehearsal of groups that had not landed —
+over an estimate, not over code — and the requirement's one step means the
+raise rides the same decision as the server's or waits to be taken at a
+failing gate, which is forbidden. One step for the whole change: if groups
+2–3 land materially over their rehearsal, the arithmetic was wrong and the
+number is re-decided with the reason recorded where it is declared, not
+nudged.
+
+What the rehearsal contained, reconstructed (T-52) — the bytes themselves
+are unrecoverable, which repeats the measurement-outlives-its-prototype
+failure and is recorded as such: in `draw`, the options pair, per-node
+resolution through an `edgeDepth` helper at the edge call sites, a minimal
+validation throw, `anchor` taking a resolved depth and shifting `t`/`r`,
+and the pair forwarded into the shape options; in `check`, one swept-node
+map at entry, group nodes excluded, standing in for every box rule
+wholesale. NOT in the rehearsal: the winding normalization T-51 later
+landed (+38 core, +34 server, measured), T-56's label-rule split, and
+per-rule anchor walks — the group 2 and 3 gates are the re-measurement,
+and the tripwire above is armed.
 
 Decision taken under the owner's session delegation of 2026-08-25. The
 budget commit precedes the first commit that needs the room, so no commit in
@@ -164,11 +178,19 @@ The other two shapes calibrate differently, and the record is the point:
   its edges dot weakly against the extrusion vector, so the strip reads as
   a folded corner. Honest rhomboid geometry, least convincing of the three.
 
+The probes, recorded so the renders can be regenerated and rejudged
+(`content/tools/figure.mjs`, scratch spec, seeds 71/73/79): hero scale
+1200 × 600 — rect 220 × 80, pill 220 × 90, diamond 160 × 120, all d = 12;
+small scale 700 × 150 — rect 140 × 40, pill 140 × 40, diamond 80 × 60 at
+d = 12 and d = 8; proportional — pill 220 × 90 at d = 30 and 45, diamond
+160 × 120 at d = 24 and 36. The renders go in front of the owner at the
+group boundary.
+
 Decision under the owner's session delegation: the geometry ships for all
 three shapes as the delta states, the default stays box-calibrated, and the
 per-shape guidance lands in the field tables at task 5.1 — a box extrudes
 at any scale, a pill wants a depth near a third of its height, a diamond
-wants proportional depth or none. Two refinements were considered and NOT
+prefers flat: the probes support nothing stronger. Two refinements were considered and NOT
 taken, each a constant aimed at one probe's failure: thresholding the
 facing test to kill sliver faces, and per-shape default scaling. If either
 is wanted it is a deliberate follow-up with these renders as evidence.
