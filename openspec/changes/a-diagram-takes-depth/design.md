@@ -153,6 +153,16 @@ landed (+38 core, +34 server, measured), T-56's label-rule split, and
 per-rule anchor walks — the group 2 and 3 gates are the re-measurement,
 and the tripwire above is armed.
 
+**The tripwire fired twice, and both times the pre-registered path was
+taken.** At 3.1 it was `./check`'s turn: the 3648 raise had been sized over
+a column that excluded the label split and the per-rule anchor walks, which
+turned out to be most of group 3, and the entry landed at 3631 with the
+`undrawable-depth` rule unwritten. That rule was rehearsed with its messages
+written to the spec's letter — the precise thing the 2.3 estimate had
+stubbed — measured 3811, and the budget moved to 3968 before the work, at a
+green gate. The lesson from 2.3 was applied rather than merely recorded,
+which is the only evidence that a lesson took.
+
 **The tripwire fired at 2.3 and the pre-registered path was taken.** The
 rehearsal priced "a minimal validation throw"; the validation the spec
 demands measured 4986 on server when it landed - 118 B past the 4868

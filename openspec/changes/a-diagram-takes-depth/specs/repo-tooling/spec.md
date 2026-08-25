@@ -1,6 +1,6 @@
 # repo-tooling — Delta Specification
 
-> Two budgets move for depth, in three steps. `./check` and `./server` were
+> Two budgets move for depth, in four steps. `./check` and `./server` were
 > first sized in one step from a built rehearsal of the whole core-side
 > surface, reverted after it was read; then `./server` moved again when the
 > validation the spec actually demands falsified that arithmetic by 118 B,
@@ -13,7 +13,7 @@
 ### Requirement: Size budgets are enforced
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
-`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 3648
+`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 3968
 bytes, `@pensketch/core/server` exceeds 5120 bytes, `@pensketch/react` exceeds
 2048 bytes, or `@pensketch/animation` exceeds 768 bytes min+gzip. Each
 published entry SHALL be a self-contained

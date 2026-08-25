@@ -42,7 +42,7 @@ root unless told otherwise.
   proves the file `bin` names starts under a bare `node` and that nothing it
   prints corrupts the stream a client is parsing.
 - `npm run size` - gzipped size budgets. Proves each minified, gzipped ESM
-  entry point stays within budget: 5120 bytes for core, 3648 for its checker
+  entry point stays within budget: 5120 bytes for core, 3968 for its checker
   subpath, 5120 for its DOM-free renderer, 2048 for react, and 768 for the
   animation package. It also proves the size the README prints beside another
   project's is the one the build produces, because a number a reader is invited

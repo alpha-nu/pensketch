@@ -116,9 +116,22 @@ const PACKAGES = [
     // means the raise rides now with the server's or waits to be taken at a
     // failing gate, which the paragraph above it forbids. 3500 plus the
     // same 100 B of headroom is 3600, taken up to 3648.
+    // 3968 from 3648 for the checker's half of `depth`. The 3648 raise was
+    // sized over a rehearsal column that excluded, in its own words, the
+    // label-rule split and the per-rule anchor walks - and those are most of
+    // what group 3 turned out to be: the sweep, the moved edge walks and the
+    // shared resolution landed this entry at 3631, 131 B past that column,
+    // with the `undrawable-depth` rule still unwritten.
+    //
+    // That rule was then rehearsed against this file's own standard - the
+    // messages written to the spec's letter rather than stubbed, since a
+    // stubbed message is exactly how the last estimate went 118 B wrong - and
+    // measured 3811. Plus the conventional 100 B of gzip headroom is 3911,
+    // taken up to the next multiple of 64. Rehearsal reverted; the entry
+    // measures 3631 as this number lands, so the gate is green while it moves.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 3648,
+    budget: 3968,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries
