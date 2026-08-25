@@ -6,7 +6,7 @@ import {
   TITLE_DY,
   TITLE_SIZE,
 } from './constants';
-import { depthOf } from './draw';
+import { ACCEPTS, depthOf, drawable, extrudes, magnitude } from './draw';
 import {
   type Box,
   boxToSegment,
@@ -38,7 +38,8 @@ export type RuleId =
   | 'group-escape'
   | 'orphan-node'
   | 'edge-overlap'
-  | 'text-collision';
+  | 'text-collision'
+  | 'undrawable-depth';
 
 /** One defect, in enough detail to fix it without seeing the drawing. */
 export interface Finding {
@@ -50,7 +51,10 @@ export interface Finding {
   message: string;
   /** Where to look, in the diagram's own coordinate space. */
   at: Point;
-  /** What is involved: `node "gate"`, `edge 3`, `brace 1`, `note 0`. */
+  /**
+   * What is involved: `node "gate"`, `edge 3`, `brace 1`, `note 0`, or
+   * `options` for a finding about the call rather than about the drawing.
+   */
   subjects: string[];
   /**
    * Present when the finding rests on the text-width estimate. Text is never
@@ -71,6 +75,10 @@ export interface Finding {
  * every connector leaving it, which leaves from the moved anchor. Every rule
  * that measures its **label** keeps the front box, because the label sits on
  * the front face and does not move with the slab.
+ *
+ * A pair the renderer refuses is reported as `undrawable-depth` rather than
+ * measured as flat, in the words `draw` would have thrown with: a checker that
+ * read an undrawable depth as nought would pass a diagram nothing can render.
  */
 export interface CheckOptions extends Pick<DrawOptions, 'extrude' | 'depth'> {
   /**
@@ -105,6 +113,7 @@ const DEFAULTS: Record<RuleId, Severity> = {
   'orphan-node': 'warning',
   'edge-overlap': 'warning',
   'text-collision': 'warning',
+  'undrawable-depth': 'error',
 };
 
 // How much line two connectors may share before it is reported, in px.
@@ -239,6 +248,67 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
         [`node "${n.id}"`],
       );
     else byId.set(n.id, n);
+  }
+
+  // A depth the renderer refuses is a defect in the diagram, not a node that
+  // happens to draw flat. `draw` throws on it before the first wash, so a
+  // checker that read an undrawable depth as nought would return no findings
+  // at all for a diagram the renderer will not draw - which inverts the order
+  // the tools prescribe, check first and then render, and breaks this file's
+  // own promise to measure what the renderer draws. Reported rather than
+  // thrown for `duplicate-id`'s reason, and in `draw`'s own words: the
+  // predicate, the sentence they all end in and the two helpers the renderer
+  // judges through are imported from it, and a test renders each of these
+  // diagrams and asserts the thrown message equals the reported one, so the
+  // shape of the message cannot drift without a red suite. Only that shape is
+  // restated, and it is restated rather than shared because the shared helper
+  // was built and measured: it put 29 B on the root entry, which had 33 of
+  // headroom - a checker's rule paid for out of the renderer's budget, for
+  // words no `draw` caller reads twice. Sharing the predicate and the sentence
+  // costs 3.
+  //
+  // The options depth is refused on its own terms, whenever the diagram-wide
+  // `extrude` is on, whether or not a node goes on to read it - exactly as
+  // the throw is, and the reason the two loops below are two. `at` is the
+  // origin, because this offender is not a place in the drawing: it is the
+  // call, and there is nowhere in the picture to go and look at it.
+  if (
+    options.extrude &&
+    options.depth !== undefined &&
+    !drawable(options.depth)
+  )
+    add(
+      'undrawable-depth',
+      `the options depth is ${options.depth}; ${ACCEPTS}`,
+      [0, 0],
+      ['options'],
+    );
+  // `extrudes` and `magnitude`, which is the pair `draw` validates through and
+  // deliberately not `depthOf`: the resolution answers 0 for a shape that
+  // cannot carry a face, and reading it here would report that shape's
+  // perfectly good `depth: 12` as a depth of nought - and, worse, would go
+  // quiet about its `NaN`, which `draw` still throws on. A number the caller
+  // wrote is judged for what it is, not for the box it landed in.
+  //
+  // `extrudes` also narrows a group out, so the pair on one is read by nothing
+  // and reported by nothing - the same rule that keeps a group's frame flat
+  // rather than a second one written here.
+  for (const n of nodes) {
+    const up = extrudes(n, options);
+    if (!up) continue;
+    const d = magnitude(up, options);
+    if (!drawable(d))
+      add(
+        'undrawable-depth',
+        // Two messages for one rule, because the fix is not the same edit: a
+        // node's own `depth` is on the node, and an inherited one is on the
+        // diagram and reaches every extruded node carrying none of its own.
+        up.depth !== undefined
+          ? `node "${up.id}" has depth ${d}; ${ACCEPTS}`
+          : `node "${up.id}" extrudes at the options depth ${d}; ${ACCEPTS}`,
+        [up.x, up.y],
+        [`node "${up.id}"`],
+      );
   }
 
   // A node nothing points at is far more often a typo in an edge than a

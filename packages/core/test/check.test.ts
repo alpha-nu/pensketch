@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import * as subpath from '../src/check';
-import { type CheckOptions, check } from '../src/check';
+import {
+  type CheckOptions,
+  check,
+  type RuleId,
+  type Severity,
+} from '../src/check';
 import { INFLATE } from '../src/geometry';
-import type { Diagram, DiagramEdge, DiagramNode } from '../src/index';
+import {
+  type Diagram,
+  type DiagramEdge,
+  type DiagramNode,
+  type DrawOptions,
+  draw,
+} from '../src/index';
+import { makeSvg } from './helpers';
 
 const box = (id: string, x: number, y: number): DiagramNode => ({
   id,
@@ -26,6 +38,59 @@ describe('check', () => {
 
   it('reports nothing about a diagram with nothing in it', () => {
     expect(check({})).toEqual([]);
+  });
+
+  // The union's own pin, and the reason it is a table rather than a list: a
+  // `RuleId` erases at runtime, so what holds the two together is
+  // `satisfies Record<RuleId, Severity>` - a member added to the union with no
+  // place here fails the typecheck, and so does one renamed out from under it.
+  // A published id never changes meaning; the union grows, and this is where
+  // growing it is noticed.
+  const EVERY_RULE = {
+    'duplicate-id': 'error',
+    'node-overlap': 'error',
+    'out-of-bounds': 'error',
+    'label-collision': 'warning',
+    'text-overflow': 'warning',
+    'group-escape': 'warning',
+    'orphan-node': 'warning',
+    'edge-overlap': 'warning',
+    'text-collision': 'warning',
+    'undrawable-depth': 'error',
+  } satisfies Record<RuleId, Severity>;
+
+  // The runtime half, because a table typed correctly and spelled wrongly
+  // still typechecks: every id above is one `check` honours, proved by
+  // switching all of them off over a diagram that fires five.
+  it('switches off every rule it knows, by name', () => {
+    const noisy: Diagram = {
+      nodes: [
+        {
+          id: 'a',
+          shape: 'box',
+          x: 0,
+          y: 0,
+          w: 40,
+          h: 40,
+          lines: ['far too wide'],
+        },
+        {
+          id: 'a',
+          shape: 'box',
+          x: 20,
+          y: 20,
+          w: 100,
+          h: 40,
+          extrude: true,
+          depth: Number.NaN,
+        },
+      ],
+    };
+    expect(rules(check(noisy)).length).toBeGreaterThan(4);
+    const off = Object.fromEntries(
+      Object.keys(EVERY_RULE).map((rule) => [rule, 'off']),
+    ) as Record<RuleId, 'off'>;
+    expect(check(noisy, { rules: off })).toEqual([]);
   });
 
   // The checker is documented as pure, and a caller runs it on the diagram it
@@ -1582,6 +1647,247 @@ describe('an extruded node is measured extruded', () => {
         ),
       ),
     ).toEqual(['node-overlap']);
+  });
+});
+
+// T-65. `draw` refuses a depth it cannot draw and stops there; a checker that
+// resolved the same number to nought would hand back an empty report for a
+// diagram nothing can render, which inverts the order the tools prescribe -
+// check first, then render - and breaks this file's own promise that the
+// checker measures what the renderer draws.
+//
+// Every message below is written out *and* held to the renderer's own throw.
+// The literal is for the reader, who should be able to see the sentence a
+// caller gets without running anything; the throw is what stops the two
+// drifting, because a wording changed on one side only leaves the literal
+// green on that side and red here. `refuses` renders the very diagram under
+// test and compares what came back. The element it renders into is jsdom's,
+// which the core project already runs in, and nothing here reads a rendered
+// byte.
+describe('undrawable-depth', () => {
+  // The four kinds of number a depth must not be, and the list `draw`'s own
+  // tests are written against: not a number, negative, nought, not finite.
+  const BAD = [Number.NaN, -3, 0, Number.POSITIVE_INFINITY];
+
+  const found = (d: Diagram, o: CheckOptions) =>
+    check(d, o).filter((f) => f.rule === 'undrawable-depth');
+
+  // The one finding this diagram earns, held to the sentence `draw` throws for
+  // the same diagram and the same options.
+  const refuses = (d: Diagram, o: CheckOptions & DrawOptions) => {
+    const findings = found(d, o);
+    expect(findings).toHaveLength(1);
+    expect(() => draw(makeSvg(), d, o)).toThrowError(
+      new Error(findings[0]?.message),
+    );
+    return findings[0];
+  };
+
+  // Typed on the drawn half of the union rather than on `DiagramNode`, so a
+  // fixture cannot ask for `depth` on a group by accident: that case is
+  // stated once below, deliberately and with the cast in plain sight.
+  const shape = (
+    n: Partial<Exclude<DiagramNode, { shape: 'group' }>>,
+  ): DiagramNode =>
+    ({
+      id: 'a',
+      shape: 'box',
+      x: 40,
+      y: 20,
+      w: 100,
+      h: 40,
+      ...n,
+    }) as DiagramNode;
+
+  // The options depth is refused whenever the diagram-wide switch is on,
+  // whether or not a node goes on to read it - so the only node here opts out
+  // of the extrusion entirely and the finding still stands, exactly as the
+  // throw does. It is the diagram's own setting that is wrong, and it would
+  // reach every node the caller later raises.
+  it('reports an options depth no node reads, for each way of being undrawable', () => {
+    const opted: Diagram = { nodes: [shape({ extrude: false })] };
+    for (const bad of BAD) {
+      const finding = refuses(opted, { extrude: true, depth: bad });
+      expect(finding).toMatchObject({
+        rule: 'undrawable-depth',
+        severity: 'error',
+        // Not a place in the drawing: the offender is the call, and there is
+        // nowhere in the picture to go and look at it.
+        at: [0, 0],
+        subjects: ['options'],
+      });
+      expect(finding?.message).toBe(
+        `the options depth is ${bad}; a depth is a positive finite number of px`,
+      );
+    }
+  });
+
+  it("names the node whose own depth cannot be drawn, at the node's corner", () => {
+    for (const bad of BAD) {
+      const finding = refuses(
+        { nodes: [shape({ extrude: true, depth: bad })] },
+        {},
+      );
+      expect(finding).toMatchObject({
+        severity: 'error',
+        at: [40, 20],
+        subjects: ['node "a"'],
+      });
+      expect(finding?.message).toBe(
+        `node "a" has depth ${bad}; a depth is a positive finite number of px`,
+      );
+    }
+  });
+
+  // The inherit corner, and the reason the message forks: the diagram-wide
+  // switch is off, so the options depth is read only where this node's own
+  // `extrude: true` reaches for it. The fix is an edit to the options and not
+  // to the node, so the finding says which of the two carried the value - and
+  // there is no options-level finding beside it, because a depth the diagram
+  // does not switch on is a depth nothing else reads.
+  it('says an undrawable depth was inherited, and names the node that inherited it', () => {
+    for (const bad of BAD) {
+      const finding = refuses(
+        { nodes: [shape({ extrude: true })] },
+        { depth: bad },
+      );
+      expect(finding).toMatchObject({ subjects: ['node "a"'] });
+      expect(finding?.message).toBe(
+        `node "a" extrudes at the options depth ${bad}; a depth is a positive finite number of px`,
+      );
+    }
+  });
+
+  // A group bounds a set rather than standing as an object, so it never
+  // extrudes and the pair on one is read by nothing. The cast is the point:
+  // `GroupNode` carries neither field and the schema refuses both, so the only
+  // way to state this diagram is to lie to the compiler about it - and both
+  // tools go on ignoring it.
+  it('says nothing about the pair cast onto a group, as the renderer says nothing', () => {
+    const titled: Diagram = {
+      nodes: [
+        {
+          id: 'g',
+          shape: 'group',
+          x: 0,
+          y: 0,
+          w: 200,
+          h: 100,
+          lines: ['lane'],
+          extrude: true,
+          depth: Number.NaN,
+        } as unknown as DiagramNode,
+      ],
+    };
+    expect(found(titled, { extrude: true })).toEqual([]);
+    expect(() => draw(makeSvg(), titled, { extrude: true })).not.toThrow();
+  });
+
+  // The subtlety this rule turns on, and the one place `magnitude` and
+  // `depthOf` part company. A 10 x 8 pill cannot carry a face - its larger
+  // dimension falls under 3 * ARC_MIN_CHORD / PI - so the renderer resolves it
+  // flat and a good depth on it is not a defect. But the validation reads the
+  // magnitude, not the resolution, so a `NaN` on that same pill still throws:
+  // a number the caller wrote is judged for what it is, not for the box it
+  // landed in. Reading `depthOf` here would pass a diagram `draw` refuses,
+  // which is the whole failure this rule exists to prevent.
+  describe('a shape that cannot carry a face', () => {
+    const pill = (depth: number): Diagram => ({
+      nodes: [
+        {
+          id: 'p',
+          shape: 'pill',
+          x: 85,
+          y: 40,
+          w: 10,
+          h: 8,
+          extrude: true,
+          depth,
+        },
+      ],
+    });
+
+    it('is no defect while its depth is one the renderer accepts', () => {
+      expect(found(pill(12), {})).toEqual([]);
+      expect(() => draw(makeSvg(), pill(12))).not.toThrow();
+    });
+
+    it('is reported all the same when its depth is one the renderer refuses', () => {
+      for (const bad of BAD)
+        expect(refuses(pill(bad), {})?.message).toBe(
+          `node "p" has depth ${bad}; a depth is a positive finite number of px`,
+        );
+    });
+  });
+
+  // `duplicate-id`'s reason, applied to the other defect `draw` stops at: the
+  // renderer reports one thing per attempt, and the checker reports this one
+  // alongside everything else, which is the difference between one round trip
+  // and five. Sorted where an error belongs, after `node-overlap` because
+  // `n` sorts before `u`, and ahead of every warning.
+  it('is reported as an error, alongside every other finding', () => {
+    const messy: Diagram = {
+      nodes: [
+        shape({ id: 'a', x: 300, y: 0, extrude: true, depth: Number.NaN }),
+        shape({ id: 'b', x: 340, y: 20 }),
+        shape({ id: 'wordy', x: 0, y: 0, w: 40, lines: ['far too wide'] }),
+      ],
+    };
+    expect(rules(check(messy, {}))).toEqual([
+      'node-overlap',
+      'undrawable-depth',
+      'orphan-node',
+      'orphan-node',
+      'orphan-node',
+      'text-overflow',
+    ]);
+    // The premise: this is a diagram the renderer refuses outright, and five
+    // of the six findings above are what a caller would never have been told.
+    expect(() => draw(makeSvg(), messy)).toThrow();
+  });
+
+  // An infinite depth swept an infinite box before `depthOf` learned to
+  // refuse what the pen refuses, so the diagram came back with a spurious
+  // `out-of-bounds` beside the real finding - a rule reporting on ink that
+  // is never drawn, because the pen draws no faces for a depth like this.
+  it('sweeps nothing for a depth the pen would refuse', () => {
+    const findings = check(
+      {
+        nodes: [
+          { id: 'a', shape: 'box', x: 40, y: 20, w: 60, h: 40, extrude: true },
+        ],
+      },
+      {
+        extrude: true,
+        depth: Number.POSITIVE_INFINITY,
+        viewBox: [0, 0, 200, 100],
+      },
+    );
+    // The orphan is the fixture's own doing; what matters is the
+    // `out-of-bounds` that is no longer beside it.
+    expect(rules(findings)).toEqual([
+      'undrawable-depth',
+      'undrawable-depth',
+      'orphan-node',
+    ]);
+  });
+
+  it('is lowered and switched off like every other rule', () => {
+    const bad: Diagram = {
+      nodes: [shape({ extrude: true, depth: Number.NaN })],
+    };
+    expect(found(bad, { rules: { 'undrawable-depth': 'off' } })).toEqual([]);
+    expect(
+      found(bad, { rules: { 'undrawable-depth': 'warning' } })[0],
+    ).toMatchObject({ severity: 'warning' });
+    // And lowered, it sorts with the warnings rather than ahead of them.
+    expect(
+      rules(
+        check(bad, {
+          rules: { 'undrawable-depth': 'warning', 'orphan-node': 'warning' },
+        }),
+      ),
+    ).toEqual(['orphan-node', 'undrawable-depth']);
   });
 });
 

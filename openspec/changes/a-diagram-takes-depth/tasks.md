@@ -216,10 +216,34 @@ stands on rather than a test written after the fact.
       byte-identical after - a statement made in advance is a better
       witness than a re-run of the changed code
 
-- [ ] 3.3 `undrawable-depth` (T-65): reported as an error wherever `draw`
+- [x] 3.3 `undrawable-depth` (T-65): reported as an error wherever `draw`
       throws, naming the offender in the words the throw uses and telling a
       node's own depth from an inherited one. Additive `RuleId` member, so
       the union's own test and the severity table move with it
+
+      **Landed, and the union had no test to move** - `RuleId` was pinned
+      nowhere, so one was written: a table `satisfies Record<RuleId,
+      Severity>` fails typecheck if a member is added without a place or
+      renamed, and its runtime half switches every listed id off over a
+      diagram firing five rules. The words are kept identical to the
+      renderer's two ways at once: `ACCEPTS` and `drawable` are one
+      binding both files read, and a test renders the diagram under test
+      with `draw` and asserts the thrown message equals the finding's, so
+      a wording changed on one side alone goes red.
+
+      Two things the work taught. A shared refusal helper was built,
+      measured at +29 B on the root entry - a checker rule spent out of
+      the renderer's budget - and rejected for the 3 B version. And
+      exporting `extrudes` broke `npm run build` while `npm run
+      typecheck` stayed green: declaration emit sees a type the
+      no-emit pass never does. The suite does not typecheck either;
+      both gates earn their place.
+
+      `depthOf` also learned to answer zero for a depth the pen refuses.
+      `draw` never reaches that - validation throws first - but `check`
+      reports and keeps measuring, and an infinite depth swept an
+      infinite box, so a spurious `out-of-bounds` stood beside the real
+      finding. Pinned by a test that fails if the guard is reverted
 
 Gate: full suite; `./check` budget from 1.3 still holds.
 
@@ -262,7 +286,11 @@ Gate: full suite, generated files fresh in CI's sense.
       resolves flat, since neither they nor the schema generated from them
       nor the MCP resource mirroring it says so today, and a caller setting
       `extrude: true` on a 10 × 8 pill currently sees nothing happen with
-      no documented reason. Plus: depth's cost is
+      no documented reason. The checker's rule-and-severity table is
+      hand-written in **three** places — `README.md`, `docs/agents.md` and
+      `packages/core/README.md` — and none carries `undrawable-depth`;
+      `docs/agents.md` is mirrored into the MCP resources, so
+      `npm run resources` regenerates with it. Plus: depth's cost is
       linear at about 82 B per px and is bounded by nothing, which `out`,
       `span` and `bow` each already say of themselves and `depth` does not
       (T-74); and `docs/agents.md` has no depth section at all, so

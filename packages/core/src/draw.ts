@@ -87,23 +87,34 @@ export type DepthPair = Pick<DrawOptions, 'extrude' | 'depth'>;
 // group carrying the pair keeps flat anchors on the same terms it keeps a
 // flat frame.
 //
-// Written once and read twice, by `depthOf` and by the validation in `draw`,
-// because a restatement is a second rule and the copy that drifts is the
-// one nothing notices. It was stated twice until a mutation dropped the
-// inherit from the validation's own copy and every test stayed green.
+// Written once and read three times - by `depthOf`, by the validation in
+// `draw` and by `undrawable-depth` in the checker - because a restatement is
+// a second rule and the copy that drifts is the one nothing notices. It was
+// stated twice until a mutation dropped the inherit from the validation's own
+// copy and every test stayed green.
 //
 // It answers with the node rather than with a boolean: only a drawn shape
 // carries the pair, `DiagramNode` is a union with a group in it, and the
 // narrowing that says so is the same fact as the rule. A bare boolean
 // hands its caller no type to read `depth` off, which is what kept the
 // group test inline at both sites in the first place.
-const extrudes = (n: DiagramNode, o: DepthPair) =>
+//
+// The return type is written out rather than inferred, and it has to be:
+// `ShapeNode` is not exported - `DiagramNode` is the union callers are given -
+// so an exported binding inferring it fails declaration emit with TS4023,
+// which `tsc --noEmit` does not see and `npm run build` does.
+export const extrudes = (
+  n: DiagramNode,
+  o: DepthPair,
+): Exclude<DiagramNode, { shape: 'group' }> | undefined =>
   n.shape !== 'group' && (n.extrude ?? o.extrude ?? false) ? n : undefined;
 
 // The magnitude the pair asks for: the node's own `depth` over the diagram's
-// over `DEPTH`. Written once and read twice - by the resolution and by
-// `draw`'s validation - because the two must judge and draw the same number.
-const magnitude = (n: { depth?: number }, o: DepthPair) =>
+// over `DEPTH`. Written once and read three times - by the resolution, by
+// `draw`'s validation and by the checker's rule for the depths that
+// validation refuses - because all three must judge the same number the pen
+// draws.
+export const magnitude = (n: { depth?: number }, o: DepthPair) =>
   n.depth ?? o.depth ?? DEPTH;
 
 /**
@@ -133,8 +144,23 @@ const magnitude = (n: { depth?: number }, o: DepthPair) =>
  */
 export function depthOf(n: DiagramNode, o: DepthPair): number {
   const up = extrudes(n, o);
-  return up && carriesFace(up.shape, up.w, up.h) ? magnitude(up, o) : 0;
+  if (!up || !carriesFace(up.shape, up.w, up.h)) return 0;
+  // A depth the pen refuses draws no faces, so the ink is the flat box and
+  // the answer is zero. `draw` never reaches this - its validation throws
+  // first - but `check` reports rather than throwing and goes on measuring,
+  // and an infinite depth swept an infinite box out of it: a spurious
+  // `out-of-bounds` beside the `undrawable-depth` that is the real defect.
+  const d = magnitude(up, o);
+  return drawable(d) ? d : 0;
 }
+
+// What a depth has to be, and the sentence a caller is told when it is not.
+// At module scope with the rest of the depth vocabulary because `check`
+// reads both: the renderer throws these words and the checker reports them,
+// and a caller who runs `check` first is told what `draw` would have stopped
+// them with rather than a paraphrase of it.
+export const ACCEPTS = 'a depth is a positive finite number of px';
+export const drawable = (d: number) => Number.isFinite(d) && d > 0;
 
 /**
  * Renders `diagram` into `svg`, replacing whatever it held, so calling it
@@ -227,14 +253,12 @@ export function draw(
   // depth of 0 and throw on it. A number the caller wrote is judged for what
   // it is, not for the box it landed in - `NaN` on a 10 x 8 pill is still a
   // `NaN` its author meant something by, and the pill still draws flat.
-  const accepts = 'a depth is a positive finite number of px';
-  const drawable = (d: number) => Number.isFinite(d) && d > 0;
   if (
     options.extrude &&
     options.depth !== undefined &&
     !drawable(options.depth)
   )
-    throw new Error(`the options depth is ${options.depth}; ${accepts}`);
+    throw new Error(`the options depth is ${options.depth}; ${ACCEPTS}`);
   for (const n of nodes) {
     // Guarded on `extrudes` and not on a resolved depth of nought: `extrude:
     // true` with `depth: 0` has to reach the throw below, and skipping on the
@@ -245,8 +269,8 @@ export function draw(
     if (!drawable(d))
       throw new Error(
         up.depth !== undefined
-          ? `node "${up.id}" has depth ${d}; ${accepts}`
-          : `node "${up.id}" extrudes at the options depth ${d}; ${accepts}`,
+          ? `node "${up.id}" has depth ${d}; ${ACCEPTS}`
+          : `node "${up.id}" extrudes at the options depth ${d}; ${ACCEPTS}`,
       );
   }
 
