@@ -35,6 +35,7 @@ const {
   HATCH_INSET,
   HATCH_W,
   NOTE_SIZE,
+  OVERSHOOT,
   SIZE,
   TITLE_DX,
   TITLE_DY,
@@ -426,6 +427,37 @@ describe('draw() validation', () => {
           `node "n" has depth ${bad}; a depth is a positive finite number of px`,
         ),
       );
+  });
+
+  // The corner the two tests above leave between them, and the one a mutant
+  // lived in: the extrusion is turned on by the diagram-wide switch, because
+  // the node carries no `extrude` of its own, and the value that cannot be
+  // drawn is the node's own `depth`. Neither the options branch nor a
+  // node-level `extrude: true` reaches this throw, so dropping the inherit
+  // from the validation's read of the switch used to leave every test green
+  // and draw the slab at a depth the pen reads as flat.
+  it('names the node whose own depth cannot be drawn under the diagram-wide extrude', () => {
+    for (const bad of badDepths) {
+      const svg = makeSvg();
+      expect(() =>
+        draw(
+          svg,
+          {
+            nodes: [
+              { id: 'a', shape: 'box', x: 0, y: 0, w: 60, h: 40, depth: bad },
+            ],
+          },
+          { extrude: true },
+        ),
+      ).toThrowError(
+        new Error(
+          `node "a" has depth ${bad}; a depth is a positive finite number of px`,
+        ),
+      );
+      // The guard runs ahead of the first wash, so the element is left as it
+      // was found rather than holding half a diagram.
+      expect(childrenOf(svg)).toHaveLength(0);
+    }
   });
 
   // The inherit corner: the diagram-wide switch is off, so the options depth
@@ -1480,6 +1512,51 @@ describe('draw() extrusion', () => {
     expect(mutedPaths(extruded).length).toBeGreaterThan(0);
   });
 
+  // A group's anchors are flat on the same terms its frame is: it bounds a
+  // set rather than standing as an object, so the diagram-wide pair moves
+  // neither. The three tests above compare frame bytes, and a group that
+  // wrongly resolved a depth would leave every one of those bytes alone - an
+  // anchor is the only thing that moves, and nothing else in this suite
+  // attaches an edge to a group at all.
+  it('keeps an edge attached to a group on the flat anchor', () => {
+    const svg = makeSvg();
+    draw(
+      svg,
+      {
+        nodes: [
+          {
+            id: 'g',
+            shape: 'group',
+            x: 40,
+            y: 20,
+            w: 160,
+            h: 60,
+            lines: ['set'],
+          },
+          { id: 'n', shape: 'box', x: 320, y: 140, w: 80, h: 40 },
+        ],
+        edges: [
+          { from: ['g', 'r'], to: ['n', 'l'] },
+          { from: ['n', 'b'], to: ['g', 't'] },
+        ],
+      },
+      { extrude: true, seed: 7 },
+    );
+    // The group frame is drawn in the pen colour, so the ink paths start at
+    // the edges; an arrow is a shaft and two barbs at two passes each, so
+    // each edge contributes six of them and every shaft is the first of six.
+    const shaft = (i: number) => pointsOf(nth(inkPaths(svg), i * 6));
+    const out = shaft(0);
+    const back = shaft(1);
+    // g's r midpoint, (40 + 160, 20 + 30). Both sides the extrusion vector
+    // would move are asserted: were a group to resolve DEPTH, this end would
+    // start at (212, 41) and the other would land at (132, 11), each some
+    // nine times the jitter bound from where it belongs.
+    expectNear(nth(out, 0), [200, 50]);
+    // g's t midpoint, (40 + 80, 20), where the second edge points.
+    expectNear(nth(back, back.length - 1), [120, 20]);
+  });
+
   it('ignores the pair on a group itself: a field that does not apply', () => {
     // `GroupNode` does not carry the pair, so the types and the schema both
     // refuse it there; the cast is how a JavaScript caller's data gets past
@@ -1668,6 +1745,68 @@ describe('draw() extrusion', () => {
     );
     expectNear(nth(arrow, 0), [150, 90]);
     expectNear(nth(arrow, arrow.length - 1), [60, 20]);
+  });
+
+  // The hand order an extruded node is drawn in, end to end: front outline,
+  // faces, face shading, then the front face's own `hatch: true` shading and
+  // the label. It is the sequence a reveal animates in, and no golden can
+  // hold it - the goldens are flat - so a hatched slab is the only thing that
+  // pins it, and nothing else in the repository draws one.
+  it('lays down front outline, faces, face shading, hatching, then label', () => {
+    const x = 20;
+    const y = 20;
+    const w = 170;
+    const h = 70;
+    const svg = makeSvg();
+    draw(
+      svg,
+      {
+        nodes: [
+          {
+            id: 'n',
+            shape: 'box',
+            x,
+            y,
+            w,
+            h,
+            hatch: true,
+            lines: ['slab'],
+            extrude: true,
+            depth: 20,
+          },
+        ],
+      },
+      { seed: 7 },
+    );
+
+    // The front plane cannot reach past its own right edge, or above its own
+    // top, by more than a corner overshoot and the pen's wander. Anything
+    // that does is the offset chain or one of the two connectors to it, and
+    // at a depth of 20 those clear the bound by 13.7 px.
+    const reach = OVERSHOOT + AMP;
+    const offset = (el: Element) =>
+      pointsOf(el).some(([px, py]) => px > x + w + reach || py < y - reach);
+    const kindOf = (el: Element) => {
+      if (el.tagName === 'text') return 'label';
+      const ink = attr(el, 'stroke');
+      if (ink === defaultTheme.muted) return 'face shading';
+      if (ink === defaultTheme.pen) return 'hatching';
+      return offset(el) ? 'faces' : 'front outline';
+    };
+    // Run-length encoded, so what is asserted is the order of the five phases
+    // and that each is contiguous - not how many strokes a gap constant
+    // happens to put in one of them.
+    const phases = childrenOf(svg)
+      .map(kindOf)
+      .filter((kind, i, all) => kind !== all[i - 1]);
+
+    expect(phases).toEqual([
+      'front outline',
+      'faces',
+      'face shading',
+      'hatching',
+      'label',
+    ]);
   });
 });
 
