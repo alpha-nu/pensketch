@@ -262,10 +262,12 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   }
 
   // The oblique faces behind a closed shape, drawn after its front outline.
-  // Every ideal outline above is wound clockwise on screen (y down), so a
-  // segment with direction (dx, dy) has outward normal (dy, -dx), and it
-  // carries a face exactly when that normal dots positive with the extrusion
-  // vector (d, -DEPTH_RISE * d). On a convex outline the facing segments are
+  // The ideal outlines above wind clockwise on screen (y down) - but a
+  // mirrored dimension flips one, so the winding is read off the outline's
+  // signed area rather than assumed: a segment with direction (dx, dy) has
+  // outward normal (dy, -dx) times that sign, and it carries a face exactly
+  // when the normal dots positive with the extrusion vector
+  // (d, -DEPTH_RISE * d). On a convex outline the facing segments are
   // one run, possibly wrapping the array end: the run offset by the vector is
   // the silhouette chain, one polyline plus a connector at each end, and the
   // quads swept by its descending segments - outward normal x positive - are
@@ -277,10 +279,17 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     const ex = d;
     const ey = -DEPTH_RISE * d;
     const m = outline.length;
+    let area2 = 0;
+    for (let i = 0; i < m; i++) {
+      const [ax, ay] = outline[i] as Point;
+      const [bx, by] = outline[(i + 1) % m] as Point;
+      area2 += ax * by - bx * ay;
+    }
+    const wind = Math.sign(area2);
     const facing = (i: number) => {
       const [ax, ay] = outline[i % m] as Point;
       const [bx, by] = outline[(i + 1) % m] as Point;
-      return (by - ay) * ex + (ax - bx) * ey > 0;
+      return ((by - ay) * ex + (ax - bx) * ey) * wind > 0;
     };
     let start = -1;
     for (let i = 0; i < m && start < 0; i++)
@@ -297,7 +306,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     let s0 = -1;
     let s1 = -1;
     for (let k = 0; k + 1 < run.length; k++)
-      if ((run[k + 1] as Point)[1] > (run[k] as Point)[1]) {
+      if (((run[k + 1] as Point)[1] - (run[k] as Point)[1]) * wind > 0) {
         if (s0 < 0) s0 = k;
         s1 = k + 1;
       }

@@ -58,7 +58,10 @@ both right faces only when taller than 0.75 of its width; the common wide
 diamond has one facing run wrapping its top seam and one shaded face, which
 the wrap test pins. A pill's ideal outline (arcPoints at full radii, denser
 than 26 chords past ~215 px wide) resolves under the same rule with no case
-of its own. Convex outlines only, which is every shape the pen has.
+of its own. Convex outlines only, which is every shape the pen has. The
+winding is read off the outline's signed area rather than assumed, so a
+mirrored dimension extrudes outward like any other — and a zero-area
+outline has no winding, no outward, and takes no faces at all.
 
 The front face keeps everything it has today: wash, `hatch: true` shading,
 label. Within the node phase the hand order is wash, front outline, faces,

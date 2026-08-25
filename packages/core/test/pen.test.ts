@@ -698,6 +698,35 @@ describe('depth', () => {
     expectNear(nth(pointsOf(nth(paths, 6)), 0), [100, 37.5], spread(AMP));
   });
 
+  it('extrudes a mirrored rect outward: winding is read, not assumed', () => {
+    const svg = makeSvg();
+    pen(svg).rect(0, 0, -100, 50, { depth: 10 });
+
+    // A negative width winds the outline counterclockwise on screen; the
+    // signed area flips the normals back outward, so the facing run wraps
+    // from the bottom-left corner over the screen-right side and the top,
+    // and the slab stands off the shape instead of drawing through it.
+    const paths = pathsOf(svg);
+    const left = MIN_STEPS;
+    const top = Math.max(MIN_STEPS, Math.round(100 / SEG_LEN));
+    const chain = pointsOf(nth(paths, 8));
+    expect(chain).toHaveLength(left + top + 1);
+    expectNear(nth(chain, 0), [0 + EX, 50 + EY], spread(AMP));
+    expectNear(nth(chain, left), [0 + EX, 0 + EY], damped(AMP));
+    expectNear(nth(chain, chain.length - 1), [-100 + EX, 0 + EY], damped(AMP));
+    expectNear(nth(pointsOf(nth(paths, 10)), 0), [0, 50], spread(AMP));
+    expectNear(nth(pointsOf(nth(paths, 12)), 0), [-100, 0], spread(AMP));
+
+    // The shape spans x in [-100, 0]; outward shading keeps every hatch
+    // point in the band beside its screen-right edge, none in the interior.
+    const shading = paths.slice(14);
+    expect(shading.length).toBeGreaterThan(0);
+    for (const path of shading) {
+      expect(attr(path, 'stroke')).toBe(defaultTheme.muted);
+      for (const [x] of pointsOf(path)) expect(x).toBeGreaterThanOrEqual(-1);
+    }
+  });
+
   it('draws nothing and consumes nothing without a usable depth', () => {
     // The whole svg, byte for byte, probe stroke included: an extrusion that
     // consumed even one draw would move every jittered point after it.
@@ -738,15 +767,15 @@ describe('depth', () => {
     expect(drawn({ depth: 8 })).toBe(drawn());
   });
 
-  it('outlines a face it cannot shade: a zero-height box hatches nothing', () => {
+  it('gives a flat outline no faces: zero area has no outward', () => {
     const svg = makeSvg();
     pen(svg).rect(0, 0, 100, 0, { depth: 8 });
 
-    // Front, chain and connectors, and no shading: the one facing segment
-    // runs level, so it sweeps no descending quad and the clip arm is never
-    // reached.
+    // A zero-height box encloses nothing, so its signed area carries no
+    // winding and no normal points outward: the front strokes draw and the
+    // depth path draws nothing at all.
     const paths = pathsOf(svg);
-    expect(paths).toHaveLength(14);
+    expect(paths).toHaveLength(8);
     for (const path of paths)
       expect(attr(path, 'stroke')).not.toBe(defaultTheme.muted);
   });

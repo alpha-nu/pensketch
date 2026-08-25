@@ -90,10 +90,12 @@ export const ARC_STEPS = 26;
  */
 export const ARC_MIN_CHORD = 12;
 /**
- * Depth in px of an extruded shape when the caller gives none. Read off the
- * five hero figures at 1200 x 600, beside nodes 60-90 px tall; the small end
- * has not been checked, so the value is calibrated against one failure mode
- * only.
+ * Depth in px of an extruded shape when the caller gives none. Calibrated at
+ * both ends on a box - 1200 x 600 beside 60-90 px nodes and 700 x 150 beside
+ * 40 px nodes both read as slabs - and box-calibrated is the caveat: a pill
+ * wants a depth near a third of its height to read as a coin, and a diamond
+ * reads as a fold at any depth probed, so prefer it flat. The renders and
+ * the probes are recorded in a-diagram-takes-depth design.md D8.
  */
 export const DEPTH = 12;
 /**

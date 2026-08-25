@@ -36,9 +36,13 @@ export interface ShapeOptions extends StrokeOptions {
    * outline whose outward normals point up-right with the extrusion vector
    * `(depth, -0.75 × depth)`: that run is redrawn offset by the vector as one
    * polyline, joined to the outline at its two silhouette points, and the
-   * right-facing faces are hatched in `theme.muted`. Absent, zero, negative
+   * right-facing faces are hatched in `theme.muted`. Winding is read off the
+   * outline's signed area, so a mirrored dimension still extrudes outward.
+   * Absent, zero, negative
    * or non-finite draws no faces, consumes nothing from the seeded sequence,
-   * and leaves the shape's bytes exactly what they were. Default: absent.
+   * and leaves the shape's bytes exactly what they were. Default: absent. A
+   * pill under about 12 px in both dimensions has collapsed to a chord by
+   * `ARC_MIN_CHORD`'s own floor and has no outline to extrude.
    */
   depth?: number;
 }
