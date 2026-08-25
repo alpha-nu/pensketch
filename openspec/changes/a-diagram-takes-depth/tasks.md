@@ -11,15 +11,35 @@ earlier answer given on a wrong framing. Nothing below edits
 
 ## 1. Prototype and price
 
-- [ ] 1.1 The silhouette extrusion in `pen`: `depth` on `rect`, `pill`,
+- [x] 1.1 The silhouette extrusion in `pen`: `depth` on `rect`, `pill`,
       `diamond`; one algorithm, faces by the outward-normal test, one offset
       chain plus two connectors, shading quads through `hatch`'s clip arm.
       `DEPTH` and `DEPTH_RISE` land in `constants.ts`
-- [ ] 1.2 Prove the off-path is free: with no `depth` anywhere, the rendered
+
+      **Landed.** One `extrude(outline, opts)` over each shape's ideal
+      outline; all three wind clockwise on screen, so the outward normal of
+      a segment `(dx, dy)` is `(dy, -dx)`. The facing run is wrap-aware
+      (a wide diamond wraps its seam and a test pins it). Both strict
+      inequalities are mutation-killed: shading by the zero-height box,
+      facing by a diamond at exactly h = 0.75 w, added on a binding
+      navigator finding after the `>` -> `>=` mutant survived the first
+      test set
+- [x] 1.2 Prove the off-path is free: with no `depth` anywhere, the rendered
       bytes of every existing test fixture and both parity goldens are
       identical to `main`, and the depth branch provably consumes zero rng
       draws. This is the gate the whole change stands on; it fails, nothing
       else lands
+
+      **Proven, four ways.** All four parity goldens pass untouched and
+      regenerate byte-identically (`npm run goldens`, `git diff` clean) -
+      the goldens encode the exact seeded sequence, so one stray draw fails
+      them structurally. The 451 pre-change tests pass unchanged, many
+      pinning exact jittered points. A dedicated test renders each shape
+      with `{}`, `0`, `-3`, `NaN` and `Infinity` and asserts the whole
+      svg's bytes, probe stroke included, equal the optionless call. And
+      the gutted-guard mutant (extrude unconditionally) fails the suite at
+      exit 1. The guard sits before any rng, stroke or hatch call, read
+      independently by the navigator
 - [ ] 1.3 Measure `npm run size` on all four budget entries against design.md
       D7, and record the numbers in D7 — measured, not estimated. If any
       entry exceeds its budget, stop: the raise is **OWNER**, taken in
