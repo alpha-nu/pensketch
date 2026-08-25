@@ -102,11 +102,28 @@ Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
       exactly the predicted kill sets. For 2.3: `depth: Infinity` today
       moves the anchor while the pen draws flat - the non-finite throw
       closes that incoherence, cover it with a test
-- [ ] 2.3 Validation (T-54's reading): the options `depth` validates
+- [x] 2.3 Validation (T-54's reading): the options `depth` validates
       whenever `options.extrude` is true, and every extruded node's resolved
       depth validates — the inherit corner included, where a node's
       `extrude: true` reaches an invalid options `depth`. An unread depth is
       ignored. Tests for all three, and for the override cutting both ways
+
+      **Landed.** One rule, read exactly where depth is read: the options
+      `depth` whenever the diagram-wide `extrude` is on, and every extruded
+      node's resolved depth through `depthOf`'s own read - the inherit
+      corner throws naming the node and the options field that carried the
+      value. The throw lands before the first wash, so 2.2's incoherence
+      dies by construction: a test pins the empty svg where
+      `depth: Infinity` once moved anchors over a flat slab, and an unread
+      depth renders byte-identical to one never written, NaN included.
+      Both guard mutants die on exactly the predicted kill sets; goldens
+      untouched. Measured cold, the rule costs real bytes: server 4986 of
+      4992, 118 B past D7's 4868 rehearsal column with 6 B of budget left;
+      core 4995, itself 113 B past its 4882 column but with 125 B of
+      budget free, above the 100 B standard, so core's number stands and
+      the re-decision is the server's alone. README row moved to match.
+      The armed tripwire fires; the re-decision is recorded in D7 when
+      taken, not here
 - [ ] 2.4 Types exported by name, JSDoc on the new fields written so the
       schema generates right, `npm run schema` clean. `GroupNode` omits the
       pair (T-49) so the strict schema refuses it on a group, and the

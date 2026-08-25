@@ -369,6 +369,165 @@ describe('draw() validation', () => {
     }
   });
 
+  // The depth wing of the same line: a value somewhere reads must be
+  // drawable, a value nothing reads is a field that does not apply. Unlike
+  // the bow's, these messages are exact, because the throw is a guard the
+  // renderer runs rather than a sampler falling over.
+  const badDepths = [Number.NaN, -3, Number.POSITIVE_INFINITY, 0];
+
+  it('refuses an options depth that cannot be drawn, under the diagram-wide extrude', () => {
+    for (const bad of badDepths)
+      expect(() =>
+        draw(makeSvg(), { nodes }, { extrude: true, depth: bad }),
+      ).toThrowError(
+        new Error(
+          `the options depth is ${bad}; a depth is a positive finite number of px`,
+        ),
+      );
+    // Validated because it is read, not because someone inherits it: the
+    // only node carries a valid depth of its own, and the options one still
+    // throws in its own words.
+    expect(() =>
+      draw(
+        makeSvg(),
+        {
+          nodes: [
+            { id: 'n', shape: 'box', x: 0, y: 0, w: 60, h: 40, depth: 20 },
+          ],
+        },
+        { extrude: true, depth: Number.NaN },
+      ),
+    ).toThrowError(
+      new Error(
+        'the options depth is NaN; a depth is a positive finite number of px',
+      ),
+    );
+  });
+
+  it('names the node whose own depth cannot be drawn', () => {
+    for (const bad of badDepths)
+      expect(() =>
+        draw(makeSvg(), {
+          nodes: [
+            {
+              id: 'n',
+              shape: 'box',
+              x: 0,
+              y: 0,
+              w: 60,
+              h: 40,
+              extrude: true,
+              depth: bad,
+            },
+          ],
+        }),
+      ).toThrowError(
+        new Error(
+          `node "n" has depth ${bad}; a depth is a positive finite number of px`,
+        ),
+      );
+  });
+
+  // The inherit corner: the diagram-wide switch is off, so the options depth
+  // is read only where a node's own `extrude: true` reaches for it - and the
+  // message names that node and the field that carried the value. The flat
+  // node beside it proves the read is per-node.
+  it('names the node that inherits an options depth nothing else read', () => {
+    expect(() =>
+      draw(
+        makeSvg(),
+        {
+          nodes: [
+            { id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 50 },
+            {
+              id: 'up',
+              shape: 'box',
+              x: 200,
+              y: 0,
+              w: 100,
+              h: 50,
+              extrude: true,
+            },
+          ],
+        },
+        { depth: Number.POSITIVE_INFINITY },
+      ),
+    ).toThrowError(
+      new Error(
+        'node "up" extrudes at the options depth Infinity; a depth is a positive finite number of px',
+      ),
+    );
+  });
+
+  it('ignores a depth nothing reads, valid or not', () => {
+    // Extrusion off for the node and for the diagram: `depth: 40` applies to
+    // nothing, so the node draws flat and nothing throws - byte-identical to
+    // the diagram that never carried the field.
+    const carrying = makeSvg();
+    draw(carrying, {
+      nodes: [{ id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 50, depth: 40 }],
+    });
+    const bare = makeSvg();
+    draw(bare, {
+      nodes: [{ id: 'a', shape: 'box', x: 0, y: 0, w: 100, h: 50 }],
+    });
+    expect(serialize(carrying)).toBe(serialize(bare));
+    // The override cutting the other way keeps the field unread: a node that
+    // opts out of an extruded diagram never resolves its depth, NaN included.
+    expect(() =>
+      draw(
+        makeSvg(),
+        {
+          nodes: [
+            {
+              id: 'a',
+              shape: 'box',
+              x: 0,
+              y: 0,
+              w: 100,
+              h: 50,
+              extrude: false,
+              depth: Number.NaN,
+            },
+          ],
+        },
+        { extrude: true },
+      ),
+    ).not.toThrow();
+  });
+
+  // 2.2 shipped an incoherence: `depth: Infinity` moved `t` and `r` while
+  // the pen read it as flat, so an edge floated off ink that was not there.
+  // The throw lands before the group phase, the anchor reads and the pen -
+  // the svg is still empty when it does - so the incoherence is dead by
+  // construction rather than patched around.
+  it('throws before an anchor can move for a slab the pen will not draw', () => {
+    const svg = makeSvg();
+    expect(() =>
+      draw(svg, {
+        nodes: [
+          {
+            id: 'a',
+            shape: 'box',
+            x: 0,
+            y: 0,
+            w: 100,
+            h: 50,
+            extrude: true,
+            depth: Number.POSITIVE_INFINITY,
+          },
+          { id: 'b', shape: 'box', x: 200, y: 0, w: 100, h: 50 },
+        ],
+        edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+      }),
+    ).toThrowError(
+      new Error(
+        'node "a" has depth Infinity; a depth is a positive finite number of px',
+      ),
+    );
+    expect(childrenOf(svg)).toHaveLength(0);
+  });
+
   it('names the edge and the id when an edge ends nowhere', () => {
     rejects(
       {

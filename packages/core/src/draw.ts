@@ -70,8 +70,11 @@ export function anchor(node: DiagramNode, side: Side, depth = 0): Point {
  * diagram does not define, two nodes share an id, a node carries an unknown
  * shape, an edge has a `label` without numeric `lx` and `ly`, a brace has
  * `lines` without them, an edge names one node at both ends but two different
- * sides, or an edge or note describes its path twice - `bow` with `via`, or
- * either on a self-transition. Nothing else is validated.
+ * sides, an edge or note describes its path twice - `bow` with `via`, or
+ * either on a self-transition - or a depth that is read is not a positive
+ * finite number: the options `depth` whenever the diagram-wide `extrude` is
+ * on, and every extruded node's resolved depth, an inherited options value
+ * included. A `depth` nothing reads is ignored. Nothing else is validated.
  *
  * @example
  * ```js
@@ -131,6 +134,48 @@ export function draw(
       : `known ids are ${head.join(', ')}`;
   };
 
+  // A node's resolved depth, by the `hop` idiom: `extrude` on the node opts
+  // out of a diagram-wide switch or in from a flat diagram, and the magnitude
+  // is the node's `depth` over the diagram's over `DEPTH`. Zero when its
+  // extrusion is off - and always for a group, which never extrudes, so a
+  // group carrying the pair keeps flat anchors on the same terms it keeps a
+  // flat frame. One resolution read by the validation below, the edge pass
+  // and the node phase alike, so an edge attaches to the silhouette the pen
+  // will draw.
+  const depthOf = (n: DiagramNode): number =>
+    n.shape !== 'group' && (n.extrude ?? options.extrude ?? false)
+      ? (n.depth ?? options.depth ?? DEPTH)
+      : 0;
+
+  // A depth is validated exactly where it is read: the options `depth`
+  // whenever the diagram-wide `extrude` is on, and every extruded node's
+  // resolved depth - `depthOf`'s own read, taken behind the same guard, so
+  // the inherit corner is caught where a node's `extrude: true` reaches an
+  // invalid options `depth`. A depth nothing reads applies to nothing and is
+  // ignored, like the pair on a group. The pen reads anything undrawable as
+  // flat, so before this a `depth` of `Infinity` moved `t` and `r` while the
+  // slab they moved for went undrawn - and it throws here, before the first
+  // wash, so a bad depth leaves an empty svg rather than a partial one.
+  const accepts = 'a depth is a positive finite number of px';
+  const drawable = (d: number) => Number.isFinite(d) && d > 0;
+  if (
+    options.extrude &&
+    options.depth !== undefined &&
+    !drawable(options.depth)
+  )
+    throw new Error(`the options depth is ${options.depth}; ${accepts}`);
+  for (const n of nodes) {
+    if (n.shape === 'group' || !(n.extrude ?? options.extrude ?? false))
+      continue;
+    const d = depthOf(n);
+    if (!drawable(d))
+      throw new Error(
+        n.depth !== undefined
+          ? `node "${n.id}" has depth ${d}; ${accepts}`
+          : `node "${n.id}" extrudes at the options depth ${d}; ${accepts}`,
+      );
+  }
+
   // Draw order is the z-order and, because it is also the order the seeded
   // sequence is consumed in, part of the rendered bytes.
   nodes
@@ -154,18 +199,6 @@ export function draw(
   // Read unconditionally: three lengths cost less than the branch that would
   // skip them.
   const afterGroups = svg.children.length;
-
-  // A node's resolved depth, by the `hop` idiom: `extrude` on the node opts
-  // out of a diagram-wide switch or in from a flat diagram, and the magnitude
-  // is the node's `depth` over the diagram's over `DEPTH`. Zero when its
-  // extrusion is off - and always for a group, which never extrudes, so a
-  // group carrying the pair keeps flat anchors on the same terms it keeps a
-  // flat frame. One resolution read by the edge pass and the node phase
-  // alike, so an edge attaches to the silhouette the pen will draw.
-  const depthOf = (n: DiagramNode): number =>
-    n.shape !== 'group' && (n.extrude ?? options.extrude ?? false)
-      ? (n.depth ?? options.depth ?? DEPTH)
-      : 0;
 
   // Every path first, then every arrow. An edge that hops has to know where
   // the others run, and nothing below `draw` can see a second edge: the pen
