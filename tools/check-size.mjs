@@ -108,9 +108,16 @@ const PACKAGES = [
     // The root entry and `./server` were measured on the same prototype and did
     // not move - 4179 and 4196 - which is the check that the rule landed in the
     // checker rather than in shared code.
+    // 3648 from 3520 for `depth`: the checker learns the swept box an
+    // extruded node occupies and the anchors the renderer moves. The built
+    // rehearsal of the whole change lands this entry at 3500, leaving 20 B -
+    // and a margin smaller than the 2 B of gzip noise this file has already
+    // measured on identical code is not a margin, which is the same line the
+    // 3520 raise above states. 3500 plus the same 100 B of headroom is 3600,
+    // taken up to 3648.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 3520,
+    budget: 3648,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries
@@ -201,9 +208,21 @@ const PACKAGES = [
     // `./check` lands at 3391 against 3520 - it imports constants, sample and
     // types and never `draw`, so that 1 B is the toolchain noise the margin
     // exists for.
+    //
+    // 4992 from 4480 for `depth`, the extrusion pair. This entry stands at
+    // 4379 with 101 B free and the feature does not fit: the pen's silhouette
+    // algorithm alone, built and measured, lands it at 4727, and the whole
+    // core-side surface - draw's pair and its resolution, the moved anchors,
+    // the validation rule - measured 4868 as a built rehearsal, reverted
+    // after it was read. 4868 plus the same 100 B of gzip headroom is 4968,
+    // taken up to 4992. Sized from the rehearsal rather than from the first
+    // commit that needs room, because the requirement says one step, and a
+    // second raise inside one change is a budget chasing its code. The root
+    // entry measured 4882 on the same rehearsal against its 5120 and does
+    // not move; `./check` moves above, and for the checker's own code.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 4480,
+    budget: 4992,
   },
   {
     name: '@pensketch/react',
