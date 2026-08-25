@@ -1,4 +1,5 @@
 import { InMemoryTransport } from '@modelcontextprotocol/server';
+import { constants } from '@pensketch/core';
 import { describe, expect, it } from 'vitest';
 import { createServer } from '../src/index';
 import { svgFor } from '../src/tools';
@@ -181,7 +182,12 @@ describe('a client talking to the server', () => {
 const called = async (name: string, args: Record<string, unknown>) => {
   const { send } = await connected();
   const { result } = await send('tools/call', { name, arguments: args });
-  return (result ?? {}) as { isError?: boolean; content?: { text: string }[] };
+  return (result ?? {}) as {
+    isError?: boolean;
+    // `data` as well as `text`: one of the three answers with an image, and
+    // the pair has to be proved to reach that one too.
+    content?: { text?: string; data?: string }[];
+  };
 };
 
 /** The text of a refusal, having insisted it was one. */
@@ -193,6 +199,42 @@ const refusal = async (name: string, args: Record<string, unknown>) => {
 
 const NODE = { id: 'a', shape: 'box', x: 10, y: 10, w: 100, h: 40 };
 const BOX = [0, 0, 260, 100] as [number, number, number, number];
+
+// The defect the whole capability was written for, sized for this frame. Flat,
+// the box ends 10 px inside it and nothing is wrong with the diagram; extruded
+// at the default depth its slab reaches 262 in a 260-wide frame and the render
+// clips the face. A checker handed the diagram without the pair reports the
+// first picture while the caller renders the second.
+const AT_EDGE = { id: 'a', shape: 'box', x: 150, y: 30, w: 100, h: 40 };
+
+/** What a client is handed to work from: the tool list and the schema. */
+interface Listed {
+  name: string;
+  inputSchema?: {
+    properties?: Record<string, { properties?: Record<string, unknown> }>;
+  };
+}
+
+interface Published {
+  properties: Record<string, unknown>;
+  definitions?: {
+    DiagramNode?: { anyOf?: { properties?: Record<string, unknown> }[] };
+  };
+}
+
+const published = async (): Promise<{
+  tools: Listed[];
+  schema: Published;
+}> => {
+  const { send } = await connected();
+  const listed = await send('tools/list');
+  const read = await send('resources/read', { uri: 'pensketch://schema' });
+  const contents = (read.result?.contents ?? []) as { text: string }[];
+  return {
+    tools: (listed.result?.tools ?? []) as Listed[],
+    schema: JSON.parse(contents[0]?.text ?? '{}') as Published,
+  };
+};
 
 // These belong here rather than in `tools.test.ts`, and the distinction is
 // the whole point: that file reaches a handler directly, which is past where
@@ -261,6 +303,84 @@ describe('the tool boundary refuses what it cannot carry', () => {
     }
   });
 
+  // The deliberate opposite of the two above, and the same reason read
+  // forward: `hops` is refused by the checker because it changes no finding,
+  // and the pair is taken by it because it changes the geometry every finding
+  // measures. All three, so the tool a caller reaches for first is not the one
+  // that makes them guess.
+  it('takes the depth pair on all three tools, the checker included', async () => {
+    for (const name of ['check_diagram', 'render_diagram', 'render_png']) {
+      const result = await called(name, {
+        diagram: { nodes: [NODE] },
+        viewBox: BOX,
+        extrude: true,
+        depth: 16,
+      });
+      expect(result.isError, `${name} refused the pair`).toBeFalsy();
+    }
+  });
+
+  it('measures the drawing the render will make, not the flat one', async () => {
+    const raised = await called('check_diagram', {
+      diagram: { nodes: [AT_EDGE] },
+      viewBox: BOX,
+      extrude: true,
+    });
+    expect(raised.isError).toBeFalsy();
+    expect(raised.content?.[0]?.text).toContain('out-of-bounds');
+
+    const flat = await called('check_diagram', {
+      diagram: { nodes: [AT_EDGE] },
+      viewBox: BOX,
+    });
+    expect(flat.content?.[0]?.text).not.toContain('out-of-bounds');
+  });
+
+  // Two claims in one: the pair reaches `draw`, and omitting `depth` is the
+  // documented default rather than nothing. `constants.DEPTH` rather than the
+  // number 12, because a description that promises a default has to promise
+  // the one the renderer resolves.
+  it('hands the pair to the renderer, at the default depth when given none', async () => {
+    const diagram = { nodes: [NODE] };
+    const raised = await called('render_diagram', {
+      diagram,
+      viewBox: BOX,
+      seed: 7,
+      extrude: true,
+    });
+    const svg = raised.content?.[0]?.text;
+    expect(svg).toBe(svgFor(diagram, BOX, { seed: 7, extrude: true }));
+    expect(svg).toBe(
+      svgFor(diagram, BOX, { seed: 7, extrude: true, depth: constants.DEPTH }),
+    );
+    expect(svg).not.toBe(svgFor(diagram, BOX, { seed: 7 }));
+  });
+
+  // The raster and the document cannot be compared byte for byte - one names
+  // the embedded face and resolves the palette, the other does neither - so
+  // the parity that matters is that both draw the same picture for the same
+  // pair. The test above pins the document to `svgFor`; this pins the raster
+  // to the same two facts about that picture: the pair reached it, and with no
+  // `depth` it is the drawing at `constants.DEPTH` rather than at some other
+  // depth or at none.
+  it('rasterizes the same drawing render_diagram returns for the pair', async () => {
+    const diagram = { nodes: [{ ...NODE, y: 40 }] };
+    const at = async (rest: Record<string, unknown>) =>
+      (await called('render_png', { diagram, viewBox: BOX, seed: 7, ...rest }))
+        .content?.[0]?.data;
+
+    const [flat, raised, stated, deeper] = await Promise.all([
+      at({}),
+      at({ extrude: true }),
+      at({ extrude: true, depth: constants.DEPTH }),
+      at({ extrude: true, depth: constants.DEPTH * 2 }),
+    ]);
+
+    expect(raised).toBe(stated);
+    expect(raised).not.toBe(flat);
+    expect(raised).not.toBe(deeper);
+  });
+
   // A raster is one frame, and the field is left out of `render_png` on
   // purpose. The strict boundary is what turns that absence into a refusal by
   // name: declared and ignored, it would hand back a still image as though the
@@ -273,7 +393,7 @@ describe('the tool boundary refuses what it cannot carry', () => {
       animate: true,
     });
     expect(text).toContain('render_png has no argument "animate"');
-    expect(text).toContain('an optional seed, hops and scale');
+    expect(text).toContain('an optional seed, hops, extrude, depth and scale');
   });
 
   it('takes animate on the tool that renders a document', async () => {
@@ -295,7 +415,7 @@ describe('the tool boundary refuses what it cannot carry', () => {
       quality: 'high',
     });
     expect(text).toContain('render_png has no argument "quality"');
-    expect(text).toContain('an optional seed, hops and scale');
+    expect(text).toContain('an optional seed, hops, extrude, depth and scale');
   });
 
   // Plural is a different sentence, and a message assembled by concatenation
@@ -337,24 +457,58 @@ describe('the tool boundary refuses what it cannot carry', () => {
   // a failing test rather than a field an agent sends and never sees drawn -
   // which is precisely how the next change adds `braces`.
   it('declares the same top-level fields the published schema does', async () => {
-    const { send } = await connected();
-    const listed = await send('tools/list');
-    const read = await send('resources/read', {
-      uri: 'pensketch://schema',
-    });
-    const contents = (read.result?.contents ?? []) as { text: string }[];
-    const schema = JSON.parse(contents[0]?.text ?? '{}');
-    const tools = listed.result?.tools as {
-      inputSchema?: {
-        properties?: { diagram?: { properties?: Record<string, unknown> } };
-      };
-    }[];
+    const { tools, schema } = await published();
     for (const tool of tools) {
       expect(
         Object.keys(tool.inputSchema?.properties?.diagram?.properties ?? {}),
       ).toEqual(Object.keys(schema.properties));
     }
   });
+
+  // The same guard one level out, over the arguments beside the diagram. There
+  // is no generated list to hold those to - `DrawOptions` is TypeScript and
+  // nothing publishes it as data - so what they are held to is the sentence
+  // every refusal ends with, which is the only place a caller is told what a
+  // tool takes. Declare an argument and forget the sentence and the tool
+  // accepts a key while telling the next caller it has none.
+  it('names every argument it declares in the sentence it refuses with', async () => {
+    const { tools } = await published();
+    for (const tool of tools) {
+      const text = await refusal(tool.name, {
+        diagram: { nodes: [NODE] },
+        viewBox: BOX,
+        quality: 'high',
+      });
+      // The tail after `It takes `, not the whole message: two of the three
+      // tools have `diagram` inside their own name, and the message opens
+      // with that name.
+      const takes = text.split('It takes ')[1] ?? '';
+      for (const argument of Object.keys(tool.inputSchema?.properties ?? {}))
+        expect(takes, `${tool.name} does not name ${argument}`).toContain(
+          argument,
+        );
+    }
+  });
+
+  // The pair is two node fields raised to the whole diagram, so the schema is
+  // what names them and this reads them off it rather than spelling them
+  // again. Rename the field in the types and the schema half fails, rather
+  // than three tools going on declaring a spelling nothing else uses.
+  it.each(['extrude', 'depth'])(
+    'declares %s on every tool, as the schema declares it on a node',
+    async (field) => {
+      const { tools, schema } = await published();
+      const shapes = schema.definitions?.DiagramNode?.anyOf ?? [];
+      expect(
+        shapes.flatMap((shape) => Object.keys(shape.properties ?? {})),
+      ).toContain(field);
+      for (const tool of tools)
+        expect(
+          Object.keys(tool.inputSchema?.properties ?? {}),
+          `${tool.name} does not take ${field}`,
+        ).toContain(field);
+    },
+  );
 
   // The boundary is strict at this level and no deeper, and that is a choice
   // rather than an oversight: the fields inside a member are described by

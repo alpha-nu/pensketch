@@ -103,8 +103,18 @@ window.__pensketch = pensketch;
 // The showcase carries no `raw`, so it crosses to the page as JSON whole - the
 // property that lets it be served as a resource is the same one that lets it
 // be drawn here without a callback.
-function drawShowcase(diagram) {
+//
+// The page's own options go in first, so a page that extrudes has an extruded
+// image in the README rather than a flat one beside a `npm run diagrams` that
+// measured slabs. Everything the page passes comes through, because it is a
+// choice about the drawing and this file photographs the drawing.
+//
+// Seed and label go in last and stay this file's: the seed is the one these
+// bytes were reviewed at, which is the same number the page passes today, and
+// the label names the README's picture rather than the page's.
+function drawShowcase({ diagram, options }) {
   window.__pensketch.draw(document.getElementById('showcase'), diagram, {
+    ...options,
     seed: 7,
     label:
       "The architecture of pensketch: what draws a diagram and what makes it draw itself, core's four entry points, the renderer and the checker",
@@ -304,7 +314,11 @@ for (const target of TARGETS) {
     await page.goto(`${ORIGIN}/`);
     await page.waitForFunction(() => Boolean(window.__pensketch));
     if (target.id === 'hero') await page.evaluate(drawHero, HERO);
-    else await page.evaluate(drawShowcase, SHOWCASE.diagram);
+    else
+      await page.evaluate(drawShowcase, {
+        diagram: SHOWCASE.diagram,
+        options: SHOWCASE.options,
+      });
     await page.waitForFunction(
       (id) => document.getElementById(id).childElementCount > 0,
       target.id,

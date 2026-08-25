@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { animateMarkup } from '@pensketch/animation';
+import { constants } from '@pensketch/core';
 import { check } from '@pensketch/core/check';
 import { renderToString } from '@pensketch/core/server';
 import { z } from 'zod';
@@ -74,6 +75,25 @@ const viewBox = z
   .tuple([z.number(), z.number(), z.number(), z.number()])
   .describe('[minX, minY, width, height], the four numbers the <svg> carries.');
 
+// The diagram-wide depth pair, declared once and taken by all three tools -
+// two rendering tools because it moves where the ink lands, and the checker
+// because it moves what every rule measures. Both defaults are stated, and
+// `depth`'s is read off the package rather than typed here: a number a
+// description promises has to be the number the renderer uses.
+const extrude = z
+  .boolean()
+  .optional()
+  .describe(
+    "Draw every node as a slab: its outline redrawn offset up and to the right and joined to it. A node's own `extrude` wins over this either way, so an extruded diagram can flatten one node and a flat one can raise one. A group never extrudes. Default false.",
+  );
+
+const depth = z
+  .number()
+  .optional()
+  .describe(
+    `How deep a slab is drawn, in px, for every node without a \`depth\` of its own. Default ${constants.DEPTH}, calibrated on a box; a pill wants about a third of its height and a diamond usually reads better flat. Read only where extrusion is on.`,
+  );
+
 // The same four substitutions core makes when it serializes an attribute.
 // The label is a caller's text and reaches the only part of the document core
 // does not write - an unescaped ampersand here makes the whole thing
@@ -115,7 +135,7 @@ export function registerTools(server: McpServer): void {
     'check_diagram',
     {
       title: 'Check a diagram for layout defects',
-      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} Run this before rendering, and again after moving anything.`,
+      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding, and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. Run this before rendering, and again after moving anything.`,
       inputSchema: z.strictObject(
         {
           diagram,
@@ -128,20 +148,27 @@ export function registerTools(server: McpServer): void {
             .describe(
               '[minX, minY, width, height], the four numbers the <svg> carries. Without it the out-of-bounds rule cannot run and does not.',
             ),
+          extrude,
+          depth,
         },
         refuses(
           'check_diagram',
           'argument',
-          'a diagram and an optional viewBox',
+          'a diagram and an optional viewBox, extrude and depth',
         ),
       ),
     },
-    async ({ diagram: d, viewBox: box }) => {
+    async ({ diagram: d, viewBox: box, extrude, depth }) => {
       try {
-        const findings = check(
-          d as Parameters<typeof check>[0],
-          box ? { viewBox: box } : {},
-        );
+        // Key by key rather than an object literal carrying undefineds:
+        // `CheckOptions` keeps an absent field apart from one present and
+        // undefined, and `depth: undefined` reads as a caller asking for a
+        // depth of nothing rather than for the default.
+        const findings = check(d as Parameters<typeof check>[0], {
+          ...(box === undefined ? {} : { viewBox: box }),
+          ...(extrude === undefined ? {} : { extrude }),
+          ...(depth === undefined ? {} : { depth }),
+        });
         const errors = findings.filter((f) => f.severity === 'error').length;
         const warnings = findings.length - errors;
         return {
@@ -182,6 +209,8 @@ export function registerTools(server: McpServer): void {
             .describe(
               "Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge's own `hop` wins over this either way. Default false.",
             ),
+          extrude,
+          depth,
           label: z
             .string()
             .optional()
@@ -201,17 +230,33 @@ export function registerTools(server: McpServer): void {
         refuses(
           'render_diagram',
           'argument',
-          'a diagram, a viewBox, and an optional seed, hops, label and animate',
+          'a diagram, a viewBox, and an optional seed, hops, extrude, depth, label and animate',
         ),
       ),
     },
-    async ({ diagram: d, viewBox: box, seed, hops, label, animate }) => {
+    async ({
+      diagram: d,
+      viewBox: box,
+      seed,
+      hops,
+      extrude,
+      depth,
+      label,
+      animate,
+    }) => {
       try {
         return {
           content: [
             {
               type: 'text' as const,
-              text: svgFor(d, box, { seed, label, hops, animate }),
+              text: svgFor(d, box, {
+                seed,
+                label,
+                hops,
+                extrude,
+                depth,
+                animate,
+              }),
             },
           ],
         };
@@ -243,7 +288,8 @@ export function registerTools(server: McpServer): void {
             .describe(
               "Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge's own `hop` wins over this either way. Default false.",
             ),
-
+          extrude,
+          depth,
           scale: z
             .number()
             .optional()
@@ -252,14 +298,22 @@ export function registerTools(server: McpServer): void {
         refuses(
           'render_png',
           'argument',
-          'a diagram, a viewBox, and an optional seed, hops and scale',
+          'a diagram, a viewBox, and an optional seed, hops, extrude, depth and scale',
         ),
       ),
     },
-    async ({ diagram: d, viewBox: box, seed, hops, scale = 2 }) => {
+    async ({
+      diagram: d,
+      viewBox: box,
+      seed,
+      hops,
+      extrude,
+      depth,
+      scale = 2,
+    }) => {
       try {
         const png = await renderPng(
-          svgFor(d, box, { seed, hops, forRaster: true }),
+          svgFor(d, box, { seed, hops, extrude, depth, forRaster: true }),
           {
             width: box[2],
             height: box[3],
@@ -300,6 +354,10 @@ export interface SvgOptions {
   label?: string | undefined;
   /** Draw every connector as hopping over the ones it crosses. */
   hops?: boolean | undefined;
+  /** Draw every node as a slab, unless the node itself says otherwise. */
+  extrude?: boolean | undefined;
+  /** How deep, in px, for every extruded node carrying no depth of its own. */
+  depth?: number | undefined;
   /** Draw for the rasterizer: the embedded face and a resolved palette. */
   forRaster?: boolean | undefined;
   /** Stamp the drawing order and carry the stylesheet that reads it. */
@@ -320,7 +378,15 @@ export interface SvgOptions {
 export function svgFor(
   d: unknown,
   [minX, minY, width, height]: readonly [number, number, number, number],
-  { seed, label, hops, forRaster = false, animate = false }: SvgOptions = {},
+  {
+    seed,
+    label,
+    hops,
+    extrude,
+    depth,
+    forRaster = false,
+    animate = false,
+  }: SvgOptions = {},
 ): string {
   // The rasterizer resolves no CSS custom properties, so it is given the
   // palette already resolved. `render_diagram` keeps the `var()` defaults,
@@ -328,6 +394,8 @@ export function svgFor(
   const inner = renderToString(d as Parameters<typeof renderToString>[0], {
     ...(seed === undefined ? {} : { seed }),
     ...(hops === undefined ? {} : { hops }),
+    ...(extrude === undefined ? {} : { extrude }),
+    ...(depth === undefined ? {} : { depth }),
     ...(forRaster ? { theme: RASTER_THEME } : {}),
     // Only when asked for, so the bytes of an unanimated render are the bytes
     // they always were: no `--ps-i`, no `pathLength`, nothing moved.

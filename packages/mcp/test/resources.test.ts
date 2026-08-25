@@ -21,7 +21,7 @@ const resourcesOf = () =>
         string,
         {
           name: string;
-          metadata?: { mimeType?: string };
+          metadata?: { mimeType?: string; description?: string };
           readCallback?: (
             uri: URL,
           ) => Promise<{ contents: { text: string }[] }>;
@@ -30,6 +30,9 @@ const resourcesOf = () =>
       >;
     }
   )._registeredResources;
+
+const describes = (uri: string) =>
+  resourcesOf()[uri]?.metadata?.description ?? '';
 
 const readResource = async (uri: string) => {
   const entry = resourcesOf()[uri];
@@ -97,12 +100,27 @@ describe('the examples are served as data', () => {
   it.each(EXAMPLE_KEYS)(
     '%s passes the checker it is meant to demonstrate',
     async (key) => {
-      const { diagram, viewBox } = JSON.parse(
+      const { diagram, viewBox, options } = JSON.parse(
         await readResource(exampleUri(key)),
       );
-      expect(check(diagram, { viewBox })).toEqual([]);
+      // The envelope's own options, for the reason `tools/check-diagrams.mjs`
+      // carries them: an example drawn with a pair and measured without it is
+      // measured as a different picture, and a slab crossing the frame would
+      // pass here and clip in the render. Nothing shipped extrudes yet, so
+      // this spreads an absent key today and holds the day one does.
+      expect(check(diagram, { ...options, viewBox })).toEqual([]);
     },
   );
+
+  // The envelope is data and its fields are arguments, but not the same
+  // argument: two go beside the diagram and one is the diagram. A description
+  // that leaves a field out is the failure that costs a caller a wasted call,
+  // and `options` was left out from the day the loader started carrying it.
+  it.each(EXAMPLE_KEYS)('%s says which of its fields are arguments', (key) => {
+    const description = describes(exampleUri(key));
+    for (const field of ['`diagram`', '`viewBox`', '`options`'])
+      expect(description).toContain(field);
+  });
 
   // `raw` holds functions, and the lifecycle example uses it for the
   // self-transition. JSON cannot carry that, so it must not appear to.

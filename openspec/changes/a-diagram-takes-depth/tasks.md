@@ -277,7 +277,7 @@ Gate: full suite; `./check` budget from 1.3 still holds.
 
 ## 4. The tool boundary
 
-- [ ] 4.0 Two envelopes the pair does not reach yet, found while carrying
+- [x] 4.0 Two envelopes the pair does not reach yet, found while carrying
       `options` through the shipped-diagram loaders (T-82's neighbours):
       `packages/mcp/src/resources.ts` describes a served example as its
       `diagram` and its `viewBox`, so an `options` key beside them is
@@ -288,12 +288,38 @@ Gate: full suite; `./check` budget from 1.3 still holds.
       shipped extrudes — and both become wrong the day 5.1's worked slab
       example lands
 
-- [ ] 4.1 The three tools accept the pair; `check_diagram` accepts what it
+      **Landed, and there was a third.** `packages/mcp/test/resources.test.ts`
+      checked every served example with `check(diagram, { viewBox })`,
+      dropping the envelope's `options` — the same defect one layer down,
+      in the test written to guard the layer above. The served-example
+      description now names all three fields; `render-assets.mjs` spreads
+      the page's whole options (it photographs a drawing, where the
+      generator publishes a data model) with seed and label still its
+      own, verified byte-identical for every page that passes none
+
+- [x] 4.1 The three tools accept the pair; `check_diagram` accepts what it
       refuses for `hops`, with the contrast stated in its description
-- [ ] 4.2 Schema and resources regenerate (`npm run schema`,
+- [x] 4.2 Schema and resources regenerate (`npm run schema`,
       `npm run resources`); the declared-shape test extends to the new
       arguments
-- [ ] 4.3 Strict-boundary tests: unknown keys still named, the pair accepted
+      **Landed.** The `check_diagram` sentence states the inversion in the
+      house voice: it takes extrude and depth where it refuses hops,
+      because hops change no finding and depth changes the geometry every
+      finding measures. `depth`'s description interpolates
+      `constants.DEPTH` rather than typing 12, verified reading "Default
+      12" over the wire.
+
+      The declared-shape test the spec calls out held only the diagram's
+      keys, so it was extended two ways: every argument a tool declares
+      must appear in the sentence it refuses with — the only place a
+      caller is told what a tool takes — and the pair must be in the
+      published schema's node variants and in all three tools at once, so
+      a rename fails on the schema half rather than leaving three tools on
+      a dead spelling. The stronger claim, that core growing a
+      diagram-wide option fails the tools until they declare it, has
+      nothing to bind to: `DrawOptions` never leaves TypeScript.
+
+- [x] 4.3 Strict-boundary tests: unknown keys still named, the pair accepted
       on all three tools, parity between `render_diagram` and `render_png`
       for the same pair
 
