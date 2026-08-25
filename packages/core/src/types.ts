@@ -29,6 +29,20 @@ export interface StrokeOptions {
   amplitude?: number;
 }
 
+/** Per-call overrides for the pen's closed shapes: every stroke override, plus depth. */
+export interface ShapeOptions extends StrokeOptions {
+  /**
+   * Extrude the shape by this many px. The faces are the run of the ideal
+   * outline whose outward normals point up-right with the extrusion vector
+   * `(depth, -0.75 × depth)`: that run is redrawn offset by the vector as one
+   * polyline, joined to the outline at its two silhouette points, and the
+   * right-facing faces are hatched in `theme.muted`. Absent, zero, negative
+   * or non-finite draws no faces, consumes nothing from the seeded sequence,
+   * and leaves the shape's bytes exactly what they were. Default: absent.
+   */
+  depth?: number;
+}
+
 /** Per-call overrides for text. Nothing here measures or wraps a string. */
 export interface LabelOptions {
   /** Font size in px. Default: `13.5`. */
@@ -74,9 +88,9 @@ export interface Pen {
    * A rectangle drawn as four independent sides, each overshooting its
    * corners by up to 4 px, which is what keeps it from looking machine-made.
    */
-  rect(x: number, y: number, w: number, h: number, opts?: StrokeOptions): void;
+  rect(x: number, y: number, w: number, h: number, opts?: ShapeOptions): void;
   /** An ellipse inscribed in the box, traced as one wobbling loop. */
-  pill(x: number, y: number, w: number, h: number, opts?: StrokeOptions): void;
+  pill(x: number, y: number, w: number, h: number, opts?: ShapeOptions): void;
   /**
    * An elliptical arc around `(cx, cy)` with radii `rx` and `ry`, swept from
    * angle `from` to angle `to`, for the curved connectors a straight run of
@@ -108,7 +122,7 @@ export interface Pen {
     y: number,
     w: number,
     h: number,
-    opts?: StrokeOptions,
+    opts?: ShapeOptions,
   ): void;
   /**
    * Diagonal shading across the box, clipped to it at both ends. Default

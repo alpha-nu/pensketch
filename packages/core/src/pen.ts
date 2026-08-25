@@ -1,6 +1,7 @@
 import {
   AMP,
   DASH,
+  DEPTH_RISE,
   END_DAMP,
   HATCH_AMP,
   HATCH_GAP,
@@ -32,6 +33,7 @@ import type {
   Pen,
   PenOptions,
   Point,
+  ShapeOptions,
   StrokeOptions,
 } from './types';
 
@@ -144,7 +146,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     y: number,
     w: number,
     h: number,
-    opts: StrokeOptions = {},
+    opts: ShapeOptions = {},
   ) {
     const o = OVERSHOOT;
     stroke(
@@ -175,6 +177,15 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
       ],
       opts,
     );
+    extrude(
+      [
+        [x, y],
+        [x + w, y],
+        [x + w, y + h],
+        [x, y + h],
+      ],
+      opts,
+    );
   }
 
   function pill(
@@ -182,7 +193,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     y: number,
     w: number,
     h: number,
-    opts: StrokeOptions = {},
+    opts: ShapeOptions = {},
   ) {
     const cx = x + w / 2;
     const cy = y + h / 2;
@@ -197,6 +208,11 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
       ]);
     }
     stroke(pts, { ...opts, amplitude: PILL_AMP });
+    // The ideal ellipse the loop above jitters around, sampled by the same
+    // rule `hatchClip` samples it by - the outline this codebase already
+    // treats as the pill's, not a second one. A full sweep repeats its first
+    // point, which `extrude` must not see as a segment.
+    extrude(arcPoints(cx, cy, rx, ry, 0, 2 * Math.PI).slice(0, -1), opts);
   }
 
   // A curve here is a denser point list and nothing else, which is what lets
@@ -220,7 +236,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     y: number,
     w: number,
     h: number,
-    opts: StrokeOptions = {},
+    opts: ShapeOptions = {},
   ) {
     const cx = x + w / 2;
     const cy = y + h / 2;
@@ -233,6 +249,72 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
         [cx, y],
       ],
       opts,
+    );
+    extrude(
+      [
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ],
+      opts,
+    );
+  }
+
+  // The oblique faces behind a closed shape, drawn after its front outline.
+  // Every ideal outline above is wound clockwise on screen (y down), so a
+  // segment with direction (dx, dy) has outward normal (dy, -dx), and it
+  // carries a face exactly when that normal dots positive with the extrusion
+  // vector (d, -DEPTH_RISE * d). On a convex outline the facing segments are
+  // one run, possibly wrapping the array end: the run offset by the vector is
+  // the silhouette chain, one polyline plus a connector at each end, and the
+  // quads swept by its descending segments - outward normal x positive - are
+  // hatched muted. Guarded before anything draws: a shape without a usable
+  // depth consumes nothing from the seeded sequence, so its bytes cannot move.
+  function extrude(outline: Point[], opts: ShapeOptions) {
+    const d = opts.depth;
+    if (typeof d !== 'number' || !Number.isFinite(d) || d <= 0) return;
+    const ex = d;
+    const ey = -DEPTH_RISE * d;
+    const m = outline.length;
+    const facing = (i: number) => {
+      const [ax, ay] = outline[i % m] as Point;
+      const [bx, by] = outline[(i + 1) % m] as Point;
+      return (by - ay) * ex + (ax - bx) * ey > 0;
+    };
+    let start = -1;
+    for (let i = 0; i < m && start < 0; i++)
+      if (facing(i) && !facing(i + m - 1)) start = i;
+    if (start < 0) return;
+    const run: Point[] = [outline[start] as Point];
+    for (let i = start; facing(i); i++) run.push(outline[(i + 1) % m] as Point);
+    const off = run.map(([px, py]): Point => [px + ex, py + ey]);
+    stroke(off, opts);
+    stroke([run[0] as Point, off[0] as Point], opts);
+    stroke([run[run.length - 1] as Point, off[off.length - 1] as Point], opts);
+    // The shaded sub-run is contiguous within the facing run, because the
+    // normals of a convex outline turn monotonically.
+    let s0 = -1;
+    let s1 = -1;
+    for (let k = 0; k + 1 < run.length; k++)
+      if ((run[k + 1] as Point)[1] > (run[k] as Point)[1]) {
+        if (s0 < 0) s0 = k;
+        s1 = k + 1;
+      }
+    if (s0 < 0) return;
+    const strip = [
+      ...run.slice(s0, s1 + 1),
+      ...off.slice(s0, s1 + 1).reverse(),
+    ];
+    const x0 = Math.min(...strip.map((p) => p[0]));
+    const y0 = Math.min(...strip.map((p) => p[1]));
+    hatch(
+      x0,
+      y0,
+      Math.max(...strip.map((p) => p[0])) - x0,
+      Math.max(...strip.map((p) => p[1])) - y0,
+      theme.muted,
+      strip,
     );
   }
 

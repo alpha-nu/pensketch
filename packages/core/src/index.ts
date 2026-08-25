@@ -14,6 +14,7 @@ export type {
   Pen,
   PenOptions,
   Point,
+  ShapeOptions,
   Side,
   StrokeOptions,
 } from './types';

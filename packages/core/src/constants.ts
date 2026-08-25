@@ -89,6 +89,20 @@ export const ARC_STEPS = 26;
  * the hand drawing it.
  */
 export const ARC_MIN_CHORD = 12;
+/**
+ * Depth in px of an extruded shape when the caller gives none. Read off the
+ * five hero figures at 1200 x 600, beside nodes 60-90 px tall; the small end
+ * has not been checked, so the value is calibrated against one failure mode
+ * only.
+ */
+export const DEPTH = 12;
+/**
+ * Rise of the extrusion vector per px of depth: a shape taking depth `d` is
+ * offset by `(d, -DEPTH_RISE * d)`, up-right, light fixed top-left like every
+ * other aesthetic here. A ratio rather than a second depth, so every slab in
+ * a picture recedes toward the same vanishing direction whatever its `d`.
+ */
+export const DEPTH_RISE = 0.75;
 /** Distance in px between hatch lines. */
 export const HATCH_GAP = 11;
 /** Stroke width in px of a hatch line. */
@@ -204,6 +218,8 @@ export const constants = Object.freeze({
   PILL_AMP,
   ARC_STEPS,
   ARC_MIN_CHORD,
+  DEPTH,
+  DEPTH_RISE,
   HATCH_GAP,
   HATCH_W,
   HATCH_AMP,

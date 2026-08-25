@@ -3,6 +3,7 @@ import type {
   LabelOptions,
   PenOptions,
   Point,
+  ShapeOptions,
   StrokeOptions,
 } from '../src/index';
 import { constants, defaultTheme, mulberry32, pen } from '../src/index';
@@ -544,6 +545,210 @@ describe('diamond()', () => {
     corners.forEach((corner, i) => {
       expectNear(nth(points, i * MIN_STEPS), corner, spread(AMP));
     });
+  });
+});
+
+describe('depth', () => {
+  // Depth 10 throughout, so the extrusion vector is (10, -7.5): up-right on
+  // screen, light fixed top-left. Every expected point below is its ideal
+  // outline point plus that vector, under the same jitter bounds the front
+  // outlines are held to.
+  const EX = 10;
+  const EY = -7.5;
+
+  it('extrudes a box into a slab: one chain over the top and right, two connectors', () => {
+    const svg = makeSvg();
+    pen(svg).rect(0, 0, 100, 50, { depth: 10 });
+
+    const paths = pathsOf(svg);
+    // 8 front, 2 chain, 4 connectors, and the shading after them.
+    expect(paths).toHaveLength(28);
+
+    // One polyline TL+E -> TR+E -> BR+E: the facing run offset whole, not a
+    // stroke per face.
+    const chain = pointsOf(nth(paths, 8));
+    const top = Math.max(MIN_STEPS, Math.round(100 / SEG_LEN));
+    expect(chain).toHaveLength(top + MIN_STEPS + 1);
+    expectNear(nth(chain, 0), [0 + EX, 0 + EY], spread(AMP));
+    expectNear(nth(chain, top), [100 + EX, 0 + EY], damped(AMP));
+    expectNear(nth(chain, chain.length - 1), [100 + EX, 50 + EY], damped(AMP));
+
+    // A connector at each silhouette point, drawn from the outline out.
+    const first = pointsOf(nth(paths, 10));
+    expectNear(nth(first, 0), [0, 0], spread(AMP));
+    expectNear(nth(first, first.length - 1), [0 + EX, 0 + EY], damped(AMP));
+    const second = pointsOf(nth(paths, 12));
+    expectNear(nth(second, 0), [100, 50], spread(AMP));
+    expectNear(
+      nth(second, second.length - 1),
+      [100 + EX, 50 + EY],
+      damped(AMP),
+    );
+  });
+
+  it('shades only the right face of a box, muted, through the clip arm', () => {
+    const svg = makeSvg();
+    pen(svg).rect(0, 0, 100, 50, { depth: 10 });
+
+    const shading = pathsOf(svg).slice(14);
+    expect(shading).toHaveLength(14);
+    shading.forEach((path, i) => {
+      expect(attr(path, 'stroke')).toBe(defaultTheme.muted);
+      if (i % 2 === 0) expect(num(path, 'stroke-width')).toBe(HATCH_W);
+      // Every shading point sits inside the swept right-edge quad, so the
+      // top face is outlined and left bare - the slab the design table
+      // degenerates to.
+      for (const [x, y] of pointsOf(path)) {
+        expect(x).toBeGreaterThanOrEqual(100 - spread(HATCH_AMP));
+        expect(x).toBeLessThanOrEqual(100 + EX + spread(HATCH_AMP));
+        expect(y).toBeGreaterThanOrEqual(EY - spread(HATCH_AMP));
+        expect(y).toBeLessThanOrEqual(50 + spread(HATCH_AMP));
+      }
+    });
+  });
+
+  it('extrudes a pill from the outline arcPoints samples for its box', () => {
+    const svg = makeSvg();
+    pen(svg).pill(0, 0, 150, 50, { depth: 10 });
+
+    const paths = pathsOf(svg);
+    expect(paths).toHaveLength(22);
+
+    // The ideal ellipse, sampled exactly as the hatch clip samples it: 26
+    // chords at this size. The facing run is 13 of them and wraps the seam
+    // at sample 0, beginning at sample 15, low on the left, and ending at
+    // sample 2, low on the right - pinned as indices rather than recomputed
+    // from the facing rule.
+    const out = arcPoints(75, 25, 75, 25, 0, 2 * Math.PI);
+    expect(out).toHaveLength(27);
+    const from = nth(out, 15);
+    const to = nth(out, 2);
+    const chain = pointsOf(nth(paths, 2));
+    expect(chain).toHaveLength(13 * MIN_STEPS + 1);
+    expectNear(nth(chain, 0), [from[0] + EX, from[1] + EY], spread(AMP));
+    expectNear(
+      nth(chain, chain.length - 1),
+      [to[0] + EX, to[1] + EY],
+      damped(AMP),
+    );
+
+    // Exactly two connectors, one at each silhouette point.
+    const first = pointsOf(nth(paths, 4));
+    expectNear(nth(first, 0), from, spread(AMP));
+    expectNear(
+      nth(first, first.length - 1),
+      [from[0] + EX, from[1] + EY],
+      damped(AMP),
+    );
+    const second = pointsOf(nth(paths, 6));
+    expectNear(nth(second, 0), to, spread(AMP));
+    expectNear(
+      nth(second, second.length - 1),
+      [to[0] + EX, to[1] + EY],
+      damped(AMP),
+    );
+
+    // One hatch group and nothing after it.
+    for (const path of paths.slice(8))
+      expect(attr(path, 'stroke')).toBe(defaultTheme.muted);
+  });
+
+  it('wraps the facing run of a wide diamond around the seam of its outline', () => {
+    const svg = makeSvg();
+    pen(svg).diamond(0, 0, 100, 60, { depth: 10 });
+
+    const paths = pathsOf(svg);
+    expect(paths).toHaveLength(16);
+
+    // 0.75 * 50 > 30, so the left-to-top segment faces along with
+    // top-to-right and the run wraps the outline's seam at the top vertex:
+    // one chain from the left vertex over the top to the right one.
+    const chain = pointsOf(nth(paths, 2));
+    expect(chain).toHaveLength(2 * MIN_STEPS + 1);
+    expectNear(nth(chain, 0), [0 + EX, 30 + EY], spread(AMP));
+    expectNear(nth(chain, MIN_STEPS), [50 + EX, 0 + EY], damped(AMP));
+    expectNear(nth(chain, chain.length - 1), [100 + EX, 30 + EY], damped(AMP));
+
+    // The silhouette points are the side vertices, so the connectors hang
+    // off left and right, not top and bottom.
+    expectNear(nth(pointsOf(nth(paths, 4)), 0), [0, 30], spread(AMP));
+    expectNear(nth(pointsOf(nth(paths, 6)), 0), [100, 30], spread(AMP));
+
+    // Only the top-to-right face descends the screen, so only its quad is
+    // shaded: the left-to-top face is outlined and left bare.
+    const shading = paths.slice(8);
+    expect(shading).toHaveLength(8);
+    for (const path of shading)
+      expect(attr(path, 'stroke')).toBe(defaultTheme.muted);
+  });
+
+  it('leaves a face at the boundary flat: dot exactly zero carries no face', () => {
+    const svg = makeSvg();
+    pen(svg).diamond(0, 0, 100, 75, { depth: 10 });
+
+    // At h = 0.75 * w both E-parallel edges dot to exactly zero, so only
+    // top-to-right faces; the strict bound is what keeps the run off them,
+    // and the connectors hang off the top and right vertices alone.
+    const paths = pathsOf(svg);
+    const chain = pointsOf(nth(paths, 2));
+    expect(chain).toHaveLength(MIN_STEPS + 1);
+    expectNear(nth(chain, 0), [50 + EX, 0 + EY], spread(AMP));
+    expectNear(nth(chain, chain.length - 1), [100 + EX, 37.5 + EY], damped(AMP));
+    expectNear(nth(pointsOf(nth(paths, 4)), 0), [50, 0], spread(AMP));
+    expectNear(nth(pointsOf(nth(paths, 6)), 0), [100, 37.5], spread(AMP));
+  });
+
+  it('draws nothing and consumes nothing without a usable depth', () => {
+    // The whole svg, byte for byte, probe stroke included: an extrusion that
+    // consumed even one draw would move every jittered point after it.
+    const drawn = (opts?: ShapeOptions) => {
+      const svg = makeSvg();
+      const p = pen(svg, { seed: 5 });
+      p.rect(0, 0, 100, 50, opts);
+      p.stroke([
+        [0, 80],
+        [100, 80],
+      ]);
+      expect(pathsOf(svg)).toHaveLength(10);
+      return svg.innerHTML;
+    };
+    const flat = drawn();
+    expect(flat).not.toBe('');
+    for (const opts of [
+      {},
+      { depth: 0 },
+      { depth: -3 },
+      { depth: Number.NaN },
+      { depth: Number.POSITIVE_INFINITY },
+    ])
+      expect(drawn(opts)).toBe(flat);
+  });
+
+  it('finds no face on an outline with no area, and leaves the bytes alone', () => {
+    const drawn = (opts?: ShapeOptions) => {
+      const svg = makeSvg();
+      const p = pen(svg, { seed: 3 });
+      p.rect(10, 10, 0, 0, opts);
+      p.stroke([
+        [0, 40],
+        [100, 40],
+      ]);
+      return svg.innerHTML;
+    };
+    expect(drawn({ depth: 8 })).toBe(drawn());
+  });
+
+  it('outlines a face it cannot shade: a zero-height box hatches nothing', () => {
+    const svg = makeSvg();
+    pen(svg).rect(0, 0, 100, 0, { depth: 8 });
+
+    // Front, chain and connectors, and no shading: the one facing segment
+    // runs level, so it sweeps no descending quad and the clip arm is never
+    // reached.
+    const paths = pathsOf(svg);
+    expect(paths).toHaveLength(14);
+    for (const path of paths)
+      expect(attr(path, 'stroke')).not.toBe(defaultTheme.muted);
   });
 });
 
