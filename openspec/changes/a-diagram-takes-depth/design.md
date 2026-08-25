@@ -125,11 +125,30 @@ design misquoted the server budget as 4300 — the number the spec carried
 before `order`; the figure this change found enforced and moved from is
 4480.)
 
-## D8. The constants, and the end nobody checked
+## D8. The constants, calibrated at both ends
 
-`DEPTH = 12` at `DEPTH_RISE = 0.75` is calibrated from the five hero figures
-at 1200 × 600, where it read well beside 60-90 px-tall nodes. That is one end.
-The constant has not been checked against small nodes on small canvases,
-where 12 px of depth on a 40 px node may read as a brick — task 1.4 renders
-both ends before the default is frozen, because a constant chosen against one
-failure mode fails at the other.
+`DEPTH = 12` at `DEPTH_RISE = 0.75`, frozen after rendering both ends
+(2026-08-25, via the standalone figure renderer against the built tree).
+On a **box** the slab reads at hero scale (1200 × 600, 60-90 px nodes) and
+at small scale (700 × 150, 40 px nodes) alike; depth 8 at the small end
+reads lighter but 12 is still clean, so one default serves and the value
+stays data for anyone who wants less.
+
+The other two shapes calibrate differently, and the record is the point:
+
+- A **pill**'s geometry is correct and reads as a proper coin — at depth
+  proportional to the shape (30-45 on a 220 × 90 pill). At the default 12
+  the offset chain hugs the whole upper arc a stroke-width away and reads
+  as a scribbled double outline, not depth.
+- A **diamond**'s faces are slivers at every probed depth (12, 24, 36):
+  its edges dot weakly against the extrusion vector, so the strip reads as
+  a folded corner. Honest rhomboid geometry, least convincing of the three.
+
+Decision under the owner's session delegation: the geometry ships for all
+three shapes as the delta states, the default stays box-calibrated, and the
+per-shape guidance lands in the field tables at task 5.1 — a box extrudes
+at any scale, a pill wants a depth near a third of its height, a diamond
+wants proportional depth or none. Two refinements were considered and NOT
+taken, each a constant aimed at one probe's failure: thresholding the
+facing test to kill sliver faces, and per-shape default scaling. If either
+is wanted it is a deliberate follow-up with these renders as evidence.

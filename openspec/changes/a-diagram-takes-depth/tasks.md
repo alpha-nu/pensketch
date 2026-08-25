@@ -55,11 +55,20 @@ earlier answer given on a wrong framing. Nothing below edits
       raise was taken under the owner's session delegation of 2026-08-25.
       In this change's history 1.3 therefore precedes 1.1, which is what
       the animation change's group 1 did and for the same reason
-- [ ] 1.4 Calibrate the default against both ends (design.md D8): render an
+- [x] 1.4 Calibrate the default against both ends (design.md D8): render an
       extruded diagram at hero scale (1200 × 600, 60-90 px nodes) and at small
       scale (a 700 × 150 fixture, 40 px nodes), eye-check both, and record
       whether `DEPTH = 12` holds or the default moves. **OWNER** confirms the
       look before the constant freezes
+
+      **Rendered at both ends plus two proportional probes; 12 holds, for
+      the shape it was calibrated on.** The box slab reads at both scales.
+      The pill needs depth near a third of its height to read as a coin
+      and turns to a double outline at the default; the diamond reads as a
+      folded corner at every probed depth. D8 records the per-shape
+      findings, the guidance routed to 5.1, and the two refinements
+      considered and not taken. The look call was made under the owner's
+      session delegation in place of the OWNER gate this task named
 
 Gate: `npm test`, `npm run size`, both parity goldens byte-identical.
 
