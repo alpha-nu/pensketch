@@ -221,9 +221,21 @@ const PACKAGES = [
     // second raise inside one change is a budget chasing its code. The root
     // entry measured 4882 on the same rehearsal against its 5120 and does
     // not move; `./check` moves above, and for the checker's own code.
+    //
+    // 5120 from 4992, the depth tripwire taken: D7's rehearsal priced the
+    // whole change at 4868 here, but it priced "a minimal validation
+    // throw", and the validation the spec actually demands - the offender,
+    // the value, what is accepted, whose field carried it - measured 4986
+    // when it landed, 118 B past the rehearsal with 6 B of budget left. Six
+    // bytes is under this file's own margin standard, and D7 pre-registered
+    // exactly this failure: the arithmetic was wrong, so the number is
+    // re-decided, not nudged - 4986 plus the same 100 B of headroom is
+    // 5086, taken up to 5120. Re-decided at a green gate; nothing was
+    // failing when the number moved. The root entry landed at 4995 against
+    // its own 5120 with 125 B free, above the standard, and does not move.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 4992,
+    budget: 5120,
   },
   {
     name: '@pensketch/react',

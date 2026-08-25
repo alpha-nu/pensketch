@@ -43,7 +43,7 @@ root unless told otherwise.
   prints corrupts the stream a client is parsing.
 - `npm run size` - gzipped size budgets. Proves each minified, gzipped ESM
   entry point stays within budget: 5120 bytes for core, 3648 for its checker
-  subpath, 4992 for its DOM-free renderer, 2048 for react, and 768 for the
+  subpath, 5120 for its DOM-free renderer, 2048 for react, and 768 for the
   animation package. It also proves the size the README prints beside another
   project's is the one the build produces, because a number a reader is invited
   to compare is a claim, and this one has no generator to regenerate it from.

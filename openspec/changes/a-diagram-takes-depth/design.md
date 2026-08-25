@@ -153,6 +153,15 @@ landed (+38 core, +34 server, measured), T-56's label-rule split, and
 per-rule anchor walks — the group 2 and 3 gates are the re-measurement,
 and the tripwire above is armed.
 
+**The tripwire fired at 2.3 and the pre-registered path was taken.** The
+rehearsal priced "a minimal validation throw"; the validation the spec
+demands measured 4986 on server when it landed - 118 B past the 4868
+column, 6 B inside the budget, and 6 B is under the margin standard. So
+the server number was re-decided at a green gate: 4986 + 100 = 5086,
+taken up to 5120. Core landed at 4995, 113 B past its own column but 125 B
+inside its budget - above the standard, so its number stands. `./check`
+sits under its column with group 3 still to land.
+
 Decision taken under the owner's session delegation of 2026-08-25. The
 budget commit precedes the first commit that needs the room, so no commit in
 this change's history holds a red size gate. (An earlier draft of this
