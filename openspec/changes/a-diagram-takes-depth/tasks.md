@@ -169,13 +169,20 @@ stands on rather than a test written after the fact.
       as one drawing can, its whole report frozen - rule, severity and
       message, in order.
 
-      **Landed.** The reference diagrams were tried first and rejected as
-      the subject: at their real viewBoxes the sampler reports nothing and
-      the budgets report two orphans, and a mutation proved the gate did
-      not move when a rule's severity was flipped. The fixture that
-      replaced them fires seven rules across eight findings, and two
-      severity mutants each break it. A gate that cannot fail is not a
-      gate, which is the whole reason this one landed before the work
+      **Landed, and it proves less than this task first claimed (T-81).**
+      The reference diagrams were tried as the subject and rejected: at
+      their real viewBoxes the sampler reports nothing, and a severity
+      mutant did not move either snapshot. The fixture that replaced them
+      fires seven rules across eight findings and two severity mutants
+      break it, so it is a real gate — but it is a **flat non-regression**
+      gate and nothing more. Its fixture carries no `extrude` and is
+      checked with no pair, so `swept` is only ever called with `d = 0`
+      and the `undrawable-depth` block is unreachable; measured, seven of
+      seven depth mutants pass it untouched. What it proves is that depth
+      changed nothing flat, which is exactly what it was frozen for and
+      worth having. "The gate the rest of group 3 stands on" was the
+      wrong sentence: group 3 stands on the tests that landed with 3.2
+      and 3.3, and two of those had holes the review found
 
 - [x] 3.1 The swept box under every box-measuring rule, the moved anchors
       under every edge-walking rule, options and node fields resolved by the
@@ -221,11 +228,14 @@ stands on rather than a test written after the fact.
       node's own depth from an inherited one. Additive `RuleId` member, so
       the union's own test and the severity table move with it
 
-      **Landed, and the union had no test to move** - `RuleId` was pinned
-      nowhere, so one was written: a table `satisfies Record<RuleId,
-      Severity>` fails typecheck if a member is added without a place or
-      renamed, and its runtime half switches every listed id off over a
-      diagram firing five rules. The words are kept identical to the
+      **Landed. The union had no *runtime* test to move (T-98).** The
+      claim first written here — that `RuleId` was pinned nowhere — is
+      over-stated: `DEFAULTS: Record<RuleId, Severity>` in production
+      code already failed typecheck on a member added without a place,
+      and fails first. What was genuinely missing, and what the new test
+      adds, is the runtime half: switching every listed id off over a
+      diagram firing five rules, which proves each id is one `check`
+      honours rather than one the table merely mentions. The words are kept identical to the
       renderer's two ways at once: `ACCEPTS` and `drawable` are one
       binding both files read, and a test renders the diagram under test
       with `draw` and asserts the thrown message equals the finding's, so
@@ -290,7 +300,16 @@ Gate: full suite, generated files fresh in CI's sense.
       hand-written in **three** places — `README.md`, `docs/agents.md` and
       `packages/core/README.md` — and none carries `undrawable-depth`;
       `docs/agents.md` is mirrored into the MCP resources, so
-      `npm run resources` regenerates with it. Plus: depth's cost is
+      `npm run resources` regenerates with it — and the count is asserted
+      as a fact in a **fourth** hand-written place the earlier list missed,
+      `examples/showcase/index.html`, which labels a node "nine rules" and
+      is mirrored into the MCP resources (T-86). Two sentences are owed
+      beside those tables: that `check` validates a depth's *form* and not
+      its cost, so a depth it passes in half a millisecond can be one
+      `draw` spends 150 ms and 8 MB on (T-84); and that the swept box
+      over-reports by roughly `d`, measured at 110 px of clear air between
+      two diamonds reported as overlapping at depth 40 (T-88). Plus:
+      depth's cost is
       linear at about 82 B per px and is bounded by nothing, which `out`,
       `span` and `bow` each already say of themselves and `depth` does not
       (T-74); and `docs/agents.md` has no depth section at all, so

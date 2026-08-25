@@ -11,10 +11,15 @@
 `draw` accepts, and SHALL read the same per-node fields, resolved by the same
 idiom. For a shape node whose extrusion is on, every rule that measures the node's
 **ink** — `node-overlap`, `out-of-bounds`, `group-escape` on the member's
-side, `label-collision`'s stroke geometry, and every rule that walks its
+side, and every rule that walks its
 edges — SHALL use the swept box `(x, y − 0.75d, w + d, h + 0.75d)`, and the
 anchors it walks SHALL be the renderer's moved ones: `t` and `r` at the flat
-anchor plus the extrusion vector, `l` and `b` unmoved. Every rule that
+anchor plus the extrusion vector, `l` and `b` unmoved. `label-collision`
+belongs to that second clause and not the first: it measures text against
+the paths a diagram draws, and a node's outline has never been one of them,
+so what depth changes for it is where the edges start. A rule that compared
+a label with a node's box flat would have to keep doing so, and the flat run
+must not move. Every rule that
 measures the node's **label** — `text-overflow`, `text-collision` — SHALL
 keep the front box, because the label sits on the front face and does not
 move: sweeping it would hand `text-overflow` d px of room no glyph can use,
@@ -22,7 +27,12 @@ which is claimed slack that spills. A group's own box never sweeps — a group
 never extrudes — while its members' swept boxes are what `group-escape`
 measures against the group's flat frame. A node the renderer resolves flat
 because its shape cannot carry a face SHALL NOT sweep either, by reading
-the same predicate rather than a second copy of it. The swept box stands for the faces;
+the same predicate rather than a second copy of it. The sweep SHALL be taken
+from the box's own extent on each axis rather than from `w` and `h` as
+written, because a mirrored dimension draws the same picture and would
+otherwise cancel the rise or shrink the box — and a sweep that shrinks
+**withdraws** a finding the flat checker already made, which is the one
+thing depth must never do. The swept box stands for the faces;
 they are not modeled stroke-by-stroke, and no finding SHALL pretend
 otherwise.
 
@@ -37,6 +47,10 @@ identical to today's, byte for byte.
 #### Scenario: A face crossing the viewBox is out of bounds
 - **WHEN** an extruded node's box ends inside the viewBox but `x + w + d` falls outside it
 - **THEN** `check` reports `out-of-bounds` for that node, where the flat box alone would have passed
+
+#### Scenario: A mirrored node is measured like the picture it draws
+- **WHEN** one rectangle is written with a negative dimension and another with the same extent written positively, both extruded
+- **THEN** `check` reports the same findings for both, and neither loses a finding it made flat
 
 #### Scenario: Slabs that touch only in depth still overlap
 - **WHEN** two extruded nodes' boxes are disjoint but their swept boxes intersect
@@ -63,6 +77,12 @@ renderer refuses outright, which inverts the order the tools prescribe —
 check first, then render — and breaks this capability's own promise that
 the checker measures what the renderer draws.
 
+A node whose depth is refused SHALL be measured **flat** as well as
+reported. The report is the defect; a cascade of consequences derived from a
+number the renderer will not draw is noise standing beside it. An infinite
+depth swept an infinite box before this rule was written down, so a spurious
+`out-of-bounds` accompanied every genuine finding.
+
 `undrawable-depth` joins `RuleId` additively. The union is stable in the
 sense that a published id never changes meaning, not in the sense that it
 never grows.
@@ -74,6 +94,10 @@ never grows.
 #### Scenario: An inherited undrawable depth names the node
 - **WHEN** an extruded node's resolved depth is invalid because it inherited it from the options
 - **THEN** the finding names that node and says the value was inherited, matching the words the renderer throws with
+
+#### Scenario: A refused depth is reported once, not compounded
+- **WHEN** a node extrudes at a depth the renderer refuses, inside a viewBox its swept box would otherwise escape
+- **THEN** `check` reports `undrawable-depth` and measures that node by its flat box, so no second finding is derived from the number that was refused
 
 #### Scenario: A shape that cannot carry a face is not a defect
 - **WHEN** a pill whose larger dimension falls under `3 × ARC_MIN_CHORD / π` carries a valid depth
@@ -90,3 +114,148 @@ never grows.
 #### Scenario: A flat check is unchanged
 - **WHEN** `check` runs on a diagram with no `extrude` and no `depth` anywhere
 - **THEN** its findings are exactly what today's checker reports
+
+## MODIFIED Requirements
+
+### Requirement: Findings are stable, sorted and machine-readable
+Every finding SHALL carry a stable `rule` id, a `severity` of `error` or
+`warning`, a one-sentence `message`, an `at` point in the diagram's own
+coordinate space, and the `subjects` involved. A finding about the **call**
+rather than about the drawing — an option the renderer would refuse, which
+belongs to no node, edge, brace or note — SHALL name `options` among its
+subjects and report the origin as its `at`, and the documentation SHALL say
+so wherever it tells a reader that `at` is the place to look. A rule id
+SHALL be stable in the sense that a published id never changes meaning, not
+in the sense that the set never grows. Findings SHALL be sorted by
+severity, then rule, then position, so that the same diagram always yields the
+same array and the output can be snapshot-tested.
+
+#### Scenario: Same diagram, same findings
+- **WHEN** `check` runs twice over the same diagram and options
+- **THEN** both calls return deeply equal arrays in the same order
+
+#### Scenario: A finding about the call names the call
+- **WHEN** `check` reports an option the renderer would refuse, on a diagram where no member carries the offending value
+- **THEN** the finding names `options` among its subjects and reports the origin as its `at`, since there is no place in the drawing to look
+
+### Requirement: The rules over diagram geometry
+`check` SHALL report: `duplicate-id`, `node-overlap`, `out-of-bounds` and
+`undrawable-depth` as
+errors; `label-collision`, `text-overflow`, `group-escape`, `orphan-node`,
+`edge-overlap` and `text-collision` as warnings. Each rule's severity SHALL be
+raisable, lowerable, or switchable off through options, the newest id
+included: a rule the caller cannot silence is a rule they will work around. `out-of-bounds` SHALL run only when a
+`viewBox` is supplied.
+
+`edge-overlap` SHALL fire when two edges' sampled paths stay within a small
+distance of one another along their whole length, **and also when two edges
+that share exactly one endpoint stay within that distance along a run reaching
+`OVERLAP_MIN` before parting**, which is the case a caller cannot see: two
+connectors drawn one on top of the other read as one deliberate line, and a
+pair that leaves one anchor together reads as one line for as long as the
+trunk lasts. It SHALL NOT fire on edges that merely cross. The finding SHALL
+name the length of the shared run, since the fix is to move one of the two and
+the length is what says how far. It is a warning because a pair on one line is
+sometimes meant.
+
+The run SHALL be measured only for a pair sharing exactly one endpoint, and
+this is a restriction rather than an oversight. A pair sharing **both** ends is
+the shape `bow` exists to separate: two edges between one pair of anchors must
+meet at each end whatever they do between, so a run there is unavoidable and
+says nothing about whether the pair reads as two — what says it is how far
+apart they get in the middle, which the whole-length test already measures.
+A pair sharing **neither** end cannot be told apart from a shallow crossing by
+proximity alone: two lines crossing at a narrow angle stay inside the same
+distance for an arbitrarily long run, so measuring one there would fire on the
+crossings this requirement forbids. Sharing exactly one endpoint is what makes
+a run unambiguous, and it is deliberately narrower than "any two paths that
+run together".
+
+`OVERLAP_MIN` SHALL be calibrated against the diagrams this repository ships:
+above the longest run any of them draws deliberately, and below the shortest
+run that reads as one line. A threshold chosen to silence a gate rather than to
+describe the drawing is what makes a warning worth switching off.
+
+`text-collision` SHALL fire when the boxes of any two pieces of text the
+drawing lays down intersect — a node's label, a group's title, an edge label, a
+brace label or a note, each against every other. `label-collision` measures
+text against the *strokes* a diagram draws, and a group's title and a node's
+label are in no path, so before this rule nothing compared one piece of text
+with another. It SHALL carry `estimated`, because the boxes rest on the width
+estimate rather than on measured text. It SHALL have no clearance of its own:
+two boxes either intersect or they do not, and a rule with nothing to tune is a
+rule nobody argues into silence. It is a warning rather than an error because
+text touching at the edges is sometimes close enough, and it names both pieces
+so the caller decides which to move.
+
+#### Scenario: A duplicate id is reported alongside everything else
+- **WHEN** two nodes share an `id`
+- **THEN** `check` reports `duplicate-id` as an error, naming both, together with every other finding in the diagram — where `draw` stops at the first defect it meets, leaving on the page whatever it had drawn before reaching it
+
+#### Scenario: A label lying on a connector is caught
+- **WHEN** an edge label's box falls within the configured clearance of any edge's path
+- **THEN** `check` reports `label-collision` naming the label and the edge it collides with
+
+#### Scenario: Half in a group is a defect, wholly outside is not
+- **WHEN** a node's box partially intersects a group's box
+- **THEN** `check` reports `group-escape`
+- **WHEN** a node's box lies wholly inside or wholly outside every group
+- **THEN** no `group-escape` finding is produced
+
+#### Scenario: One line where the author drew two
+- **WHEN** two edges connect the same pair of anchors and neither carries a `bow` or a differing `via`
+- **THEN** `check` reports `edge-overlap` naming both, since the picture shows one connector and the data says two
+
+#### Scenario: Crossing is not overlapping
+- **WHEN** two edges intersect at a point and diverge
+- **THEN** no `edge-overlap` finding is produced
+
+#### Scenario: A rule can be switched off
+- **WHEN** options set a rule to `off`
+- **THEN** no finding with that rule id is returned
+
+#### Scenario: A shared trunk is reported even though the paths part
+- **WHEN** two edges run together for longer than `OVERLAP_MIN` and then separate, as one arriving at a node and another turning onto the same approach do
+- **THEN** `check` reports `edge-overlap` naming both and the length they share, where before it was silent because neither path lay on the other along its whole length
+
+#### Scenario: Meeting at an anchor is not a shared trunk
+- **WHEN** two edges arrive at the same anchor from different directions, touching only where they land
+- **THEN** no `edge-overlap` finding is produced, a shared point being nothing to move
+
+#### Scenario: A pair already separated by a bow is left alone
+- **WHEN** two edges join the same pair of anchors and one carries a `bow` large enough that the whole-length test is false
+- **THEN** no `edge-overlap` finding is produced, however long the two run together near the anchors they must both meet — a rule that named `bow` as the fix and then went on reporting the pair that took it would be telling the caller to do something that does not work
+
+#### Scenario: Two connectors sharing a corridor but no anchor are not reported
+- **WHEN** two edges are routed along the same stretch without sharing either endpoint
+- **THEN** no `edge-overlap` finding is produced unless they coincide along their whole length, this being the price of not reporting shallow crossings, which stay within the same distance for an arbitrarily long run
+
+#### Scenario: A label written through a group's title is reported
+- **WHEN** an edge label's box intersects the box of a group's title, or of a node's own label
+- **THEN** `check` reports `text-collision` naming both, where before it was silent because a title lays down no path for `label-collision` to measure against
+
+#### Scenario: Text merely near other text is not a collision
+- **WHEN** two pieces of text sit close together without their boxes intersecting
+- **THEN** no `text-collision` finding is produced
+
+### Requirement: A loop's corners are not measured, because none are drawn
+An edge naming one node at both ends SHALL have its `via` left out of the path
+`check` measures. `out-of-bounds` SHALL NOT report such a point as a corner the
+arrow turns at, and it SHALL NOT be spliced into the path `label-collision`
+measures against. `draw` refuses that edge outright, which settles nothing
+here: `check` runs on diagrams that are never drawn, which is most of the
+reason it exists. This is not mirrored as a finding of its own — the house line
+is that `draw`'s refusals go unmirrored, and a rule id is a published name in
+every table that lists them, so mirroring one is a cost paid in documents as
+well as in bytes. The exceptions are counted rather than assumed: `duplicate-id`
+and `undrawable-depth`, each admitted because the defect it names would
+otherwise cost the caller a round trip through a renderer that refuses the
+whole diagram. A third SHALL be argued on that ground or not at all.
+
+#### Scenario: A corner outside the frame that the arrow never turns at
+- **WHEN** a self-transition carries a `via` point outside the `viewBox`
+- **THEN** no `out-of-bounds` finding names it, where before it was reported as a corner the arrow leaves the picture at
+
+#### Scenario: A label beside a corner no loop turns at
+- **WHEN** a label sits on a self-transition's `via` point, far from the side the loop hangs off
+- **THEN** no `label-collision` finding is produced, where before the label was reported as lying on the line it labels with no ink drawn near it
