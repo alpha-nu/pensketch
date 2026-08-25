@@ -446,9 +446,22 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
     ]);
     const width =
       n.lines.reduce((m, l) => Math.max(m, l.length), 0) * size * glyphWidth;
-    // A group's title starts TITLE_DX in from the left corner and runs right,
-    // so it has that much less room than a label centred in its box.
-    const room = group ? n.w - TITLE_DX - padding : n.w - 2 * padding;
+    // The rectangle a node covers, not the numbers it was written with. A
+    // node may be written from any of its four corners - `ShapeOptions.depth`
+    // says so, and the pen draws the same ink either way - and reading `n.w`
+    // as the width makes every label on a mirrored node overflow a box of
+    // negative room.
+    //
+    // A group's title starts TITLE_DX in from `n.x` and runs right, so it has
+    // that much less room than a label centred in its box. `Math.max(0, n.w)`
+    // and not `Math.abs(n.w)`, because `n.x` here is where `draw` writes the
+    // title from rather than the left edge of anything: on a group written
+    // mirrored the title is laid outside the frame's far corner, and the room
+    // it has inside that frame really is nought. So this stays a finding, as
+    // it is today, and reports a number that means something.
+    const room = group
+      ? Math.max(0, n.w) - TITLE_DX - padding
+      : Math.abs(n.w) - 2 * padding;
     if (width > room)
       add(
         'text-overflow',

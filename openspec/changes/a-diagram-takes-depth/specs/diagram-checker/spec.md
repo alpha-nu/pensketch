@@ -41,8 +41,13 @@ The motivating defect shipped in this repository: a slab whose box ended
 clipped the face, and the eye — not the checker — caught it. `out-of-bounds`
 over the swept box is that eye made mechanical.
 
-When extrusion is off for the diagram and every node, findings SHALL be
-identical to today's, byte for byte.
+Turning extrusion off SHALL restore the flat measurement exactly: for a
+diagram with no `extrude` and no `depth` anywhere, no rule SHALL read a swept
+box and no anchor SHALL move, so every finding is the one the checker makes
+measuring that diagram flat. That is a statement about depth costing nothing
+where it is unused, and not a promise that the flat measurement is never
+itself corrected: a defect fixed in what a rule measures flat moves both
+readings together and does not breach this.
 
 #### Scenario: A face crossing the viewBox is out of bounds
 - **WHEN** an extruded node's box ends inside the viewBox but `x + w + d` falls outside it
@@ -111,9 +116,9 @@ never grows.
 - **WHEN** an extruded member's swept box crosses its group's frame while its flat box does not
 - **THEN** `check` reports `group-escape`, measured against the group's flat frame, because the group itself never extrudes
 
-#### Scenario: A flat check is unchanged
+#### Scenario: Depth adds nothing to a flat diagram
 - **WHEN** `check` runs on a diagram with no `extrude` and no `depth` anywhere
-- **THEN** its findings are exactly what today's checker reports
+- **THEN** its findings are exactly those of the same diagram measured flat, with no rule reading a swept box and no anchor moved
 
 ## MODIFIED Requirements
 
@@ -188,6 +193,26 @@ rule nobody argues into silence. It is a warning rather than an error because
 text touching at the edges is sometimes close enough, and it names both pieces
 so the caller decides which to move.
 
+Every rule that measures a node SHALL read its box as the rectangle it covers
+rather than as the four numbers it was written with. `w` and `h` may be
+negative: a node written from any of its four corners names one rectangle, and
+the pen lays the same ink over it whichever corner it was written from, because
+winding is read off the outline's signed area and not off the sign of a
+dimension. `node-overlap`, `group-escape` and `text-overflow` SHALL therefore
+report a mirrored node exactly as they report the upright spelling of it, at
+any depth and at none. A finding's `at` is the exception and stays the corner
+the author wrote, because it is somewhere to go and look rather than a
+measurement.
+
+`text-overflow` is the one rule the covered extent alone does not settle. A
+group's title is not centred in its frame: `draw` writes it at
+`n.x + TITLE_DX` running right, from the written corner rather than from an
+edge, so a group written from its far corner has its title laid outside the
+frame it names. The room a title has SHALL be measured from where the pen
+writes it to the covered right edge - the written width for every upright
+group, nought for a mirrored one - so that a title drawn off the corner of its
+own group stays a finding rather than being handed room it cannot reach.
+
 #### Scenario: A duplicate id is reported alongside everything else
 - **WHEN** two nodes share an `id`
 - **THEN** `check` reports `duplicate-id` as an error, naming both, together with every other finding in the diagram — where `draw` stops at the first defect it meets, leaving on the page whatever it had drawn before reaching it
@@ -237,6 +262,14 @@ so the caller decides which to move.
 #### Scenario: Text merely near other text is not a collision
 - **WHEN** two pieces of text sit close together without their boxes intersecting
 - **THEN** no `text-collision` finding is produced
+
+#### Scenario: A mirrored node is the rectangle it covers, with no depth in play
+- **WHEN** a flat diagram writes a node from its far corner with negative `w` and `h`, and another node or a group laps the rectangle it covers
+- **THEN** `check` reports `node-overlap` and `group-escape` exactly as it does for the upright spelling, and reports no `text-overflow` against a label that fits inside it
+
+#### Scenario: A group's title is measured from where the pen writes it
+- **WHEN** a group is written from its far corner, so its title is laid outside the frame it names
+- **THEN** `check` reports `text-overflow` against the room inside that frame, which is nought less the padding, rather than against the width the frame covers
 
 ### Requirement: A loop's corners are not measured, because none are drawn
 An edge naming one node at both ends SHALL have its `via` left out of the path

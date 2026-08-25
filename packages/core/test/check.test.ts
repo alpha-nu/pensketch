@@ -2146,3 +2146,169 @@ describe('a flat diagram is measured as it always was', () => {
     ).toMatchSnapshot();
   });
 });
+
+// T-79. A `Box` may be written from any of its four corners: `{x: 350, y: 166,
+// w: -150, h: -46}` and `{x: 200, y: 120, w: 150, h: 46}` name one rectangle,
+// and `ShapeOptions.depth` promises the pen lays the same ink over it either
+// way, because winding is read off the outline's signed area rather than off
+// the sign of a dimension. Rendered, the two differ only in which way round
+// the pen walks the sides. So every rule that measures ink owes both spellings
+// the same finding, and three of them did not: `intersects` and `contains`
+// carried an unstated non-negative precondition, and `text-overflow` read the
+// written width as the room a label has.
+//
+// Flat on purpose. `swept` has read the covered rectangle since T-78, so at
+// any depth these rules were already right; the hole was the diagram that
+// never extrudes at all.
+describe('a flat node written from its far corner is the rectangle it covers', () => {
+  const QUIET = { rules: { 'orphan-node': 'off' } } as const;
+  const A: DiagramNode = {
+    id: 'a',
+    shape: 'box',
+    x: 100,
+    y: 100,
+    w: 150,
+    h: 46,
+  };
+  // 200..350 across and 120..166 down, written from each of two corners.
+  const UPRIGHT: DiagramNode = {
+    id: 'b',
+    shape: 'box',
+    x: 200,
+    y: 120,
+    w: 150,
+    h: 46,
+    lines: ['hello'],
+  };
+  const MIRRORED: DiagramNode = {
+    id: 'b',
+    shape: 'box',
+    x: 350,
+    y: 166,
+    w: -150,
+    h: -46,
+    lines: ['hello'],
+  };
+  const GROUP: DiagramNode = {
+    id: 'g',
+    shape: 'group',
+    x: 80,
+    y: 80,
+    w: 200,
+    h: 100,
+    lines: ['grp'],
+  };
+
+  // Every field but `at`, on the same terms as the depth block above: the two
+  // spellings declare different origins and `at` is deliberately the corner
+  // the author wrote, because it is somewhere to go and look. Everything else
+  // is a statement about the ink, and the ink is one rectangle.
+  const found = (nodes: DiagramNode[]) =>
+    check({ nodes }, QUIET).map(({ at: _at, ...rest }) => rest);
+
+  // `a` covers 100..250, `b` covers 200..350, so they lap by 50 px. Read as
+  // written, `b.x` is 350 and `b.x + b.w` is 200: every comparison in
+  // `intersects` comes out backwards and the pair is declared apart.
+  it('overlaps the node its ink overlaps', () => {
+    expect(found([A, UPRIGHT]).map((f) => f.rule)).toEqual(['node-overlap']);
+    expect(found([A, MIRRORED])).toEqual(found([A, UPRIGHT]));
+  });
+
+  // The group covers 80..280 and `b` reaches 350, so 70 px of it hangs out.
+  // Read as written, `contains` asks whether 350 is past the near edge and
+  // 200 short of the far one - an overlap test, not a containment test - and
+  // answers that the escaping node is wholly inside.
+  it('escapes the group its ink escapes', () => {
+    expect(found([GROUP, UPRIGHT]).map((f) => f.rule)).toEqual([
+      'group-escape',
+    ]);
+    expect(found([GROUP, MIRRORED])).toEqual(found([GROUP, UPRIGHT]));
+  });
+
+  // "hello" at the default 13.5 and 0.55 advance is 5 * 13.5 * 0.55 = 37.1 px
+  // and has 150 - 16 = 134 px of room, which is no overflow at all. Read as
+  // written the room is -166 px, so every label on a mirrored node overflows.
+  it('says nothing about a label with room to spare', () => {
+    expect(found([UPRIGHT])).toEqual([]);
+    expect(found([MIRRORED])).toEqual([]);
+  });
+
+  // The other end of it, because an empty result is agreement about silence
+  // and not about arithmetic. 21 characters at 13.5 need 155.9 px; a box 60
+  // wide offers 60 - 16 = 44. The message carries both numbers, so pinning it
+  // pins the room the two spellings are measured against.
+  it('reports the same overflow whichever way the box is written', () => {
+    const tight = (n: Partial<DiagramNode>): DiagramNode => ({
+      id: 'a',
+      shape: 'box',
+      x: 0,
+      y: 0,
+      w: 60,
+      h: 40,
+      lines: ['far too wide for this'],
+      ...n,
+    });
+    const said = (n: DiagramNode) => found([n]).map((f) => f.message);
+    expect(said(tight({}))).toEqual([
+      'the label on node "a" needs about 156px and has 44px; widen the box or shorten the text',
+    ]);
+    expect(said(tight({ x: 60, y: 40, w: -60, h: -40 }))).toEqual(
+      said(tight({})),
+    );
+  });
+
+  it('reports each spelling at the corner that spelling declares, flat', () => {
+    const at = (nodes: DiagramNode[]) => check({ nodes }, QUIET)[0]?.at;
+    expect(at([A, UPRIGHT])).toEqual([200, 120]);
+    expect(at([A, MIRRORED])).toEqual([350, 166]);
+  });
+
+  // A group's title is the one label that is not centred: `draw` writes it at
+  // `n.x + TITLE_DX`, and `reference/renderer.html` writes it at `n.x + 14`,
+  // both from the written corner rather than from the left edge of anything.
+  // So a group written backwards really does have its title laid outside its
+  // own frame, and the room it has inside that frame is nought less the
+  // padding. The finding stands, which is why the room is `Math.max(0, n.w)`
+  // and not `Math.abs(n.w)`: the width the rectangle covers would hand this
+  // title 178 px it cannot reach and leave the checker silent about a title
+  // drawn off the corner of its group.
+  it('measures a group title from where the pen writes it', () => {
+    expect(found([GROUP])).toEqual([]);
+    expect(
+      found([{ ...GROUP, x: 280, y: 180, w: -200, h: -100 }]).map(
+        (f) => f.message,
+      ),
+    ).toEqual([
+      'the label on node "g" needs about 23px and has -22px; widen the box or shorten the text',
+    ]);
+  });
+
+  // The departure above is worth a second witness, because one assertion is
+  // thin evidence for choosing one function over another. The room a mirrored
+  // group's title has does not depend on how wide the group is - the title is
+  // outside it either way - so `-22` here is `0 - TITLE_DX - padding` and
+  // nothing else. `Math.abs` would report 478 px of room and say nothing at
+  // all; a plain `n.w` would report -522 and mis-state the fix by 500 px.
+  it('gives a mirrored group the same nought of room at any width', () => {
+    const room = (w: number) =>
+      found([{ ...GROUP, x: 280, y: 180, w, h: -100 }]).map(
+        (f) => / has (-?\d+)px/.exec(f.message)?.[1],
+      );
+    expect(room(-200)).toEqual(['-22']);
+    expect(room(-500)).toEqual(['-22']);
+  });
+
+  // And the upright half is untouched, which is the other thing `Math.max`
+  // has to be: identical to the expression it replaces wherever `w` is
+  // positive. A group 60 wide has 60 - 14 - 8 = 38 px for its title, and 20
+  // characters at `TITLE_SIZE` 14 need 20 * 14 * 0.55 = 154.
+  it('leaves an upright group measured exactly as before', () => {
+    expect(
+      found([{ ...GROUP, w: 60, lines: ['a title far too long'] }]).map(
+        (f) => f.message,
+      ),
+    ).toEqual([
+      'the label on node "g" needs about 154px and has 38px; widen the box or shorten the text',
+    ]);
+  });
+});

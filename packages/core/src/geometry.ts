@@ -36,6 +36,30 @@ export interface Box {
 }
 
 /**
+ * A box read as the rectangle it covers rather than as the four numbers it
+ * was written with. `{x: 350, y: 166, w: -150, h: -46}` and
+ * `{x: 200, y: 120, w: 150, h: 46}` name one rectangle, and the pen lays the
+ * same ink over it from either — `ShapeOptions.depth` promises as much,
+ * because winding is read off the outline's signed area, not off the sign of
+ * a dimension. Each axis comes back as the `(min, extent)` pair every piece
+ * of arithmetic downstream already assumes it was handed.
+ *
+ * Stated here, once, rather than at each call site: a predicate that reads a
+ * box owes the same answer for both spellings of it, and a precondition
+ * every present and future caller has to remember is a precondition that gets
+ * forgotten. Idempotent, so a caller that has already squared its boxes away
+ * loses nothing by passing them through again.
+ */
+function norm(b: Box): Box {
+  return {
+    x: Math.min(b.x, b.x + b.w),
+    y: Math.min(b.y, b.y + b.h),
+    w: Math.abs(b.w),
+    h: Math.abs(b.h),
+  };
+}
+
+/**
  * The box a block of label text occupies.
  *
  * `pen.label` writes `dominant-baseline: middle`, so `y` is the vertical
@@ -64,23 +88,32 @@ export function labelBox(
 /**
  * Whether two boxes share any area. Boxes that touch exactly along an edge do
  * not: laying one box flush against another is a placement, not a collision.
+ *
+ * Either side may be written from any of its four corners. Both are read
+ * through `norm`, so there is no precondition on the sign of `w` or `h` and a
+ * mirrored node overlaps exactly the ink it is drawn over.
  */
 export function intersects(a: Box, b: Box): boolean {
+  const p = norm(a);
+  const q = norm(b);
   return (
-    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+    p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h
   );
 }
 
 /**
  * Whether `inner` lies wholly within `outer`, edges included. A box flush
  * against the inside of another is contained: it is a layout, not an escape.
+ *
+ * Either side may be written from any of its four corners. Both are read
+ * through `norm`, so there is no precondition on the sign of `w` or `h` and a
+ * mirrored node is inside the group its ink is inside.
  */
 export function contains(outer: Box, inner: Box): boolean {
+  const o = norm(outer);
+  const i = norm(inner);
   return (
-    inner.x >= outer.x &&
-    inner.y >= outer.y &&
-    inner.x + inner.w <= outer.x + outer.w &&
-    inner.y + inner.h <= outer.y + outer.h
+    i.x >= o.x && i.y >= o.y && i.x + i.w <= o.x + o.w && i.y + i.h <= o.y + o.h
   );
 }
 
@@ -92,17 +125,18 @@ export function contains(outer: Box, inner: Box): boolean {
  * carry a face - is the box itself, returned rather than copied, so a flat
  * diagram is measured through exactly the objects it always was.
  *
- * The box is read as the rectangle it covers rather than as the four numbers
- * it was written with, which is why each axis is taken as a `(min, extent)`
- * pair before it grows. `ShapeOptions.depth` promises that a mirrored
- * dimension still extrudes outward - the pen reads winding off the outline's
- * signed area - so a node written `h: -60` from its lower edge draws the same
- * ink as the same rectangle written upright, and must be measured as the same
- * ink too. Growing the numbers as written instead subtracts: `+ .75d` on a
- * negative `h` cancels the rise, `+ d` on a negative `w` shrinks the box, and
- * the sweep comes back smaller than the flat rectangle it stands for. That is
- * the one thing depth must never do - a slab that withdraws a finding leaves
- * a diagram passing whose ink is outside the frame.
+ * The box is read through `norm` - as the rectangle it covers rather than as
+ * the four numbers it was written with - so that each axis is a
+ * `(min, extent)` pair before it grows. `ShapeOptions.depth` promises that a
+ * mirrored dimension still extrudes outward - the pen reads winding off the
+ * outline's signed area - so a node written `h: -60` from its lower edge
+ * draws the same ink as the same rectangle written upright, and must be
+ * measured as the same ink too. Growing the numbers as written instead
+ * subtracts: `+ .75d` on a negative `h` cancels the rise, `+ d` on a negative
+ * `w` shrinks the box, and the sweep comes back smaller than the flat
+ * rectangle it stands for. That is the one thing depth must never do - a slab
+ * that withdraws a finding leaves a diagram passing whose ink is outside the
+ * frame.
  *
  * The sweep stands for the faces. They are not modelled stroke by stroke
  * here: a box fills its swept rectangle, a diamond and a pill do not, and the
@@ -114,12 +148,8 @@ export function contains(outer: Box, inner: Box): boolean {
 export function swept(b: Box, d: number): Box {
   if (!(d > 0)) return b;
   const rise = DEPTH_RISE * d;
-  return {
-    x: Math.min(b.x, b.x + b.w),
-    y: Math.min(b.y, b.y + b.h) - rise,
-    w: Math.abs(b.w) + d,
-    h: Math.abs(b.h) + rise,
-  };
+  const f = norm(b);
+  return { x: f.x, y: f.y - rise, w: f.w + d, h: f.h + rise };
 }
 
 /**

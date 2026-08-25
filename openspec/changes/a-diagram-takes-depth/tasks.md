@@ -288,13 +288,60 @@ stands on rather than a test written after the fact.
       "across the repository" was true when written and is not now, so it
       now says what it covers
 
-- [ ] 3.5 **T-79, OWNER CALL**: `intersects` and `contains` carry an unstated
+- [x] 3.5 **T-79, OWNER CALL**: `intersects` and `contains` carry an unstated
       non-negative precondition, so `node-overlap` and `group-escape` are
-      wrong for a mirrored node *flat* — verified, and older than this
+      wrong for a mirrored node *flat* - verified, and older than this
       change. T-78 normalised the sweep and deliberately did not reach
       into them. Fix them here, or record the precondition where it lives
       and open a follow-up. Half-fixing silently is the one option ruled
       out
+
+      **Owner decided 2026-08-25: fix them here. It was three rules, not
+      two.** `text-overflow` reads `n.w` as written for the room a label
+      has, so a negative width makes the room negative and every label on a
+      mirrored node "overflows". Measured on one rectangle written two
+      ways: `node-overlap` 1 finding upright and 0 mirrored,
+      `group-escape` 1 and 0, `text-overflow` 0 and 1. Fixing the two the
+      task names and leaving the third is the half-fix it rules out, so it
+      is in.
+
+      One module-private `norm` in `geometry.ts`, read by `intersects`,
+      `contains` and `swept`'s `d > 0` arm, so "a box is the rectangle it
+      covers" is stated once and no caller has a precondition to remember;
+      `swept`'s documented `d <= 0` identity return is untouched and its
+      old tests still pin it. +42 B on `./check`, 3866 of 3968.
+
+      **The driver refused the brief and was right.** It specified
+      `Math.abs(n.w)` for the room on both arms; the group arm is
+      `Math.max(0, n.w)`, because `draw` - and `reference/renderer.html`,
+      which is normative - writes a group's title at the *literal*
+      `n.x + TITLE_DX`, so a mirrored group's title really is laid outside
+      its own frame. `abs` would hand it 178 px it cannot reach and
+      silence a true finding. `Math.max(0, n.w)` is
+      `Math.max(n.x, n.x + n.w) - n.x`: the distance from where the pen
+      writes to the covered right edge, identical to the old expression
+      wherever `w` is positive. The lesson generalises - when a fix
+      normalises geometry, check whether the renderer normalises too, or
+      the checker stops measuring the thing it is about.
+
+      **The navigator blocked on the spec, not the code, and was right.**
+      This delta claimed "when extrusion is off ... findings SHALL be
+      identical to today's, byte for byte", with a scenario to match. This
+      task falsifies both on purpose: a flat mirrored node's findings
+      change. The requirement's point was that depth costs nothing where
+      it is unused, so it now says that, and the guarantee it was
+      confused with - a box is the rectangle it covers - is legislated
+      where it belongs, in the geometry rules, with the group-title room
+      rule beside it so a later refactor to `abs` fails the spec and not
+      just a test.
+
+      Six mutants, all killed: `norm` dropped from `intersects` (6 tests),
+      from `contains` (4), `room` reverted to `n.w` (5), `norm` gutted to
+      `return b` (16, including the T-78 `swept` tests, which proves
+      folding `swept` into it kept its old coverage), `Math.min(b.x, b.w)`
+      (37), and the brief's own `Math.abs` on the group arm (2, after a
+      second witness was added for it - it killed only one). 548 -> 566
+      tests
 
 Gate: full suite; `./check` budget from 1.3 still holds.
 

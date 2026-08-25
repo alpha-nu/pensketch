@@ -76,6 +76,96 @@ describe('intersects', () => {
     expect(intersects(BOX, { x: 20, y: 0, w: 5, h: 5 })).toBe(false);
     expect(intersects(BOX, { x: 0, y: 20, w: 5, h: 5 })).toBe(false);
   });
+
+  // The rectangle and not the numbers. `{x: 150, y: 150, w: -100, h: -100}`
+  // covers 50..150 on both axes, so it laps the last 50 px of a box at the
+  // origin; read as written it starts at 150 and every comparison comes out
+  // backwards, and the boxes are declared apart. That is `node-overlap` going
+  // quiet about two shapes drawn over one another.
+  const HUNDRED = { x: 0, y: 0, w: 100, h: 100 };
+
+  it('sees an overlap when the second box is written backwards', () => {
+    expect(intersects(HUNDRED, { x: 150, y: 150, w: -100, h: -100 })).toBe(
+      true,
+    );
+  });
+
+  it('sees an overlap when the first box is written backwards', () => {
+    expect(
+      intersects(
+        { x: 100, y: 100, w: -100, h: -100 },
+        { x: 50, y: 50, w: 100, h: 100 },
+      ),
+    ).toBe(true);
+  });
+
+  it('sees an overlap when both boxes are written backwards', () => {
+    expect(
+      intersects(
+        { x: 100, y: 100, w: -100, h: -100 },
+        { x: 150, y: 150, w: -100, h: -100 },
+      ),
+    ).toBe(true);
+  });
+
+  // Both halves of the fix, or it is not a fix: reading every mirrored pair as
+  // overlapping would answer these three and report the whole diagram.
+  it('still separates boxes that are written backwards and apart', () => {
+    expect(intersects(HUNDRED, { x: 300, y: 300, w: -100, h: -100 })).toBe(
+      false,
+    );
+  });
+
+  it('still counts a backwards box laid flush as a placement', () => {
+    expect(intersects(HUNDRED, { x: 200, y: 100, w: -100, h: -100 })).toBe(
+      false,
+    );
+  });
+});
+
+describe('contains', () => {
+  // 0..100 on both axes, written from the origin and from the far corner.
+  const OUTER = { x: 0, y: 0, w: 100, h: 100 };
+  const OUTER_BACK = { x: 100, y: 100, w: -100, h: -100 };
+
+  it('sees an inner box when the outer one is written backwards', () => {
+    const inner = { x: 20, y: 20, w: 40, h: 40 };
+    expect(contains(OUTER, inner)).toBe(true);
+    expect(contains(OUTER_BACK, inner)).toBe(true);
+  });
+
+  // A statement of the contract rather than a mutant killer, and worth saying
+  // so: read as written, a mirrored inner is only ever *more* readily
+  // contained - `inner.x` is its far corner, which clears the near edge more
+  // easily, and `inner.x + inner.w` is its near one, which clears the far edge
+  // more easily - so no contained mirrored box can tell the two readings
+  // apart. The reading that is wrong is the permissive one, and the test that
+  // catches it is the escape below.
+  it('sees an inner box that is itself written backwards', () => {
+    expect(contains(OUTER, { x: 60, y: 60, w: -40, h: -40 })).toBe(true);
+  });
+
+  it('sees an inner box when both are written backwards', () => {
+    expect(contains(OUTER_BACK, { x: 60, y: 60, w: -40, h: -40 })).toBe(true);
+  });
+
+  // The escape itself, and the case a mirrored inner fails silently on: read
+  // as written, `x >= outer.x` and `x + w <= outer.x + outer.w` ask whether
+  // the far corner is past the near edge and the near corner short of the far
+  // one - which is an overlap test, not a containment test, so a box hanging
+  // 20 px out of the frame is declared wholly inside it. That is
+  // `group-escape` going quiet about a node half out of its lane.
+  it('still refuses a box hanging out of the frame, either spelling', () => {
+    expect(contains(OUTER, { x: 80, y: 50, w: 40, h: 20 })).toBe(false);
+    expect(contains(OUTER, { x: 120, y: 50, w: -40, h: 20 })).toBe(false);
+    expect(contains(OUTER_BACK, { x: 120, y: 50, w: -40, h: 20 })).toBe(false);
+  });
+
+  // Flush against the inside is a layout, not an escape - and it stays one
+  // when the layout is written from the far corner.
+  it('counts a backwards box flush against the inside as contained', () => {
+    expect(contains(OUTER, { x: 100, y: 100, w: -100, h: -100 })).toBe(true);
+  });
 });
 
 describe('INFLATE', () => {
