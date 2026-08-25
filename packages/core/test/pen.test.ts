@@ -693,7 +693,11 @@ describe('depth', () => {
     const chain = pointsOf(nth(paths, 2));
     expect(chain).toHaveLength(MIN_STEPS + 1);
     expectNear(nth(chain, 0), [50 + EX, 0 + EY], spread(AMP));
-    expectNear(nth(chain, chain.length - 1), [100 + EX, 37.5 + EY], damped(AMP));
+    expectNear(
+      nth(chain, chain.length - 1),
+      [100 + EX, 37.5 + EY],
+      damped(AMP),
+    );
     expectNear(nth(pointsOf(nth(paths, 4)), 0), [50, 0], spread(AMP));
     expectNear(nth(pointsOf(nth(paths, 6)), 0), [100, 37.5], spread(AMP));
   });

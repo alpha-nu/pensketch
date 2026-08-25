@@ -1,4 +1,5 @@
 import {
+  DEPTH,
   EDGE_SIZE,
   GROUP_AMP,
   GROUP_W,
@@ -26,8 +27,8 @@ import type {
   DiagramNode,
   DrawOptions,
   Point,
+  ShapeOptions,
   Side,
-  StrokeOptions,
 } from './types';
 
 /**
@@ -252,7 +253,7 @@ export function draw(
   // function there and silently skip the unknown-shape error.
   const shapes = new Map<
     string,
-    (x: number, y: number, w: number, h: number, opts?: StrokeOptions) => void
+    (x: number, y: number, w: number, h: number, opts?: ShapeOptions) => void
   >([
     ['box', p.rect],
     ['pill', p.pill],
@@ -267,8 +268,18 @@ export function draw(
         throw new Error(
           `node "${n.id}" has unknown shape "${n.shape}"; expected group, box, pill or diamond`,
         );
+      // `??` and not `||`, the `hop` idiom again: `extrude: false` on a node
+      // opts out of a diagram-wide switch, and `true` opts in from a flat
+      // diagram. Off, no depth is passed at all, so the flat call is
+      // byte-for-byte the one the goldens froze. The pen draws the faces and
+      // their shading inside this call, after the front outline, so an
+      // extruded node lays down front outline, faces, face shading, then its
+      // `hatch: true` shading and label below - the slab rises whole under
+      // an animated reveal.
+      const on = n.extrude ?? options.extrude ?? false;
       shape(n.x, n.y, n.w, n.h, {
         color: n.accent ? theme.pen : theme.ink,
+        ...(on ? { depth: n.depth ?? options.depth ?? DEPTH } : {}),
       });
       // Two boxes, deliberately: the inset one says which diagonals are ruled,
       // which is what it has always said and what keeps a hatched shape on the

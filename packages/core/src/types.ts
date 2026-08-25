@@ -225,6 +225,24 @@ interface ShapeNode extends NodeBox {
    * diamond have not got.
    */
   hatch?: boolean;
+  /**
+   * Extrude this node into a slab: the run of its outline facing up-right is
+   * redrawn offset by `(depth, -0.75 × depth)` and joined to it at the two
+   * silhouette points, with the right-facing strip hatched in `theme.muted`.
+   * Default: the diagram's `extrude` option, then `false`. The override cuts
+   * both ways - `true` raises this node out of a flat diagram, and `false`
+   * flattens it in an extruded one.
+   */
+  extrude?: boolean;
+  /**
+   * Depth in px when this node extrudes, over the diagram's `depth` option
+   * and then `12`. The default is calibrated on a box, which reads as a slab
+   * at any scale; a pill wants a depth near a third of its height to read as
+   * a coin, and a diamond prefers staying flat - the per-shape record sits
+   * on `constants.DEPTH`. When extrusion is off for this node the field
+   * applies to nothing and is ignored.
+   */
+  depth?: number;
 }
 
 /** Anything a diagram can place: a group, or one of the drawn shapes. */
@@ -479,6 +497,23 @@ export interface DrawOptions extends PenOptions {
    * connector opt out without turning the switch off for the picture.
    */
   hops?: boolean;
+  /**
+   * Extrude every drawn shape into a slab. Default: `false`, so a diagram
+   * that asks for nothing renders exactly as it did before depth existed.
+   *
+   * A node's own `extrude` wins over this either way, as an edge's `hop`
+   * wins over `hops`: an extruded diagram can flatten one node and a flat
+   * diagram can raise one. A group never extrudes - it bounds a set rather
+   * than being an object - so its frame draws flat whatever this says.
+   */
+  extrude?: boolean;
+  /**
+   * Depth in px for every node extruded without a `depth` of its own.
+   * Default: `12`, calibrated on a box; a pill wants a depth near a third
+   * of its height and a diamond prefers staying flat - the per-shape record
+   * sits on `constants.DEPTH`. Read only where extrusion is on.
+   */
+  depth?: number;
   /**
    * Stamp every element with `--ps-i`, how far through the drawing it is, as a
    * fraction in `[0, 1)`. Default: `false`, so a diagram that asks for nothing

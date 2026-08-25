@@ -134,6 +134,14 @@
             "hatch": {
               "type": "boolean",
               "description": "Shade the node with diagonal lines, inset 4 px, in `theme.pen`. Default: `false`.\n\nThe shading follows the outline the shape is drawn with, so a pill is shaded inside its ellipse and a diamond inside its four sides. Until 0.3.0 it followed the *box* instead, reaching into corners a pill and a diamond have not got."
+            },
+            "extrude": {
+              "type": "boolean",
+              "description": "Extrude this node into a slab: the run of its outline facing up-right is redrawn offset by `(depth, -0.75 × depth)` and joined to it at the two silhouette points, with the right-facing strip hatched in `theme.muted`. Default: the diagram's `extrude` option, then `false`. The override cuts both ways - `true` raises this node out of a flat diagram, and `false` flattens it in an extruded one."
+            },
+            "depth": {
+              "type": "number",
+              "description": "Depth in px when this node extrudes, over the diagram's `depth` option and then `12`. The default is calibrated on a box, which reads as a slab at any scale; a pill wants a depth near a third of its height to read as a coin, and a diamond prefers staying flat - the per-shape record sits on `constants.DEPTH`. When extrusion is off for this node the field applies to nothing and is ignored."
             }
           },
           "required": [

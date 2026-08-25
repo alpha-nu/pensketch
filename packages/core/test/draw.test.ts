@@ -11,12 +11,23 @@ import type {
 } from '../src/index';
 import { anchor, constants, defaultTheme, draw } from '../src/index';
 import { foreignSvg } from './foreign-dom.mjs';
-import { makeSvg, nth, pathsOf, pointsOf, tagsOf, textsOf } from './helpers';
+import {
+  childrenOf,
+  makeSvg,
+  nth,
+  pathsOf,
+  pointsOf,
+  tagsOf,
+  textsOf,
+} from './helpers';
 import { serialize } from './serialize.mjs';
 
 const {
+  AMP,
   ARC_STEPS,
   DASH,
+  DEPTH,
+  DEPTH_RISE,
   EDGE_SIZE,
   LOOP_OUT,
   LOOP_SPAN,
@@ -1152,6 +1163,173 @@ describe('draw() node phase', () => {
     const svg = makeSvg();
     draw(svg, at({}));
     expect(textsOf(svg)).toHaveLength(0);
+  });
+});
+
+describe('draw() extrusion', () => {
+  const BOX: Diagram = {
+    nodes: [{ id: 'n', shape: 'box', x: 0, y: 0, w: 60, h: 40 }],
+  };
+  const inkPaths = (svg: SVGSVGElement) =>
+    pathsOf(svg).filter((path) => attr(path, 'stroke') === defaultTheme.ink);
+  const mutedPaths = (svg: SVGSVGElement) =>
+    pathsOf(svg).filter((path) => attr(path, 'stroke') === defaultTheme.muted);
+  // A jittered point lands within amplitude / 2 of where it was aimed, so an
+  // assertion against that bound fails only if the renderer aimed elsewhere.
+  const expectNear = (actual: Point, expected: Point) => {
+    expect(Math.abs(actual[0] - expected[0])).toBeLessThanOrEqual(AMP / 2);
+    expect(Math.abs(actual[1] - expected[1])).toBeLessThanOrEqual(AMP / 2);
+  };
+  // The offset chain is the first path after a box's eight front sides, and
+  // its first point is the top-left corner plus the extrusion vector - the
+  // one point that reads the resolved depth straight off the render.
+  const chainStart = (svg: SVGSVGElement): Point =>
+    nth(pointsOf(nth(pathsOf(svg), 8)), 0);
+
+  it('extrudes a box under the diagram-wide switch', () => {
+    const flat = makeSvg();
+    draw(flat, BOX);
+    const extruded = makeSvg();
+    draw(extruded, BOX, { extrude: true });
+
+    // The slab is ordinary passes: one chain (two passes), two connectors
+    // (two each), and the muted face shading after them - which the flat
+    // render has none of.
+    expect(inkPaths(extruded)).toHaveLength(inkPaths(flat).length + 6);
+    expect(mutedPaths(flat)).toHaveLength(0);
+    expect(mutedPaths(extruded).length).toBeGreaterThan(0);
+  });
+
+  it('extrudes at DEPTH when no depth is given anywhere', () => {
+    const svg = makeSvg();
+    draw(svg, BOX, { extrude: true });
+    expectNear(chainStart(svg), [DEPTH, -DEPTH_RISE * DEPTH]);
+  });
+
+  it('takes the node depth over the options depth', () => {
+    const svg = makeSvg();
+    draw(
+      svg,
+      {
+        nodes: [{ id: 'n', shape: 'box', x: 0, y: 0, w: 60, h: 40, depth: 20 }],
+      },
+      { extrude: true, depth: 10 },
+    );
+    expectNear(chainStart(svg), [20, -DEPTH_RISE * 20]);
+  });
+
+  it('flattens one node of an extruded diagram: extrude false wins', () => {
+    const optOut: Diagram = {
+      nodes: [
+        { id: 'n', shape: 'box', x: 0, y: 0, w: 60, h: 40, extrude: false },
+      ],
+    };
+    const flattened = makeSvg();
+    draw(flattened, optOut, { extrude: true, depth: 20 });
+    const flat = makeSvg();
+    draw(flat, BOX);
+
+    expect(serialize(flattened)).toBe(serialize(flat));
+  });
+
+  it('extrudes one node of a flat diagram: extrude true wins', () => {
+    const optIn: Diagram = {
+      nodes: [
+        { id: 'n', shape: 'box', x: 0, y: 0, w: 60, h: 40, extrude: true },
+      ],
+    };
+    const byNode = makeSvg();
+    draw(byNode, optIn);
+    const byOption = makeSvg();
+    draw(byOption, BOX, { extrude: true });
+
+    // The node's own switch resolves to the render the diagram-wide one
+    // produces: same default depth, same sequence, same bytes.
+    expect(serialize(byNode)).toBe(serialize(byOption));
+    expect(mutedPaths(byNode).length).toBeGreaterThan(0);
+  });
+
+  it('draws a group-only diagram flat under a diagram-wide extrude', () => {
+    const grouped: Diagram = {
+      nodes: [
+        { id: 'g', shape: 'group', x: 0, y: 0, w: 200, h: 100, lines: ['set'] },
+      ],
+    };
+    const bare = makeSvg();
+    draw(bare, grouped);
+    const switched = makeSvg();
+    draw(switched, grouped, { extrude: true, depth: 40 });
+
+    // A group bounds a set, it is not an object: the diagram-wide pair
+    // changes nothing about its frame, not one byte.
+    expect(serialize(switched)).toBe(serialize(bare));
+  });
+
+  it('keeps the group frame bytes while extruding the shapes beside it', () => {
+    const mixed: Diagram = {
+      nodes: [
+        { id: 'g', shape: 'group', x: 0, y: 0, w: 300, h: 200, lines: ['set'] },
+        { id: 'n', shape: 'box', x: 20, y: 40, w: 80, h: 40 },
+      ],
+    };
+    const flat = makeSvg();
+    draw(flat, mixed);
+    const extruded = makeSvg();
+    draw(extruded, mixed, { extrude: true });
+
+    // The group phase draws first - wash, two frame passes, title - so its
+    // four elements lead both documents, and extrusion downstream of them
+    // cannot move a byte they already hold.
+    const frame = (svg: SVGSVGElement) =>
+      childrenOf(svg)
+        .slice(0, 4)
+        .map((el) => el.outerHTML);
+    expect(frame(extruded)).toEqual(frame(flat));
+    expect(mutedPaths(extruded).length).toBeGreaterThan(0);
+  });
+
+  it('ignores the pair on a group itself: a field that does not apply', () => {
+    // `GroupNode` does not carry the pair, so the types and the schema both
+    // refuse it there; the cast is how a JavaScript caller's data gets past
+    // them, and what it finds is a field that does not apply, ignored.
+    const carrying = {
+      nodes: [
+        {
+          id: 'g',
+          shape: 'group',
+          x: 0,
+          y: 0,
+          w: 200,
+          h: 100,
+          lines: ['set'],
+          extrude: true,
+          depth: 40,
+        },
+      ] as unknown as DiagramNode[],
+    };
+    const bare: Diagram = {
+      nodes: [
+        { id: 'g', shape: 'group', x: 0, y: 0, w: 200, h: 100, lines: ['set'] },
+      ],
+    };
+    const withPair = makeSvg();
+    draw(withPair, carrying);
+    const without = makeSvg();
+    draw(without, bare);
+
+    expect(serialize(withPair)).toBe(serialize(without));
+  });
+
+  it('renders a flat diagram byte-identically whether the pair is absent or off', () => {
+    // The pre-change bytes themselves are pinned by the parity goldens; what
+    // this adds in-process is that `extrude: false` and a depth nothing reads
+    // put nothing into them.
+    const bare = makeSvg();
+    draw(bare, ALL_PHASES, { seed: 7 });
+    const off = makeSvg();
+    draw(off, ALL_PHASES, { seed: 7, extrude: false, depth: 40 });
+
+    expect(serialize(off)).toBe(serialize(bare));
   });
 });
 
