@@ -158,6 +158,16 @@ landed (+38 core, +34 server, measured), T-56's label-rule split, and
 per-rule anchor walks — the group 2 and 3 gates are the re-measurement,
 and the tripwire above is armed.
 
+**One trade priced after the fact (T-83).** `depthOf`'s `drawable` guard —
+the one that stops an infinite depth sweeping an infinite box — costs 7 B on
+core, 6 on `./check` and 10 on `./server`, measured by building both ways.
+Only `./check` can execute it: `draw` validates and throws before it ever
+calls `depthOf`. So it is a checker's rule paid for out of the renderer's
+budget, which is the same trade `check.ts` rejected at +29 B a few lines
+away and took here at 7 without measuring. Kept, now that it is priced: the
+alternative is a second statement of `drawable` in `check.ts`, and a
+duplicated predicate is what this whole change spent group 3 avoiding.
+
 **The tripwire fired three times, and all three were taken — the third
 belatedly, and only because the group 3 review caught it.** Core is the one
 this design got wrong twice over: the table above first recorded 5120 as

@@ -255,6 +255,24 @@ stands on rather than a test written after the fact.
       infinite box, so a spurious `out-of-bounds` stood beside the real
       finding. Pinned by a test that fails if the guard is reverted
 
+- [ ] 3.4 **T-100, OWNER**: local `npm run lint` exits 1 from untracked
+      `content/` and `.claude/` alone, so the signal is permanently red and
+      the shipped code's cleanliness is invisible in it. That noise has
+      already masked one committed failure and, this session, a format
+      violation hidden behind biome's 20-diagnostic display cap. Either add
+      both directories to `biome.json`'s ignores — they are already
+      declared to git — or add a scoped script. The recommendation is the
+      former; the call is the owner's because it touches their working
+      directories
+
+- [ ] 3.5 **T-79, OWNER**: `intersects` and `contains` carry an unstated
+      non-negative precondition, so `node-overlap` and `group-escape` are
+      wrong for a mirrored node *flat* — verified, and older than this
+      change. T-78 normalised the sweep and deliberately did not reach
+      into them. Fix them here, or record the precondition where it lives
+      and open a follow-up. Half-fixing silently is the one option ruled
+      out
+
 Gate: full suite; `./check` budget from 1.3 still holds.
 
 ## 4. The tool boundary
