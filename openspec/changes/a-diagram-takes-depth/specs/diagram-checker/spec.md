@@ -50,7 +50,7 @@ identical to today's, byte for byte.
 
 #### Scenario: A mirrored node is measured like the picture it draws
 - **WHEN** one rectangle is written with a negative dimension and another with the same extent written positively, both extruded
-- **THEN** `check` reports the same findings for both, and neither loses a finding it made flat
+- **THEN** `check` reports the same rules against both, and neither loses a finding it made flat — save for each finding's `at`, which stays the corner its node was written from, since the place to look at a clipped slab is the node that casts it
 
 #### Scenario: Slabs that touch only in depth still overlap
 - **WHEN** two extruded nodes' boxes are disjoint but their swept boxes intersect

@@ -64,10 +64,17 @@ const fromHtml = async (file) => {
     throw new Error(
       `${file} drew nothing - has its script tag or import changed?`,
     );
-  return globalThis.__shots.map(({ id, diagram }) => ({
+  // The third argument travels with the first two. A page that extrudes says
+  // so in its options and nowhere else, so a loader that keeps the diagram and
+  // drops the options hands its callers a picture the page does not draw:
+  // measured flat where the page draws slabs, and served to an agent without
+  // the pair that made it look like that. `{}` where a page passed none, so
+  // every caller can spread it without asking.
+  return globalThis.__shots.map(({ id, diagram, options }) => ({
     key: id,
     name: `${file} #${id}`,
     diagram,
+    options: options ?? {},
     viewBox: viewBoxOf(html, id),
   }));
 };
@@ -99,11 +106,23 @@ const fromReact = async () => {
     ...(i === SERVED_STAGE ? { key: 'incident' } : {}),
     name: `examples/react/src/incident.ts at "${label}"`,
     diagram: incident(i),
+    // Empty, and it is a fact about the bindings rather than a gap here.
+    // `PenSketchProps` takes `animate`, `diagram`, `seed` and `theme`; there
+    // is no `extrude` and no `depth` on it, so this page cannot pass a pair
+    // and there is none to read off the module the way the frame is. If the
+    // bindings grow one, it belongs beside `VIEW_BOX` in `incident.ts` and is
+    // read from there, so the page and the checker go on reading one export.
+    options: {},
     viewBox,
   }));
 };
 
-/** Every shipped diagram, with the frame it is drawn into. */
+/**
+ * Every shipped diagram, with the frame it is drawn into and the options it
+ * is drawn with. The options are what the page passed `draw`, which is where
+ * `extrude` and `depth` live: a caller measuring or serving one of these has
+ * to carry them or it is describing a different picture.
+ */
 export async function shippedDiagrams() {
   const all = [
     ...(await fromHtml('examples/vanilla/index.html')),
@@ -120,6 +139,7 @@ export async function shippedDiagrams() {
       key: 'hero',
       name: 'docs/assets/hero',
       diagram: HERO,
+      options: {},
       viewBox: HERO_VIEW_BOX,
     },
   ];

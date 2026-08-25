@@ -50,6 +50,33 @@ const TITLES = {
 // mechanism stays: the next thing `raw` has to draw will need disclosing too.
 const RAW_DRAWS = {};
 
+// The half of a page's options a served example cannot be copied without.
+// `extrude` and `depth` move where the ink lands, so an example drawn with
+// them and served without them is a different picture at different
+// coordinates. Everything else `draw` takes - `seed`, `theme`, `label`,
+// `hops`, `order` - either picks one drawing out of the many the same data
+// makes or names the page rather than the diagram, and is the caller's to
+// choose; serving those would be this repository's presentation dressed up as
+// the data model.
+//
+// Under an `options` key rather than flattened beside `viewBox`, because that
+// is where they go: `draw(svg, diagram, options)` and `check(diagram,
+// options)` both take them as the third and second argument respectively, and
+// a key that reads like the argument it becomes needs no sentence explaining
+// it. The key is absent rather than empty when a page passes neither, so a
+// served example says nothing about depth unless there is something to say.
+//
+// Nothing shipped extrudes today, so this adds no bytes to the generated file
+// yet. It is here so that the day one does, the example serves the picture the
+// page draws instead of a flat copy of it.
+const pair = ({ extrude, depth } = {}) => {
+  const options = {
+    ...(extrude === undefined ? {} : { extrude }),
+    ...(depth === undefined ? {} : { depth }),
+  };
+  return Object.keys(options).length ? { options } : {};
+};
+
 const undisclosed = examples.filter(
   ({ key, diagram }) => diagram.raw && !RAW_DRAWS[key],
 );
@@ -81,16 +108,25 @@ export const SCHEMA = ${JSON.stringify(read('packages/core/schema/diagram.schema
  * Where that removed something, \`rawOmitted\` says what: the data here draws
  * the rest of the picture, and a caller copying it should know which stroke it
  * will not get rather than discover a gap.
+ *
+ * \`options\` is present only where the page draws with a pair that changes
+ * the picture's geometry rather than its wobble — \`extrude\` and \`depth\`.
+ * A copy of an extruded example drawn without them is a different picture at
+ * different coordinates, so the pair travels with the data rather than being
+ * left for a caller to guess at. Nothing else the page passes is served: a
+ * seed and a theme choose one drawing out of many and are the caller's to
+ * pick.
  */
 export const EXAMPLES = ${JSON.stringify(
   Object.fromEntries(
-    examples.map(({ key, diagram, viewBox }) => {
+    examples.map(({ key, diagram, options, viewBox }) => {
       const { raw, ...data } = diagram;
       return [
         key,
         {
           title: TITLES[key],
           viewBox,
+          ...pair(options),
           ...(raw ? { rawOmitted: RAW_DRAWS[key] } : {}),
           diagram: data,
         },

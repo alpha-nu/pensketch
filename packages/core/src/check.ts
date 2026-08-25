@@ -43,13 +43,23 @@ export type RuleId =
 
 /** One defect, in enough detail to fix it without seeing the drawing. */
 export interface Finding {
-  /** Which rule fired. Stable across releases. */
+  /**
+   * Which rule fired. Stable across releases: a published id never changes
+   * meaning, so a caller may switch on it or key a suppression off it. The
+   * set grows, though, as rules are added, which is why a `default` arm that
+   * ignores an id it does not know is the safe way to read this.
+   */
   rule: RuleId;
   /** Whether this is a defect or a suspicion. */
   severity: Severity;
   /** One sentence, naming the fix where there is an obvious one. */
   message: string;
-  /** Where to look, in the diagram's own coordinate space. */
+  /**
+   * Where to look, in the diagram's own coordinate space. A finding about the
+   * call rather than about the drawing has nowhere in the picture to point
+   * at, so it reports the origin; `subjects` carries the other half of that,
+   * naming `options` rather than a node.
+   */
   at: Point;
   /**
    * What is involved: `node "gate"`, `edge 3`, `brace 1`, `note 0`, or
@@ -189,6 +199,15 @@ const RANK: Record<Severity, number> = { error: 0, warning: 1 };
  * extrusion sweeps, and the connectors leaving it start where the arrows
  * will. Given neither, nothing sweeps and the report is what it has always
  * been.
+ *
+ * One rule here is not about the layout at all. `undrawable-depth` is an
+ * error, and it reports a pair the renderer refuses rather than a picture
+ * that came out wrong: `draw` throws on a depth that is not a positive finite
+ * number, so a diagram carrying one has no drawing for a defect to be in. It
+ * is reported in `draw`'s own words, which is what makes running this first
+ * worth the round trip - the caller is told what the render would have
+ * stopped them with, alongside everything else wrong with the picture,
+ * instead of one throw at a time.
  *
  * @example
  * ```js

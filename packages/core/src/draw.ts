@@ -48,17 +48,18 @@ import type {
  * `b` sit on the front plane and never move, and anything non-positive - `0`,
  * the default - is the flat midpoint on all four sides.
  *
- * `depthOf` below is what resolves the number `draw` and `check` both pass:
- * `node.depth ?? options.depth ?? DEPTH` where `node.extrude ??
- * options.extrude ?? false` is on **and** the shape can carry a face at that
- * size, and `0` everywhere else. That rule is stated once, there, and is not
- * this function's - which is why two of its consequences have to be read here
- * or not at all. A group never extrudes, whatever the pair on it says: hand
- * this a positive depth for a group and it returns a point `draw` would never
- * use, against a frame drawn flat with every edge on its flat midpoints. And a
- * shape too small or too degenerate to carry a face resolves flat whatever
- * its pair says, so `DEPTH` passed for a 10 x 8 pill reports a point 13.8 px
- * from that pill's own ink.
+ * The number `draw` and `check` both pass is resolved before it arrives, by
+ * one rule: extrusion is on where `node.extrude ?? options.extrude ?? false`
+ * is, the magnitude is `node.depth ?? options.depth ?? DEPTH`, and the
+ * resolved depth is that magnitude where the node extrudes **and** its shape
+ * can carry a face at its size - `0` everywhere else. The rule is stated once
+ * and is not this function's, which is why two of its consequences have to be
+ * read here or not at all. A group never extrudes, whatever the pair on it
+ * says: hand this a positive depth for a group and it returns a point `draw`
+ * would never use, against a frame drawn flat with every edge on its flat
+ * midpoints. And a shape too small or too degenerate to carry a face resolves
+ * flat whatever its pair says, so `DEPTH` passed for a 10 x 8 pill reports a
+ * point 13.8 px from that pill's own ink.
  */
 export function anchor(node: DiagramNode, side: Side, depth = 0): Point {
   const sides: Record<Side, Point> = {
@@ -114,8 +115,16 @@ export const extrudes = (
 // `draw`'s validation and by the checker's rule for the depths that
 // validation refuses - because all three must judge the same number the pen
 // draws.
-export const magnitude = (n: { depth?: number }, o: DepthPair) =>
-  n.depth ?? o.depth ?? DEPTH;
+//
+// It takes what `extrudes` hands back rather than anything carrying a
+// `depth`, and all three callers pass exactly that. The looser shape let a
+// brace through: `DiagramBrace.depth` is the tip's offset from the chord and
+// has nothing to do with extrusion, so `magnitude(brace, {})` typechecked and
+// answered with a number no slab is drawn at.
+export const magnitude = (
+  n: Exclude<DiagramNode, { shape: 'group' }>,
+  o: DepthPair,
+) => n.depth ?? o.depth ?? DEPTH;
 
 /**
  * A node's resolved depth: that magnitude where the node extrudes *and* its

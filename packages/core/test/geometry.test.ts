@@ -3,6 +3,7 @@ import { AMP, ARC_STEPS, WIDTH } from '../src/constants';
 import { draw } from '../src/draw';
 import {
   boxToSegment,
+  contains,
   edgePath,
   INFLATE,
   intersects,
@@ -115,6 +116,39 @@ describe('swept', () => {
     expect(swept(BOX, 0)).toBe(BOX);
     expect(swept(BOX, -12)).toBe(BOX);
     expect(swept(BOX, Number.NaN)).toBe(BOX);
+  });
+
+  // The same rectangle as BOX, written from its far corner: x runs 110 back
+  // to 10 and y runs 60 back to 20. `ShapeOptions.depth` promises a mirrored
+  // dimension still extrudes outward - the pen reads winding off the
+  // outline's signed area - so the ink is the same ink and the sweep has to
+  // be the same box. Growing the numbers as written subtracts instead:
+  // `-40 + 9` is a box 31 tall where the flat one was 40, and `-100 + 12` is
+  // 88 wide where it was 100, so the slab would come back smaller than the
+  // rectangle it stands for.
+  const MIRRORED = { x: 110, y: 60, w: -100, h: -40 };
+
+  it('reads a mirrored box as the rectangle it covers', () => {
+    expect(swept(MIRRORED, 12)).toEqual({ x: 10, y: 11, w: 112, h: 49 });
+    expect(swept(MIRRORED, 12)).toEqual(swept(BOX, 12));
+  });
+
+  // One axis at a time, because the two spellings fail differently: a
+  // negative `h` cancels the rise and a negative `w` shrinks the width, and a
+  // fixture that mirrors both at once would pass on either fix alone.
+  it('is the same box whichever axis is written backwards', () => {
+    const upright = swept(BOX, 12);
+    expect(swept({ x: 110, y: 20, w: -100, h: 40 }, 12)).toEqual(upright);
+    expect(swept({ x: 10, y: 60, w: 100, h: -40 }, 12)).toEqual(upright);
+  });
+
+  // The property behind all of it, stated as a property: whatever the box was
+  // written as, the sweep contains the rectangle it covers. A sweep that only
+  // ever adds is what lets `out-of-bounds` and `node-overlap` treat depth as
+  // something that can find a defect and never as something that hides one.
+  it('contains the flat rectangle, whichever way round it is written', () => {
+    for (const b of [BOX, MIRRORED, { x: 110, y: 20, w: -100, h: 40 }])
+      expect(contains(swept(b, 12), swept(BOX, 0))).toBe(true);
   });
 });
 

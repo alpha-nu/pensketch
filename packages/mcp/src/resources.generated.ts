@@ -19,6 +19,14 @@ export const SCHEMA = "{\n  \"$schema\": \"http://json-schema.org/draft-07/schem
  * Where that removed something, `rawOmitted` says what: the data here draws
  * the rest of the picture, and a caller copying it should know which stroke it
  * will not get rather than discover a gap.
+ *
+ * `options` is present only where the page draws with a pair that changes
+ * the picture's geometry rather than its wobble — `extrude` and `depth`.
+ * A copy of an extruded example drawn without them is a different picture at
+ * different coordinates, so the pair travels with the data rather than being
+ * left for a caller to guess at. Nothing else the page passes is served: a
+ * seed and a theme choose one drawing out of many and are the caller's to
+ * pick.
  */
 export const EXAMPLES = {
   "pipeline": {

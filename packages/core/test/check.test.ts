@@ -1462,6 +1462,112 @@ describe('an extruded node is measured extruded', () => {
     });
   });
 
+  // T-99, and the same 4 px of shared picture written the other way up. The
+  // pair loop holds one node's ink and walks the rest, so the sweep it reads
+  // for the *second* node of a pair is read through a different expression
+  // from the one it reads for the first. The fixture above cannot tell them
+  // apart: the left node comes first, its own slab reaches 112, and the right
+  // node's flat box starts at 108, so the earlier sweep alone bridges the gap
+  // and the later one is never asked for. Written right-first, only the
+  // second node's sweep closes the distance - `right` sits flat from 108 and
+  // `left`'s slab has to reach out to 112 to meet it - so this is the case
+  // that fails if the later side of the comparison is ever read flat.
+  it('reports that pair with the nodes written the other way round', () => {
+    const REVERSED: Diagram = {
+      nodes: [
+        { id: 'right', shape: 'box', x: 108, y: 0, w: 100, h: 40 },
+        { id: 'left', shape: 'box', x: 0, y: 0, w: 100, h: 40 },
+      ],
+      edges: [{ from: ['left', 'r'], to: ['right', 'l'] }],
+    };
+    expect(check(REVERSED)).toEqual([]);
+
+    const findings = check(REVERSED, DEEP);
+    expect(rules(findings)).toEqual(['node-overlap']);
+    expect(findings[0]).toMatchObject({
+      severity: 'error',
+      subjects: ['node "right"', 'node "left"'],
+      at: [108, 0],
+    });
+  });
+
+  // T-78. One rectangle - 100..260 across, 200..260 down - written twice:
+  // from its top-left corner, and from its bottom-left with a negative `h`.
+  // `ShapeOptions.depth` promises a mirrored dimension still extrudes
+  // outward, and the pen keeps that promise by reading winding off the
+  // outline's signed area, so the two spellings put down the same ink. The
+  // checker measures ink, so it has to report them the same.
+  //
+  // The frame cuts 5 px off the bottom of both, which is a finding neither
+  // depth nor a spelling may take away.
+  describe('a node written from its far corner', () => {
+    const CUT = [0, 0, 400, 255] as const;
+    const one = (n: DiagramNode): Diagram => ({ nodes: [n] });
+    const UPRIGHT: DiagramNode = {
+      id: 'a',
+      shape: 'box',
+      x: 100,
+      y: 200,
+      w: 160,
+      h: 60,
+    };
+    const MIRRORED: DiagramNode = { ...UPRIGHT, y: 260, h: -60 };
+
+    // Every field but `at`. The two spellings declare different origins -
+    // (100, 200) and (100, 260) - and `at` is deliberately the node's own
+    // written corner rather than anything computed, because it is somewhere
+    // for the author to go and look and the author wrote that corner. Every
+    // other field is a statement about the ink, and the ink is the same ink.
+    const found = (n: DiagramNode, o: CheckOptions) =>
+      check(one(n), { viewBox: CUT, ...QUIET, ...o }).map(
+        ({ at: _at, ...rest }) => rest,
+      );
+
+    it('is measured as the same rectangle, flat and at either depth', () => {
+      for (const o of [{}, DEEP, { extrude: true, depth: 40 }]) {
+        // Non-empty first, so the equality below cannot pass by both sides
+        // being silent about a diagram that is genuinely clipped.
+        expect(found(UPRIGHT, o).map((f) => f.rule)).toEqual(['out-of-bounds']);
+        expect(found(MIRRORED, o)).toEqual(found(UPRIGHT, o));
+      }
+    });
+
+    it('reports each spelling at the corner that spelling declares', () => {
+      const at = (n: DiagramNode) =>
+        check(one(n), { viewBox: CUT, ...QUIET, ...DEEP })[0]?.at;
+      expect(at(UPRIGHT)).toEqual([100, 200]);
+      expect(at(MIRRORED)).toEqual([100, 260]);
+    });
+
+    // The withdrawal itself, pinned. Grown as written, `h: -60` takes the
+    // rise as a shrink: the swept box's top edge drops from 260 to 251 and
+    // its bottom edge climbs to 200, so the whole slab lands inside a frame
+    // that cuts the flat box - and a diagram whose ink is 5 px outside the
+    // picture passes because it extrudes. Depth may find a defect the flat
+    // box hid; it may never hide one the flat box found.
+    it('goes on reporting the frame cutting its bottom edge', () => {
+      for (const o of [{}, DEEP])
+        expect(
+          rules(check(one(MIRRORED), { viewBox: CUT, ...QUIET, ...o })),
+        ).toEqual(['out-of-bounds']);
+    });
+
+    // The other axis and the other corner, because the two spellings fail
+    // differently and a fixture mirroring both at once would pass on either
+    // half of the fix. `w: -160` from x 110 puts the rectangle's left edge at
+    // -50, and `+ d` on a negative width walks that edge back inward: at
+    // depth 60 it reaches +10 and the finding vanishes.
+    it('goes on reporting the frame cutting a mirrored left edge', () => {
+      const WIDE: DiagramNode = { ...UPRIGHT, x: 110, w: -160 };
+      for (const o of [{}, { extrude: true, depth: 60 }])
+        expect(
+          rules(
+            check(one(WIDE), { viewBox: [0, 0, 400, 300], ...QUIET, ...o }),
+          ),
+        ).toEqual(['out-of-bounds']);
+    });
+  });
+
   // The anchor an edge leaves, measured through a rule rather than read off
   // `anchor`: at depth 40 the vector is (40, -30), so `a`'s right anchor
   // moves from (200, 120) to (240, 90) and the connector is drawn from
@@ -1500,6 +1606,48 @@ describe('an extruded node is measured extruded', () => {
       expect(findings[0]?.message).toBe(
         'note 0 lies under edge 0, which will be drawn through it',
       );
+    });
+  });
+
+  // T-77, and the pair the fixture above cannot reach. `edgePath` takes the
+  // options as its third argument so that a path is walked from the anchors
+  // the pen will draw from, and every node above carries `extrude` and
+  // `depth` on itself - which `depthOf` resolves whether or not the options
+  // ever arrive. Drop the argument and the diagram-wide pair stops reaching
+  // the walk, and nothing above notices: a node-borne pair is resolved from
+  // the node either way.
+  //
+  // So the pair is on the diagram here and on no node. By hand at depth 40
+  // the vector is (40, -30), so `a`'s top anchor moves from (180, 40) to
+  // (220, 10) and the loop is drawn from there - `LOOP_OUT` above it, which
+  // puts its apex 3 px above a frame that starts at 0. The node's own slab
+  // stays inside: it sweeps to (100, 10) and (300, 100), so no rule that
+  // measures a box has anything to say, and the finding is the path walk's
+  // alone.
+  describe('an edge walked from an anchor the options moved', () => {
+    const LOOP: Diagram = {
+      nodes: [{ id: 'a', shape: 'box', x: 100, y: 40, w: 160, h: 60 }],
+      edges: [{ from: ['a', 't'], to: ['a', 't'] }],
+    };
+    const FRAME = [0, 0, 400, 300] as const;
+
+    it('leaves the loop alone while the diagram is flat', () => {
+      expect(check(LOOP, { viewBox: FRAME })).toEqual([]);
+    });
+
+    it('reports the loop the options carry out of the frame', () => {
+      const findings = check(LOOP, {
+        viewBox: FRAME,
+        extrude: true,
+        depth: 40,
+      });
+      expect(rules(findings)).toEqual(['out-of-bounds']);
+      expect(findings[0]).toMatchObject({ subjects: ['edge 0'] });
+      // The apex, and above the frame rather than merely near it. Asserted as
+      // a number because "reports something" is what a walk from the flat
+      // anchor would also do if the geometry were moved a little.
+      expect(findings[0]?.at[1]).toBeLessThan(0);
+      expect(findings[0]?.at[1]).toBeCloseTo(-3.02, 1);
     });
   });
 

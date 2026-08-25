@@ -26,11 +26,21 @@ const shipped = await shippedDiagrams();
 let errors = 0;
 let warnings = 0;
 
-for (const { name, diagram, viewBox } of shipped) {
+for (const { name, diagram, options, viewBox } of shipped) {
   if (!viewBox)
     throw new Error(`${name}: no viewBox found, so out-of-bounds cannot run`);
 
-  const findings = check(diagram, { viewBox });
+  // The page's own options, so a diagram drawn extruded is measured extruded.
+  // Checking it flat would report a different picture from the one the page
+  // renders - a slab crossing the frame would pass here and clip there, which
+  // is the exact defect `depth` taught the checker to find.
+  //
+  // Spread whole rather than picked apart: `DrawOptions` and `CheckOptions`
+  // share `extrude` and `depth` and nothing else, so the pair arrives and the
+  // rest - `seed`, `theme`, `label`, `hops`, `order` - is inert here. The
+  // frame comes last because it is read off the `<svg>` the page declares and
+  // no page passes one to `draw`.
+  const findings = check(diagram, { ...options, viewBox });
   errors += findings.filter((f) => f.severity === 'error').length;
   warnings += findings.filter((f) => f.severity === 'warning').length;
 

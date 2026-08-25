@@ -259,6 +259,17 @@ Gate: full suite; `./check` budget from 1.3 still holds.
 
 ## 4. The tool boundary
 
+- [ ] 4.0 Two envelopes the pair does not reach yet, found while carrying
+      `options` through the shipped-diagram loaders (T-82's neighbours):
+      `packages/mcp/src/resources.ts` describes a served example as its
+      `diagram` and its `viewBox`, so an `options` key beside them is
+      undescribed; and `tools/render-assets.mjs` reads the same loader but
+      draws with a hardcoded seed and label, so a showcase that ever
+      extrudes would have a flat PNG in the README while `npm run
+      diagrams` measured it extruded. Neither is reachable today — nothing
+      shipped extrudes — and both become wrong the day 5.1's worked slab
+      example lands
+
 - [ ] 4.1 The three tools accept the pair; `check_diagram` accepts what it
       refuses for `hops`, with the contrast stated in its description
 - [ ] 4.2 Schema and resources regenerate (`npm run schema`,

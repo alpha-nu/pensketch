@@ -87,10 +87,22 @@ export function contains(outer: Box, inner: Box): boolean {
 /**
  * The box an extruded node's ink covers: the front box carried by the
  * extrusion vector `(d, -DEPTH_RISE * d)` and everything it sweeps on the
- * way, which is `(x, y - .75d, w + d, h + .75d)`. A depth of nought - every
- * flat node, every group, every shape too small to carry a face - is the box
- * itself, returned rather than copied, so a flat diagram is measured through
- * exactly the objects it always was.
+ * way, which for a box written upright is `(x, y - .75d, w + d, h + .75d)`. A
+ * depth of nought - every flat node, every group, every shape too small to
+ * carry a face - is the box itself, returned rather than copied, so a flat
+ * diagram is measured through exactly the objects it always was.
+ *
+ * The box is read as the rectangle it covers rather than as the four numbers
+ * it was written with, which is why each axis is taken as a `(min, extent)`
+ * pair before it grows. `ShapeOptions.depth` promises that a mirrored
+ * dimension still extrudes outward - the pen reads winding off the outline's
+ * signed area - so a node written `h: -60` from its lower edge draws the same
+ * ink as the same rectangle written upright, and must be measured as the same
+ * ink too. Growing the numbers as written instead subtracts: `+ .75d` on a
+ * negative `h` cancels the rise, `+ d` on a negative `w` shrinks the box, and
+ * the sweep comes back smaller than the flat rectangle it stands for. That is
+ * the one thing depth must never do - a slab that withdraws a finding leaves
+ * a diagram passing whose ink is outside the frame.
  *
  * The sweep stands for the faces. They are not modelled stroke by stroke
  * here: a box fills its swept rectangle, a diamond and a pill do not, and the
@@ -100,9 +112,14 @@ export function contains(outer: Box, inner: Box): boolean {
  * edit and a missed one costs a picture nobody looks at again.
  */
 export function swept(b: Box, d: number): Box {
-  return d > 0
-    ? { x: b.x, y: b.y - DEPTH_RISE * d, w: b.w + d, h: b.h + DEPTH_RISE * d }
-    : b;
+  if (!(d > 0)) return b;
+  const rise = DEPTH_RISE * d;
+  return {
+    x: Math.min(b.x, b.x + b.w),
+    y: Math.min(b.y, b.y + b.h) - rise,
+    w: Math.abs(b.w) + d,
+    h: Math.abs(b.h) + rise,
+  };
 }
 
 /**
