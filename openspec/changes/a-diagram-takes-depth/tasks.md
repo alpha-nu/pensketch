@@ -40,10 +40,21 @@ earlier answer given on a wrong framing. Nothing below edits
       the gutted-guard mutant (extrude unconditionally) fails the suite at
       exit 1. The guard sits before any rng, stroke or hatch call, read
       independently by the navigator
-- [ ] 1.3 Measure `npm run size` on all four budget entries against design.md
+- [x] 1.3 Measure `npm run size` on all four budget entries against design.md
       D7, and record the numbers in D7 — measured, not estimated. If any
       entry exceeds its budget, stop: the raise is **OWNER**, taken in
       advance, per the size requirement
+
+      **Measured and moved — and resequenced.** The size requirement says a
+      budget moves in advance of the work, in one step, never at a failing
+      gate; a raise sized to 1.1 alone would have needed a second one after
+      group 2. So the whole core-side surface was built as a rehearsal on
+      top of 1.1, priced (D7 has the table), reverted, and the unpushed
+      history rewritten so the budget commit lands before the code that
+      needs it: `./server` to 4992, `./check` to 3648, root unmoved. The
+      raise was taken under the owner's session delegation of 2026-08-25.
+      In this change's history 1.3 therefore precedes 1.1, which is what
+      the animation change's group 1 did and for the same reason
 - [ ] 1.4 Calibrate the default against both ends (design.md D8): render an
       extruded diagram at hero scale (1200 × 600, 60-90 px nodes) and at small
       scale (a 700 × 150 fixture, 40 px nodes), eye-check both, and record

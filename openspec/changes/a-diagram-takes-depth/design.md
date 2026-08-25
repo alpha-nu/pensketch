@@ -94,15 +94,36 @@ ended at x = 1190 in a 1200-wide viewBox, its face reached 1202, the render
 clipped it, and the owner caught it by eye a day before this design was
 written. `out-of-bounds` over the swept box catches it mechanically.
 
-## D7. OPEN — the byte cost, to be measured
+## D7. The byte cost, measured, and the two raises taken
 
-Budgets stand at core 5120, `./check` 3520, `./server` 4300 min+gzip. The
-extrusion algorithm, the anchor shifts and the checker sweep have **not been
-priced**; hatch-follows-the-outline's comparable addition cost +250 B. Task
-1.3 measures all four entries with `npm run size` before any delta number is
-written down, per the house rule that a planned number is an estimate. If an
-entry exceeds its budget the raise is an **OWNER** decision taken in advance,
-as the size requirement demands.
+Measured with `npm run size` (min+gzip). "Primitive" is task 1.1 as landed;
+"rehearsal" is the whole core-side surface — draw's pair and its resolution,
+the moved anchors, the validation rule, the checker's sweep — built on top of
+it to be priced and reverted after the numbers were read.
+
+| entry | before | primitive | rehearsal | budget |
+|---|---|---|---|---|
+| `@pensketch/core` | 4381 | 4734 | 4882 | 5120, unmoved |
+| `@pensketch/core/check` | 3391 | 3391 | 3500 | **3648, from 3520** |
+| `@pensketch/core/server` | 4379 | 4727 | 4868 | **4992, from 4480** |
+| `@pensketch/react` | 519 | 519 | 519 | 2048, unmoved |
+| `@pensketch/animation` | 663 | 663 | 663 | 768, unmoved |
+
+The raises follow the house arithmetic — measured need plus 100 B of gzip
+headroom, taken up to the next multiple of 64: 4868 + 100 = 4968 → 4992,
+and 3500 + 100 = 3600 → 3648. `./check` moves although 3500 fits 3520,
+because 20 B is smaller than the 2 B-per-run gzip noise already measured on
+identical code, and the 3520 raise's own words rule that a margin below the
+noise is not a margin. One step for the whole change: if groups 2–3 land
+materially over their rehearsal, the arithmetic was wrong and the number is
+re-decided with the reason recorded where it is declared, not nudged.
+
+Decision taken under the owner's session delegation of 2026-08-25. The
+budget commit precedes the first commit that needs the room, so no commit in
+this change's history holds a red size gate. (An earlier draft of this
+design misquoted the server budget as 4300 — the number the spec carried
+before `order`; the figure this change found enforced and moved from is
+4480.)
 
 ## D8. The constants, and the end nobody checked
 
