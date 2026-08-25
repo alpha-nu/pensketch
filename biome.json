@@ -4,6 +4,8 @@
     "includes": [
       "**",
       "!!reference",
+      "!content",
+      "!.claude",
       "!**/dist",
       "!packages/core/schema",
       "!packages/mcp/src/resources.generated.ts",

@@ -2,7 +2,11 @@
 
 A group is done when the verification commands in `CONTRIBUTING.md` are green
 and every finding from a self-review of the diff is fixed. Items marked
-**OWNER** are performed by the repo owner, never the agent.
+**OWNER** are performed by the repo owner, never the agent - publishing and
+tagging are the whole of that list. Items marked **OWNER CALL** are decided by
+the owner and then done by the agent; labelling those OWNER too, as this file
+did until 3.4 and 3.5 were fixed, reads as work the agent may not touch when
+what was meant is a choice the agent may not make.
 
 Decisions this change rides on were taken 2026-08-23/24 and are recorded in
 proposal.md; the reference-renderer decision (design.md D5) supersedes an
@@ -255,17 +259,36 @@ stands on rather than a test written after the fact.
       infinite box, so a spurious `out-of-bounds` stood beside the real
       finding. Pinned by a test that fails if the guard is reverted
 
-- [ ] 3.4 **T-100, OWNER**: local `npm run lint` exits 1 from untracked
+- [x] 3.4 **T-100, OWNER CALL**: local `npm run lint` exits 1 from untracked
       `content/` and `.claude/` alone, so the signal is permanently red and
       the shipped code's cleanliness is invisible in it. That noise has
       already masked one committed failure and, this session, a format
       violation hidden behind biome's 20-diagnostic display cap. Either add
-      both directories to `biome.json`'s ignores — they are already
-      declared to git — or add a scoped script. The recommendation is the
-      former; the call is the owner's because it touches their working
-      directories
+      both directories to `biome.json`'s ignores or add a scoped script
 
-- [ ] 3.5 **T-79, OWNER**: `intersects` and `contains` carry an unstated
+      **Both ignored, and the task's own premise was half wrong.** It said
+      the two directories were "already declared to git": `.claude/` is, in
+      the committed `.gitignore`, but `content/` is excluded only in the
+      owner's local `.git/info/exclude`, which no clone carries. So the
+      `!content` entry is inert everywhere but this tree, and `.gitignore`
+      was deliberately left alone - naming a working directory there would
+      silently refuse a future `git add content/`, a footgun traded for
+      tidiness.
+
+      Verified by subtraction rather than by a green run: biome checked 126
+      files before and 108 after, and 18 is exactly the count of
+      biome-eligible files under the two directories, so nothing shipped
+      left the gate. Then mutated - an unformatted line in
+      `packages/core/src/geometry.ts` and another in `tools/check-size.mjs`
+      each take it to exit 1. Two probes that did **not** fire are worth
+      writing down, because both are biome's own defaults and neither
+      changed here: whitespace in an `.html` file is not caught (the HTML
+      formatter is experimental and off, though the a11y and embedded-CSS
+      lints do run), and `.md` is not read at all. `CONTRIBUTING.md`'s
+      "across the repository" was true when written and is not now, so it
+      now says what it covers
+
+- [ ] 3.5 **T-79, OWNER CALL**: `intersects` and `contains` carry an unstated
       non-negative precondition, so `node-overlap` and `group-escape` are
       wrong for a mirrored node *flat* — verified, and older than this
       change. T-78 normalised the sweep and deliberately did not reach

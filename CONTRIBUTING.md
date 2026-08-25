@@ -10,8 +10,13 @@ root unless told otherwise.
 
 ## The verification commands
 
-- `npm run lint` - Biome check across the repository. Proves formatting and
-  lint rules hold everywhere; Biome is the only formatter and the only linter.
+- `npm run lint` - Biome check across everything the repository ships. Proves
+  formatting and lint rules hold everywhere; Biome is the only formatter and
+  the only linter. Two authoring directories sit outside it, `content/` and
+  `.claude/`, because neither is part of any package and a gate that is always
+  red is a gate nobody reads: local runs were exiting 1 on 20 findings, none of
+  them in shipped code, which had already masked one committed failure and hid
+  a second behind Biome's 20-diagnostic display cap.
 - `npm run typecheck` - `tsc --noEmit` in each package. The build step does
   not typecheck, so this is the only gate that proves the types are sound.
 - `npm test` - vitest with coverage. Proves behavior is correct and that each
