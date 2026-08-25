@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ARC_MIN_CHORD, BRACE_DEPTH, BRACE_R } from '../src/constants';
 import type { DiagramBrace, Point } from '../src/index';
 import { pen } from '../src/pen';
-import { bracePoints, carriesFace } from '../src/sample';
+import { arcPoints, bracePoints, carriesFace } from '../src/sample';
 import { makeSvg, pathsOf } from './helpers';
 
 // The span design.md D5 recorded its prototype against, and the numbers it
@@ -145,7 +145,63 @@ describe('carriesFace()', () => {
     for (const shape of ['box', 'pill', 'diamond']) {
       expect(carriesFace(shape, -60, 40)).toBe(true);
       expect(carriesFace(shape, 60, -40)).toBe(true);
+      // Both at once is the case a node written from its far corner makes,
+      // and the one that was wrong. With one dimension positive `Math.max`
+      // in `arcPoints` still picked a positive radius, so the pill's
+      // sampling survived by luck and only the far-corner spelling collapsed
+      // it - which is why the two assertions above passed while a mirrored
+      // 300 x 120 pill drew no faces at all.
+      expect(carriesFace(shape, -60, -40)).toBe(true);
     }
+  });
+
+  // The bound is on the extent the outline covers, not on the numbers it was
+  // written with. A pill written from its far corner traces the same ellipse
+  // backwards, so it has the same chords and the same area, and it carries a
+  // face exactly when its upright spelling does - at the boundary from either
+  // side, on either axis, and at every ordinary size.
+  //
+  // This is asserted as a symmetry and not as an agreement with the pen,
+  // because the pen agreed all along: `arcPoints` read `Math.max(rx, ry)` as
+  // written, both radii came back negative, the run went negative and the
+  // sweep collapsed to `MIN_STEPS` - two chords, one diameter, no area. The
+  // predicate said no faces and the pen drew none, in perfect agreement and
+  // both wrong, which is why a test comparing the two could never catch it.
+  it('reads the pill bound off the extent, not the spelling', () => {
+    const bound = (3 * ARC_MIN_CHORD) / Math.PI;
+    const sizes: [number, number][] = [
+      [8, 8],
+      [10, 8],
+      [11.45, 11.45],
+      [11.9, 11.9],
+      [bound - 1e-9, 4],
+      [bound, 4],
+      [4, bound],
+      [150, 50],
+      [300, 120],
+    ];
+    for (const shape of ['box', 'pill', 'diamond'])
+      for (const [w, h] of sizes)
+        expect([shape, w, h, carriesFace(shape, -w, -h)]).toEqual([
+          shape,
+          w,
+          h,
+          carriesFace(shape, w, h),
+        ]);
+  });
+
+  // One level down, where the defect actually was. A negative radius traces
+  // the same ellipse and must be cut into the same number of chords; read as
+  // written it was cut into two, whatever its size.
+  it('samples an arc of negative radii as finely as positive ones', () => {
+    const full = (rx: number, ry: number) =>
+      arcPoints(0, 0, rx, ry, 0, 2 * Math.PI).length;
+    expect(full(-150, -60)).toBe(full(150, 60));
+    expect(full(-150, -60)).toBeGreaterThan(3);
+    // The floor is still a floor: a radius small enough to collapse the sweep
+    // collapses it from either spelling.
+    expect(full(-1, -1)).toBe(full(1, 1));
+    expect(full(-1, -1)).toBe(3);
   });
 
   it('takes the pill at three chords of the sampling floor', () => {
@@ -192,6 +248,9 @@ describe('carriesFace()', () => {
       [40, 0],
       [Number.NaN, 40],
       [-60, 40],
+      [-60, -40],
+      [-11.45, -11.45],
+      [-150, -50],
       [10, 8],
       [8, 8],
       [11.45, 11.45],

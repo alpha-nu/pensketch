@@ -55,7 +55,18 @@ export function arcPoints(
   // is where the longer one carries the whole of the movement, so the longer
   // radius bounds every chord - in the ceiling below and in the floor after it,
   // which is what lets the two be compared at all.
-  const run = Math.max(rx, ry) * Math.abs(sweep);
+  //
+  // Longer by extent and not by sign. A radius may be negative: `pill` hands
+  // over `w / 2` and `h / 2` as written, and a node written from its far
+  // corner has both. Read as written, `Math.max` picks the one nearer zero,
+  // the run comes back negative, and both bounds invert - the ceiling drops
+  // out of its `Math.max` and the floor collapses the whole sweep to
+  // `MIN_STEPS`. A mirrored pill was therefore sampled as two chords: one
+  // diameter with its first point repeated, which encloses no area, so
+  // `carriesFace` said no and a mirrored pill did not extrude at any size,
+  // where the same pill written upright drew 42 paths. A negative radius
+  // traces the same ellipse backwards and must be sampled as finely.
+  const run = Math.max(Math.abs(rx), Math.abs(ry)) * Math.abs(sweep);
   const steps = Math.min(
     Math.max(
       MIN_STEPS,

@@ -27,7 +27,13 @@ pill carries faces once its **larger** dimension reaches
 `3 × ARC_MIN_CHORD / π` (11.4592 px), so an 11.9 × 11.9 pill, under
 `ARC_MIN_CHORD` in both dimensions, draws its faces and a 1 × 11.46 pill
 draws them too. A box and a diamond carry faces at every non-zero size,
-mirrored dimensions included, since only the pill samples an arc. The anchor follows the ink. A depth that draws no faces
+mirrored dimensions included. The pill's bound SHALL be read off the extent
+its outline covers and not off the numbers it was written with, so a pill
+written from its far corner carries a face exactly when its upright spelling
+does: a negative radius traces the same ellipse backwards and SHALL be
+sampled as finely, or the sweep collapses to the floor, the outline to a
+diameter enclosing nothing, and a mirrored pill silently refuses a depth
+every other shape accepts. The anchor follows the ink. A depth that draws no faces
 while the anchors move would hand an edge a start point 13 px from the
 node's own outline, which is the same defect as an anchor formula that
 lands off the silhouette and is refused for the same reason. This is
