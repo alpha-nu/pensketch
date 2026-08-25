@@ -124,11 +124,16 @@ it to be priced and reverted after the numbers were read.
 
 | entry | before | primitive | rehearsal | budget |
 |---|---|---|---|---|
-| `@pensketch/core` | 4381 | 4734 | 4882 | 5120, unmoved |
-| `@pensketch/core/check` | 3391 | 3391 | 3500 | **3648, from 3520** |
-| `@pensketch/core/server` | 4379 | 4727 | 4868 | **4992, from 4480** |
+| `@pensketch/core` | 4381 | 4734 | 4882 | **5248**, from 5120 |
+| `@pensketch/core/check` | 3391 | 3391 | 3500 | **3968**, from 3520 |
+| `@pensketch/core/server` | 4379 | 4727 | 4868 | **5248**, from 4480 |
 | `@pensketch/react` | 519 | 519 | 519 | 2048, unmoved |
 | `@pensketch/animation` | 663 | 663 | 663 | 768, unmoved |
+
+The budget column is the number in force, not the number this table first
+printed: every raise below is history, and a reader who consults the table
+should not have to read the paragraphs to learn what the gate enforces
+today. It said otherwise for two of the five for a while, which is T-94.
 
 The raises follow the house arithmetic — measured need plus 100 B of gzip
 headroom, taken up to the next multiple of 64: 4868 + 100 = 4968 → 4992,
@@ -153,8 +158,23 @@ landed (+38 core, +34 server, measured), T-56's label-rule split, and
 per-rule anchor walks — the group 2 and 3 gates are the re-measurement,
 and the tripwire above is armed.
 
-**The tripwire fired twice, and both times the pre-registered path was
-taken.** At 3.1 it was `./check`'s turn: the 3648 raise had been sized over
+**The tripwire fired three times, and all three were taken — the third
+belatedly, and only because the group 3 review caught it.** Core is the one
+this design got wrong twice over: the table above first recorded 5120 as
+"unmoved", and at 2.3 the record argued core's number stood because it had
+125 B free, "above the standard". Group 3 left it 21 — 217 B past this
+design's own 4882 column, a larger falsification than either of the two the
+tripwire caught in flight. Nothing fired, because a budget that still passes
+raises no gate; what should have fired is the standard, and it took an
+architect reading the arithmetic to notice. Core and server both went to
+5248 at the group 3 boundary, measured against final code: tasks 4.1-4.3 are
+MCP-side, and an oversized JSDoc block added to `types.ts` and rebuilt left
+all three entries byte-identical, the minifier stripping it. The lesson is
+narrower than "watch the budgets": a tripwire that only fires on a red gate
+is not armed, and this one was written to fire on a falsified claim.
+
+**The tripwire fired twice before that, and both times the pre-registered
+path was taken.** At 3.1 it was `./check`'s turn: the 3648 raise had been sized over
 a column that excluded the label split and the per-rule anchor walks, which
 turned out to be most of group 3, and the entry landed at 3631 with the
 `undrawable-depth` rule unwritten. That rule was rehearsed with its messages

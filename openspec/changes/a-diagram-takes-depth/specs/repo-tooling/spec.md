@@ -13,8 +13,8 @@
 ### Requirement: Size budgets are enforced
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
-`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 3968
-bytes, `@pensketch/core/server` exceeds 5120 bytes, `@pensketch/react` exceeds
+`@pensketch/core` exceeds 5248 bytes, `@pensketch/core/check` exceeds 3968
+bytes, `@pensketch/core/server` exceeds 5248 bytes, `@pensketch/react` exceeds
 2048 bytes, or `@pensketch/animation` exceeds 768 bytes min+gzip. Each
 published entry SHALL be a self-contained
 file: build-time code splitting SHALL be off, because a shared chunk makes an

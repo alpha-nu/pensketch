@@ -6,9 +6,24 @@ import { gzipSync } from 'node:zlib';
 // disk is the min+gzip figure these budgets are expressed in.
 const PACKAGES = [
   {
+    // 5248 from 5120: the third firing of the depth tripwire, and the first
+    // that moves the root entry. D7 priced this change's whole core-side
+    // surface at 4882 and recorded 5120 as "unmoved"; groups 2 and 3 landed
+    // it at 5099, 217 B past that column - a larger falsification than either
+    // that already forced a re-decision (118 B on ./server at 2.3, 131 B on
+    // ./check at T-D7b). The test this change applied to itself is on the
+    // record: at 2.3 core stood at 4995 with 125 B free, "above the standard,
+    // so its number stands". 21 B is not the standard, and this file has
+    // already ruled a 20 B margin none. 5099 + 100 = 5199, up to the next
+    // multiple of 64.
+    //
+    // Measured against final code, not a forecast: tasks 4.1-4.3 are
+    // MCP-side, and an oversized JSDoc block added to types.ts and rebuilt
+    // left all three entries byte-identical, the minifier stripping it. So
+    // nothing left in this change can move this number.
     name: '@pensketch/core',
     entry: 'packages/core/dist/index.js',
-    budget: 5120,
+    budget: 5248,
   },
   {
     // Its own entry and its own budget. The root entry measured 2562 B before
@@ -246,9 +261,16 @@ const PACKAGES = [
     // 5086, taken up to 5120. Re-decided at a green gate; nothing was
     // failing when the number moved. The root entry landed at 4995 against
     // its own 5120 with 125 B free, above the standard, and does not move.
+    //
+    // 5248 from 5120, with the root entry and for the same reason: this entry
+    // was re-decided at 2.3 on an arithmetic that assumed 100 B of headroom,
+    // and group 3 left it 33. That the sentence above says the root entry
+    // "does not move" is the whole point - it did, by 104 B, and a number
+    // whose stated reason has gone false is re-decided rather than left
+    // standing because it happened to hold. 5087 + 100 = 5187, up to 5248.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 5120,
+    budget: 5248,
   },
   {
     name: '@pensketch/react',
