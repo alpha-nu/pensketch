@@ -761,6 +761,9 @@ export const EXAMPLES = {
       1340,
       800
     ],
+    "options": {
+      "extrude": true
+    },
     "diagram": {
       "nodes": [
         {
@@ -817,7 +820,8 @@ export const EXAMPLES = {
           "lines": [
             "a page",
             "and its <svg>"
-          ]
+          ],
+          "depth": 15
         },
         {
           "id": "react",
@@ -829,8 +833,7 @@ export const EXAMPLES = {
           "lines": [
             "@pensketch/react",
             "PenSketch · useSketch"
-          ],
-          "extrude": true
+          ]
         },
         {
           "id": "mcp",
@@ -842,8 +845,7 @@ export const EXAMPLES = {
           "lines": [
             "@pensketch/mcp",
             "three tools"
-          ],
-          "extrude": true
+          ]
         },
         {
           "id": "anim",
@@ -855,8 +857,7 @@ export const EXAMPLES = {
           "lines": [
             "@pensketch/animation",
             "one stylesheet"
-          ],
-          "extrude": true
+          ]
         },
         {
           "id": "root",
@@ -868,8 +869,7 @@ export const EXAMPLES = {
           "lines": [
             "core",
             "draw · pen · anchor"
-          ],
-          "extrude": true
+          ]
         },
         {
           "id": "check",
@@ -881,8 +881,7 @@ export const EXAMPLES = {
           "lines": [
             "core/check",
             "check()"
-          ],
-          "extrude": true
+          ]
         },
         {
           "id": "server",
@@ -894,8 +893,7 @@ export const EXAMPLES = {
           "lines": [
             "core/server",
             "renderToString()"
-          ],
-          "extrude": true
+          ]
         },
         {
           "id": "schema",
@@ -907,8 +905,7 @@ export const EXAMPLES = {
           "lines": [
             "core/schema.json",
             "generated"
-          ],
-          "extrude": true
+          ]
         },
         {
           "id": "draw",
@@ -969,7 +966,8 @@ export const EXAMPLES = {
           "lines": [
             "rng",
             "one seeded sequence"
-          ]
+          ],
+          "depth": 15
         },
         {
           "id": "theme",
@@ -1062,7 +1060,7 @@ export const EXAMPLES = {
               210
             ],
             [
-              440,
+              452,
               210
             ]
           ]
@@ -1096,7 +1094,7 @@ export const EXAMPLES = {
               200
             ],
             [
-              960,
+              972,
               200
             ]
           ],
@@ -1141,7 +1139,7 @@ export const EXAMPLES = {
               372
             ],
             [
-              995,
+              1007,
               372
             ]
           ]
@@ -1316,7 +1314,7 @@ export const EXAMPLES = {
           ],
           "arrowTo": [
             1040,
-            266
+            257
           ]
         },
         {

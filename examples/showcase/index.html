@@ -82,11 +82,15 @@ svg text {
   //   accent   where a drawing starts
   //   hatch    runs with no DOM anywhere in it
   //   dotted   a relationship no code crosses
-  //   depth    published: the slabs are what npm hands you, and the flat
-  //            shapes are what lives inside them or outside the package
   //
   // None of that is renderer behaviour. `hatch` and `dotted` mean whatever the
   // diagram using them says they mean, and this one says so out loud.
+  //
+  // Depth is not in the key because it distinguishes nothing: the whole
+  // drawing is raised by the one `extrude` in the draw options. Only the
+  // groups stay flat - a group bounds a set rather than being an object -
+  // which is what keeps the bands reading as regions behind the objects
+  // they hold.
   draw(document.getElementById('showcase'), {
     nodes: [
       // Groups first, because that is the phase order, and the z-order: they
@@ -102,25 +106,27 @@ svg text {
       // stylesheet to what `draw` already left behind, so it stands beside
       // them rather than under them - and nothing in the band below it is
       // drawn on. The page is a pill because it is not part of the package -
-      // it is whatever HTML you already have.
-      { id: 'page',   shape: 'pill',    x: 70,  y: 92,  w: 220, h: 46, lines: ['a page', 'and its <svg>'] },
-      { id: 'react',  shape: 'box',     x: 330, y: 92,  w: 220, h: 46, lines: ['@pensketch/react', 'PenSketch · useSketch'], extrude: true },
-      { id: 'mcp',    shape: 'box',     x: 590, y: 92,  w: 220, h: 46, lines: ['@pensketch/mcp', 'three tools'], extrude: true },
-      { id: 'anim',   shape: 'box',     x: 870, y: 92,  w: 200, h: 46, lines: ['@pensketch/animation', 'one stylesheet'], extrude: true },
+      // it is whatever HTML you already have. Both pills take `depth: 15`,
+      // a third of their height, so they read as coins - the diagram-wide 12
+      // is calibrated on a box; `rng` below is the other one.
+      { id: 'page',   shape: 'pill',    x: 70,  y: 92,  w: 220, h: 46, lines: ['a page', 'and its <svg>'], depth: 15 },
+      { id: 'react',  shape: 'box',     x: 330, y: 92,  w: 220, h: 46, lines: ['@pensketch/react', 'PenSketch · useSketch'] },
+      { id: 'mcp',    shape: 'box',     x: 590, y: 92,  w: 220, h: 46, lines: ['@pensketch/mcp', 'three tools'] },
+      { id: 'anim',   shape: 'box',     x: 870, y: 92,  w: 200, h: 46, lines: ['@pensketch/animation', 'one stylesheet'] },
 
       // One package, four entry points, each with its own byte budget. A
       // consumer who never imports the checker ships none of it.
-      { id: 'root',   shape: 'box',     x: 70,  y: 272, w: 220, h: 46, lines: ['core', 'draw · pen · anchor'], extrude: true },
-      { id: 'check',  shape: 'box',     x: 330, y: 272, w: 220, h: 46, lines: ['core/check', 'check()'], extrude: true },
-      { id: 'server', shape: 'box',     x: 590, y: 272, w: 220, h: 46, lines: ['core/server', 'renderToString()'], extrude: true },
-      { id: 'schema', shape: 'box',     x: 850, y: 272, w: 220, h: 46, lines: ['core/schema.json', 'generated'], extrude: true },
+      { id: 'root',   shape: 'box',     x: 70,  y: 272, w: 220, h: 46, lines: ['core', 'draw · pen · anchor'] },
+      { id: 'check',  shape: 'box',     x: 330, y: 272, w: 220, h: 46, lines: ['core/check', 'check()'] },
+      { id: 'server', shape: 'box',     x: 590, y: 272, w: 220, h: 46, lines: ['core/server', 'renderToString()'] },
+      { id: 'schema', shape: 'box',     x: 850, y: 272, w: 220, h: 46, lines: ['core/schema.json', 'generated'] },
 
       // The renderer. `draw` is accented because it is where a drawing starts.
       { id: 'draw',   shape: 'box',     x: 70,  y: 452, w: 220, h: 46, lines: ['draw', 'six phases in order'], accent: true },
       { id: 'pen',    shape: 'box',     x: 330, y: 452, w: 220, h: 46, lines: ['pen', 'ten primitives'] },
       { id: 'markup', shape: 'box',     x: 590, y: 452, w: 220, h: 46, lines: ['markup, a DOM shim'], hatch: true },
       { id: 'sample', shape: 'box',     x: 70,  y: 556, w: 220, h: 46, lines: ['sample', 'curves as points'] },
-      { id: 'rng',    shape: 'pill',    x: 330, y: 556, w: 220, h: 46, lines: ['rng', 'one seeded sequence'] },
+      { id: 'rng',    shape: 'pill',    x: 330, y: 556, w: 220, h: 46, lines: ['rng', 'one seeded sequence'], depth: 15 },
       { id: 'theme',  shape: 'box',     x: 590, y: 556, w: 220, h: 46, lines: ['theme', 'CSS variables'] },
 
       // The checker. Hatched on a diamond and on a box in the same picture,
@@ -138,17 +144,20 @@ svg text {
       // trunk and then diverges never satisfies. So it is placed rather than
       // checked. `mcp` reaches four things and leaves by three sides; `react`
       // arrives at core's left rather than descending the column `page`
-      // already occupies. Measured: the only length any two of them share is
-      // the 20px fork out of mcp's right side, and that one is drawn on
-      // purpose - see below.
+      // already occupies. Measured: no two of them share any length at all -
+      // the pair out of mcp's right side diverges at the anchor itself, and
+      // that is drawn on purpose - see below. Extrusion moves a top anchor by
+      // (12, -9), so each orthogonal run's final via sits a slab's width
+      // right of where the flat drawing put it, and a drop stays a drop.
       //
-      // `hop` on the first: `react` crosses `page`'s drop at (180, 196), and
-      // the straight line is the one that stays whole.
+      // `hop` on the first: extrusion moves `root`'s top anchor to (192, 263),
+      // so `page`'s drop leans, and `react` crosses it at (186, 196) - the
+      // straight line is the one that stays whole.
       { from: ['page', 'b'],  to: ['root', 't'], hop: true },
       { from: ['react', 'b'], to: ['root', 'l'],   via: [[440, 196], [26, 196], [26, 295]] },
-      { from: ['mcp', 'l'],   to: ['check', 't'],  via: [[570, 115], [570, 210], [440, 210]] },
+      { from: ['mcp', 'l'],   to: ['check', 't'],  via: [[570, 115], [570, 210], [452, 210]] },
       { from: ['mcp', 'b'],   to: ['server', 't'] },
-      { from: ['mcp', 'r'],   to: ['schema', 't'], via: [[830, 115], [830, 200], [960, 200]],
+      { from: ['mcp', 'r'],   to: ['schema', 't'], via: [[830, 115], [830, 200], [972, 200]],
         dotted: true, label: 'reads the schema', lx: 880, ly: 182, anchor: 'start' },
 
       // A dependency that runs sideways rather than down, because the package
@@ -159,9 +168,11 @@ svg text {
       // It forks off the schema arrow rather than leaving by mcp's own free
       // side. A top anchor was drawn first and was worse: mcp's bottom anchor
       // already drops straight down at x=700, so a stub leaving the top at the
-      // same x read as one line run through the box. Twenty px of shared fork
-      // is the idiom this repository already uses for a decision, and
-      // `edge-overlap` reports the pair at 24 against a threshold of 40.
+      // same x read as one line run through the box. The fork used to share
+      // twenty px of trunk; extrusion moved mcp's right anchor to (822, 106)
+      // while the via stayed put, so the pair now diverges at the anchor
+      // itself - two lines leaving one point still read as a fork, and
+      // `edge-overlap` has nothing left to measure.
       //
       // React reaches the same package and no arrow says so, because there is
       // nothing to draw: `PenSketch` takes `animate` as a function, and the
@@ -170,9 +181,10 @@ svg text {
       { from: ['mcp', 'r'],   to: ['anim', 'l'] },
 
       { from: ['root', 'b'],   to: ['draw', 't'] },
-      { from: ['check', 'b'],  to: ['rules', 't'], via: [[440, 372], [995, 372]] },
-      // The one place two connectors genuinely cross, at (700, 372), in the
-      // open between two groups. `hop` says this one goes over, so the run
+      { from: ['check', 'b'],  to: ['rules', 't'], via: [[440, 372], [1007, 372]] },
+      // The one place two connectors genuinely cross, at (705, 372) - the
+      // drop to markup's moved top anchor leans, and the crossing leans with
+      // it - in the open between two groups. `hop` says this one goes over, so the run
       // beneath it is broken rather than drawn through - which is the only way
       // a reader can tell which of the two lines is continuous. Stated on the
       // edge rather than as a draw option, because an option is not part of
@@ -187,7 +199,10 @@ svg text {
       // outline, so only a render says so - and the first fix for that was a
       // bow. A bow among two straight lines is three styles for one
       // relationship. Aiming at the top anchor instead misses the corner
-      // outright and leaves the fan symmetric: -260, 0, +260 across, 58 down.
+      // outright. Flat, the fan was symmetric at -260, 0, +260 across, 58
+      // down; extrusion moves each target's top anchor by its own depth, 12
+      // on the boxes and 15 on the pill, so it now spreads -248, +15, +272
+      // across and 49, 47, 49 down - near-symmetric, and honestly so.
       { from: ['pen', 'b'],  to: ['sample', 't'] },
       { from: ['pen', 'b'],  to: ['rng', 't'] },
       { from: ['pen', 'b'],  to: ['theme', 't'] },
@@ -236,10 +251,12 @@ svg text {
       // 190 rather than the middle of the gutter, because the schema arrow
       // already runs a dotted horizontal at y=200. Five px apart the two read
       // as one line broken in the middle - no rule compares a note's pointer
-      // with an edge, so only a render says so.
+      // with an edge, so only a render says so. The arrowhead stops at 257,
+      // six px above the slab's back edge at y=263 - the same courtesy the
+      // flat drawing paid schema's top at 272.
       { x: 1120, y: 86, anchor: 'start',
         lines: ['a diagram is plain data —', 'the schema is generated', 'from the types core ships'],
-        arrowFrom: [1210, 122], via: [[1210, 190], [1040, 190]], arrowTo: [1040, 266] },
+        arrowFrom: [1210, 122], via: [[1210, 190], [1040, 190]], arrowTo: [1040, 257] },
       // The bow lives here instead, where an 80px pointer - 68 of them inside
       // the checker, the rest below its border - swings into an empty corner
       // of the group. Measured at 14: 10px off `geom`, 127 off the nearest
@@ -250,7 +267,7 @@ svg text {
         lines: ['hatched — no DOM in here'],
         arrowFrom: [1010, 692], arrowTo: [1010, 612], bow: 14 },
     ],
-  }, { seed: 7 });
+  }, { seed: 7, extrude: true });
 </script>
 </body>
 </html>

@@ -710,6 +710,50 @@ Gate: full suite, generated files fresh in CI's sense.
       5.6-5.8 renderer fixes are untouched by this reversal, and the
       treatment stays on show in `vanilla/` and the showcase
 
+- [x] 5.10 **Owner, fifth round, 2026-08-26: "make it all extruded."** The
+      showcase's hybrid is gone: seven per-node `extrude: true` collapse
+      into one `extrude: true` in the draw options, and the two 220x46
+      pills take `depth: 15` - a third of their height, the coin ratio,
+      said once at `page` with `rng` named there. The notation key loses
+      its `depth` line, because a register applied to everything
+      distinguishes nothing; the register is stated once beside the key
+      instead, the groups' refusal to extrude keeping the bands as regions.
+
+      The page legislates its own geometry, and the moved `t` and `r`
+      anchors falsified comments both ways. Rewritten to the new measured
+      truth: the hop crossing (page's drop leans, react crosses it at
+      (186, 196)); the fan's symmetry claim (-248, +15, +272 across and
+      49, 47, 49 down - near-symmetric, said so); the crossing under the
+      server-to-markup hop, now (705, 372); and the mcp fork's twenty px
+      of shared trunk, gone with the moved anchor - the pair diverges at
+      the anchor itself, the render still reads it as a fork, and the
+      overlap number is dropped rather than re-measured. Re-drawn to keep
+      the drawn intent: the three orthogonal runs' final vias shift right
+      by the extrusion's x (440 to 452, 995 to 1007, 960 to 972), so a
+      drop stays a drop; and the first note's arrowTo rises 266 to 257,
+      six px above schema's slab back edge, the courtesy the flat top got.
+      Verified surviving: the 52px row offset, "10px off geom", the
+      y=190/y=200 spacing, the note's 20/30 corner clearances, and both
+      braces clear the slabs: negative depth juts their ink toward the
+      labels, away from the drawing, so the square bracket's nearest ink
+      (its arms' open ends at x 1130) clears schema's slab at 1082 by 48,
+      and the curly brace's spine at 1150 clears the checker slabs at
+      1102 by the same 48, its tip at 1176 by 74 - read off bracePoints,
+      not off an assumed sign.
+
+      `npm run diagrams`: 0 errors, 0 warnings, showcase "no findings" -
+      no label needed nudging. The delta's "showcase SHALL NOT carry it"
+      is re-decided and recorded: `vanilla/` still introduces and teaches
+      the register per node, the showcase applies it with one switch,
+      owner-dated. The recording label and the README paragraph lose the
+      split claim. Both GIFs re-recorded: light 980,133 bytes, dark
+      1,017,258 - the all-extruded ink costs 33,612 and
+      51,535 bytes over the hybrid's 946,521 and 965,723. Light frames
+      read at 1.3 s, 4 s and the hold, the dark hold read in review:
+      every box and the diamond carry slabs, both pills read as coins,
+      the bands stay flat, the note pointer stops in clear water above
+      schema's slab, and no label sits on ink
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`

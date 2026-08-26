@@ -124,15 +124,20 @@ that purpose SHALL still earn its folder: it is a picture worth looking at
 that happens to use the feature, never a feature demonstration with a diagram
 wrapped around it.
 
-Extrusion SHALL be carried by `vanilla/`, and the choice is the picture's
-rather than the count's: a pipeline's stages are groups, which the renderer
-never extrudes because a group bounds a set rather than being an object, while
-its jobs are boxes and its gate is a decision that stays flat. The hybrid
-therefore says something true about the drawing instead of demonstrating a
-field. `showcase/` SHALL NOT be the folder that carries it while it remains
-the breadth diagram: a picture reaching for every shape at once is the worst
-place to introduce a register that applies to all of them, and depth reads as
-a register rather than as an accent.
+Extrusion SHALL be carried and taught by `vanilla/`, and the choice is the
+picture's rather than the count's: a pipeline's stages are groups, which the
+renderer never extrudes because a group bounds a set rather than being an
+object, while its jobs are boxes and its gate is a decision that opts out.
+The hybrid therefore says something true about the drawing instead of
+demonstrating a field. The showcase draws the whole register raised, by owner
+decision of 2026-08-26, the diagram-wide `extrude` stated once in its
+options: the breadth diagram shows the treatment across every shape at once,
+and the groups' refusal to extrude does the work of keeping the bands reading
+as regions behind the objects they hold. What the earlier ruling guarded
+against still holds: a picture reaching for every shape at once remains the
+worst place to introduce a register per node, and it is `vanilla/` that
+introduces it. The showcase applies the register with one switch, and asks
+the reader to have met the field elsewhere.
 
 A requirement that enumerates what a document or a diagram contains goes false
 the moment either grows, and `openspec validate --strict` cannot see it. Every

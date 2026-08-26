@@ -27,5 +27,5 @@ export default {
   options: page.options,
   seed: page.options?.seed ?? 7,
   label:
-    "pensketch's own architecture, drawing itself: the slabs are what npm hands you",
+    "pensketch's own architecture, drawing itself: every drawn shape raised into a slab",
 };
