@@ -1,24 +1,27 @@
 # repo-tooling — Delta Specification
 
-> Three budgets move for depth, across four commits. `./check` and
+> Three budgets move for depth, across five commits. `./check` and
 > `./server` were sized together in one step from a built rehearsal of the
 > whole core-side surface, reverted after it was read. `./server` then moved
 > again when the validation the spec actually demands falsified that
 > arithmetic by 118 B; `./check` moved again when group 3's label split and
 > anchor walks — work its own column had excluded — falsified it by 131 B;
-> and the root entry moved last, 217 B past its column with 21 B of headroom
+> the root entry moved next, 217 B past its column with 21 B of headroom
 > left, the firing nobody caught until the group 3 review read the
-> arithmetic. Each correction was taken at a green gate, in its own commit.
-> The numbers and the reasons are in a-diagram-takes-depth/design.md D7 and
-> beside each budget in `tools/check-size.mjs`.
+> arithmetic; and root and `./server` moved once more when the owner's
+> eye-check of the shipped hero put the corner rib and the per-face hatch
+> back into the pen — the one firing no rehearsal could have priced. Each
+> correction was taken at a green gate, in its own commit. The numbers and
+> the reasons are in a-diagram-takes-depth/design.md D7 and beside each
+> budget in `tools/check-size.mjs`.
 
 ## MODIFIED Requirements
 
 ### Requirement: Size budgets are enforced
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
-`@pensketch/core` exceeds 5248 bytes, `@pensketch/core/check` exceeds 3968
-bytes, `@pensketch/core/server` exceeds 5248 bytes, `@pensketch/react` exceeds
+`@pensketch/core` exceeds 5312 bytes, `@pensketch/core/check` exceeds 3968
+bytes, `@pensketch/core/server` exceeds 5312 bytes, `@pensketch/react` exceeds
 2048 bytes, or `@pensketch/animation` exceeds 768 bytes min+gzip. Each
 published entry SHALL be a self-contained
 file: build-time code splitting SHALL be off, because a shared chunk makes an

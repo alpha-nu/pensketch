@@ -21,9 +21,17 @@ const PACKAGES = [
     // MCP-side, and an oversized JSDoc block added to types.ts and rebuilt
     // left all three entries byte-identical, the minifier stripping it. So
     // nothing left in this change can move this number.
+    //
+    // 5312 from 5248: "nothing left in this change" was true of the plan and
+    // not of the review - the owner eye-checked the shipped hero and 5.6 put
+    // the corner rib and the per-face hatch back into the pen, +57 B on this
+    // entry, leaving 89 of the 100 this file calls the standard. The fourth
+    // firing, and the first from a defect no rehearsal could have priced,
+    // because the defect was found by looking at the picture. 5159 + 100 =
+    // 5259, up to the next multiple of 64.
     name: '@pensketch/core',
     entry: 'packages/core/dist/index.js',
-    budget: 5248,
+    budget: 5312,
   },
   {
     // Its own entry and its own budget. The root entry measured 2562 B before
@@ -268,9 +276,15 @@ const PACKAGES = [
     // "does not move" is the whole point - it did, by 104 B, and a number
     // whose stated reason has gone false is re-decided rather than left
     // standing because it happened to hold. 5087 + 100 = 5187, up to 5248.
+    //
+    // 5312 from 5248, with the root entry and for its reason: 5.6's rib and
+    // per-face hatch cost this bundled copy of the renderer 62 B, leaving
+    // 99 - one byte under the standard, and this file has already ruled
+    // that a margin the standard's sentence cannot cover is none.
+    // 5149 + 100 = 5249, up to 5312.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 5248,
+    budget: 5312,
   },
   {
     name: '@pensketch/react',

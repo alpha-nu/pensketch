@@ -124,9 +124,9 @@ it to be priced and reverted after the numbers were read.
 
 | entry | before | primitive | rehearsal | budget |
 |---|---|---|---|---|
-| `@pensketch/core` | 4381 | 4734 | 4882 | **5248**, from 5120 |
+| `@pensketch/core` | 4381 | 4734 | 4882 | **5312**, from 5248 |
 | `@pensketch/core/check` | 3391 | 3391 | 3500 | **3968**, from 3520 |
-| `@pensketch/core/server` | 4379 | 4727 | 4868 | **5248**, from 4480 |
+| `@pensketch/core/server` | 4379 | 4727 | 4868 | **5312**, from 5248 |
 | `@pensketch/react` | 519 | 519 | 519 | 2048, unmoved |
 | `@pensketch/animation` | 663 | 663 | 663 | 768, unmoved |
 
@@ -182,6 +182,13 @@ MCP-side, and an oversized JSDoc block added to `types.ts` and rebuilt left
 all three entries byte-identical, the minifier stripping it. The lesson is
 narrower than "watch the budgets": a tripwire that only fires on a red gate
 is not armed, and this one was written to fire on a falsified claim.
+
+It fired a fourth time at 5.6, and this one no rehearsal could have priced:
+the owner eye-checked the shipped hero, the corner rib and the per-face
+hatch went back into the pen, and core moved 57 B with server's bundled
+copy 62. "Nothing left in this change can move this number" was true of
+the plan and false of the review. 5159 + 100 = 5259 and 5149 + 100 = 5249,
+both up to 5312, taken at a green gate in their own commit.
 
 **The tripwire fired twice before that, and both times the pre-registered
 path was taken.** At 3.1 it was `./check`'s turn: the 3648 raise had been sized over
