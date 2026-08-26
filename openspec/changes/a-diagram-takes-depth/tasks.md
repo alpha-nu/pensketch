@@ -847,6 +847,26 @@ Gate: full suite, generated files fresh in CI's sense.
       row 5313 -> 5331. The "edge meets the slab" scenario reads true
       under the fix and stands unchanged.
 
+- [x] 5.13 **T-107, owner-ruled 2026-08-26: remove the conflicts.** The
+      budget ledger had grown two margin readings: the 3520 passage rules
+      that only a margin under measured toolchain noise (2 B) is no margin
+      and that 100 B is not owed to a standing entry, while three later
+      passages cited that same ruling as a 100 B floor - the root 5248
+      raise claimed the file "already ruled a 20 B margin none" (it ruled
+      an estimate unusable, not a margin none), the server 5312 raise
+      called 99 B free "none" on the strength of a sentence that says the
+      opposite, and the animation 768 raise called 90 B free "below the
+      toolchain noise", which is false by a factor of forty-five. The
+      owner removed the conflict rather than raising the budget: one rule
+      now stands at the head of the list - re-decide when a number's
+      stated basis goes false, at a green gate, at measured need plus the
+      conventional 100 up to the next multiple of 64; judge a standing
+      margin against measured noise - and the three false citations are
+      corrected in place with a note that each raise also had the true
+      reason, so no number moves. Under that rule `./check` at 3892 of
+      3968 (76 B free after T-102, basis unfalsified) stands recorded in
+      its own entry rather than raised.
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`

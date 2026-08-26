@@ -4,6 +4,18 @@ import { gzipSync } from 'node:zlib';
 
 // The build already minifies each entry, so gzipping the file as it sits on
 // disk is the min+gzip figure these budgets are expressed in.
+//
+// One margin rule governs every entry, owner-restated 2026-08-26 when two
+// readings had grown side by side in this ledger (SWAT T-107): a budget is
+// re-decided when its stated basis goes false - a priced column falsified, a
+// mechanism changed under it - always at a green gate, at the measured need
+// plus 100 B taken up to the next multiple of 64. The 100 B is that raising
+// convention and nothing else; it is not a floor owed to a standing entry. A
+// standing margin is judged against measured toolchain noise - 2 B observed
+// on identical code - and only a margin the noise can eat is none. Three
+// passages below cited a sub-100 margin as itself the reason to move; the
+// false citations are corrected in place and the numbers they moved stand,
+// each having also had the reason this paragraph states.
 const PACKAGES = [
   {
     // 5248 from 5120: the third firing of the depth tripwire, and the first
@@ -13,9 +25,10 @@ const PACKAGES = [
     // that already forced a re-decision (118 B on ./server at 2.3, 131 B on
     // ./check at T-D7b). The test this change applied to itself is on the
     // record: at 2.3 core stood at 4995 with 125 B free, "above the standard,
-    // so its number stands". 21 B is not the standard, and this file has
-    // already ruled a 20 B margin none. 5099 + 100 = 5199, up to the next
-    // multiple of 64.
+    // so its number stands". What moves it is not the 21 B as such but the
+    // column under it having gone false by ten times that: a number whose
+    // stated basis has failed is re-decided rather than left where it
+    // happens to hold. 5099 + 100 = 5199, up to the next multiple of 64.
     //
     // Measured against final code, not a forecast: tasks 4.1-4.3 are
     // MCP-side, and an oversized JSDoc block added to types.ts and rebuilt
@@ -25,10 +38,10 @@ const PACKAGES = [
     // 5312 from 5248: "nothing left in this change" was true of the plan and
     // not of the review - the owner eye-checked the shipped hero and 5.6 put
     // the corner rib and the per-face hatch back into the pen, +57 B on this
-    // entry, leaving 89 of the 100 this file calls the standard. The fourth
-    // firing, and the first from a defect no rehearsal could have priced,
-    // because the defect was found by looking at the picture. 5159 + 100 =
-    // 5259, up to the next multiple of 64.
+    // entry, leaving 89. Re-decided not for the 89 but because a cost no
+    // rehearsal priced had landed - the fourth firing, and the first from a
+    // defect found by looking at the picture. 5159 + 100 = 5259, up to the
+    // next multiple of 64.
     //
     // 5440 from 5312, one owner eye-check later: 5.7 taught the pill's band
     // to ride the deviations its front was drawn with, +153 B, and this
@@ -158,6 +171,13 @@ const PACKAGES = [
     // measured 3811. Plus the conventional 100 B of gzip headroom is 3911,
     // taken up to the next multiple of 64. Rehearsal reverted; the entry
     // measures 3631 as this number lands, so the gate is green while it moves.
+    //
+    // 3968 stands at 3892, recorded 2026-08-26 (T-107): task 3.5 and the
+    // N-fixes brought the entry to 3874 and the T-102 anchor fix to 3892,
+    // 76 B free. Nothing in 3968's stated basis has gone false and 76 B is
+    // thirty-eight times the measured noise, so under the one rule at the
+    // head of this list the number stands - the owner's call, made by
+    // removing the floor reading rather than raising the budget.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
     budget: 3968,
@@ -285,8 +305,8 @@ const PACKAGES = [
     //
     // 5312 from 5248, with the root entry and for its reason: 5.6's rib and
     // per-face hatch cost this bundled copy of the renderer 62 B, leaving
-    // 99 - one byte under the standard, and this file has already ruled
-    // that a margin the standard's sentence cannot cover is none.
+    // 99. Re-decided because an unpriced cost had landed, by the same
+    // need-plus-100 arithmetic - not a ruling that 99 free is nothing.
     // 5149 + 100 = 5249, up to 5312.
     //
     // 5440 from 5312, with the root entry and for its reason: the ride cost
@@ -313,14 +333,16 @@ const PACKAGES = [
     // and so is not minified by the build: it is written compact in the
     // source, and gzip does the rest.
     //
-    // 768 from 704, and this is the re-decision that paragraph asked for. The
-    // finished package measured 614 against the prototype's 546 - inside 704,
-    // but leaving 90 B where this file's own standard is 100, and a margin
-    // below the toolchain noise it exists to absorb is not a margin. The rule
-    // that makes this principled is the one the `./check` raise to 3520 states:
-    // 100 B is owed to an entry not because it is owed, but because gzip has
-    // been measured moving an entry by 2 B on identical code. 614 plus 100 is
-    // 714, taken up to the next multiple of 64.
+    // 768 from 704, and this is the re-decision that paragraph asked for.
+    // The finished package measured 614 against the prototype's 546 - inside
+    // 704, but the number's stated basis WAS the prototype, and it had gone
+    // false by 68 B; a budget whose reason has failed is re-decided at the
+    // measured need. 614 plus the conventional 100 is 714, taken up to the
+    // next multiple of 64. (As first written this passage called 90 B free
+    // "below the toolchain noise" - 90 is forty-five times the measured
+    // noise - and cited the 3520 passage as owing 100 B to an entry, which
+    // that passage rules out in as many words. The raise was right; the
+    // sentence was not.)
     //
     // Raised here rather than at a gate that failed - nothing failed. What
     // failed was the arithmetic, which sized the budget from a prototype 68 B
