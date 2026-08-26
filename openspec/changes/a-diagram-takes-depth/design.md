@@ -124,9 +124,9 @@ it to be priced and reverted after the numbers were read.
 
 | entry | before | primitive | rehearsal | budget |
 |---|---|---|---|---|
-| `@pensketch/core` | 4381 | 4734 | 4882 | **5312**, from 5248 |
+| `@pensketch/core` | 4381 | 4734 | 4882 | **5440**, from 5312 |
 | `@pensketch/core/check` | 3391 | 3391 | 3500 | **3968**, from 3520 |
-| `@pensketch/core/server` | 4379 | 4727 | 4868 | **5312**, from 5248 |
+| `@pensketch/core/server` | 4379 | 4727 | 4868 | **5440**, from 5312 |
 | `@pensketch/react` | 519 | 519 | 519 | 2048, unmoved |
 | `@pensketch/animation` | 663 | 663 | 663 | 768, unmoved |
 
@@ -189,6 +189,13 @@ hatch went back into the pen, and core moved 57 B with server's bundled
 copy 62. "Nothing left in this change can move this number" was true of
 the plan and false of the review. 5159 + 100 = 5259 and 5149 + 100 = 5249,
 both up to 5312, taken at a green gate in their own commit.
+
+And a fifth at 5.7, the second eye-check: the pill's band learned to ride
+the deviations its front was drawn with, +153 B on core and +145 on the
+server's copy, and the root entry passed its gate with one byte to spare.
+5311 + 100 = 5411 and 5304 + 100 = 5404, both up to 5440. Two firings in
+one day, both from looking at the picture; what a rehearsal prices is the
+plan, and what an eye-check prices is the drawing.
 
 **The tripwire fired twice before that, and both times the pre-registered
 path was taken.** At 3.1 it was `./check`'s turn: the 3648 raise had been sized over

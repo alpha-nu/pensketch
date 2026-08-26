@@ -29,9 +29,15 @@ const PACKAGES = [
     // firing, and the first from a defect no rehearsal could have priced,
     // because the defect was found by looking at the picture. 5159 + 100 =
     // 5259, up to the next multiple of 64.
+    //
+    // 5440 from 5312, one owner eye-check later: 5.7 taught the pill's band
+    // to ride the deviations its front was drawn with, +153 B, and this
+    // entry passed its gate with a single byte to spare. A budget met by
+    // one byte is not a budget met - it is the next one-line fix failing a
+    // gate this file exists to keep green. 5311 + 100 = 5411, up to 5440.
     name: '@pensketch/core',
     entry: 'packages/core/dist/index.js',
-    budget: 5312,
+    budget: 5440,
   },
   {
     // Its own entry and its own budget. The root entry measured 2562 B before
@@ -282,9 +288,12 @@ const PACKAGES = [
     // 99 - one byte under the standard, and this file has already ruled
     // that a margin the standard's sentence cannot cover is none.
     // 5149 + 100 = 5249, up to 5312.
+    //
+    // 5440 from 5312, with the root entry and for its reason: the ride cost
+    // this copy 145 B and left 8. 5304 + 100 = 5404, up to 5440.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 5312,
+    budget: 5440,
   },
   {
     name: '@pensketch/react',

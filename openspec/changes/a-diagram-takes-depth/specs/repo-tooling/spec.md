@@ -8,9 +8,10 @@
 > anchor walks — work its own column had excluded — falsified it by 131 B;
 > the root entry moved next, 217 B past its column with 21 B of headroom
 > left, the firing nobody caught until the group 3 review read the
-> arithmetic; and root and `./server` moved once more when the owner's
-> eye-check of the shipped hero put the corner rib and the per-face hatch
-> back into the pen — the one firing no rehearsal could have priced. Each
+> arithmetic; and root and `./server` moved twice more on the owner's two
+> eye-checks of the shipped hero — the corner rib and per-face hatch, then
+> the band riding the drawn outline — the firings no rehearsal could have
+> priced. Each
 > correction was taken at a green gate, in its own commit. The numbers and
 > the reasons are in a-diagram-takes-depth/design.md D7 and beside each
 > budget in `tools/check-size.mjs`.
@@ -20,8 +21,8 @@
 ### Requirement: Size budgets are enforced
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
-`@pensketch/core` exceeds 5312 bytes, `@pensketch/core/check` exceeds 3968
-bytes, `@pensketch/core/server` exceeds 5312 bytes, `@pensketch/react` exceeds
+`@pensketch/core` exceeds 5440 bytes, `@pensketch/core/check` exceeds 3968
+bytes, `@pensketch/core/server` exceeds 5440 bytes, `@pensketch/react` exceeds
 2048 bytes, or `@pensketch/animation` exceeds 768 bytes min+gzip. Each
 published entry SHALL be a self-contained
 file: build-time code splitting SHALL be off, because a shared chunk makes an
