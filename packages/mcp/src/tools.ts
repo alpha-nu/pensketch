@@ -144,6 +144,11 @@ export function registerTools(server: McpServer): void {
     'check_diagram',
     {
       title: 'Check a diagram for layout defects',
+      // All three tools compute from their arguments and touch nothing - a
+      // host that honours the hint can approve them without asking. Declared
+      // on each because the default reads as false when absent (T-111,
+      // owner-ruled 2026-08-26).
+      annotations: { readOnlyHint: true },
       description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding, and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. Run this before rendering, and again after moving anything.`,
       inputSchema: z.strictObject(
         {
@@ -200,6 +205,7 @@ export function registerTools(server: McpServer): void {
     'render_diagram',
     {
       title: 'Render a diagram to SVG',
+      annotations: { readOnlyHint: true },
       description: `Returns SVG markup for a diagram. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face.`,
       inputSchema: z.strictObject(
         {
@@ -279,6 +285,7 @@ export function registerTools(server: McpServer): void {
     'render_png',
     {
       title: 'Render a diagram to a PNG you can look at',
+      annotations: { readOnlyHint: true },
       description: `Rasterizes a diagram so it can be displayed. ${TRAPS.font} ${TRAPS.coordinates} Scale is capped at ${MAX_SCALE}, and an oversized request is refused rather than served.`,
       // `animate` is absent here on purpose, and its absence is a refusal
       // rather than an omission: a PNG is one frame, and the strict boundary

@@ -867,6 +867,18 @@ Gate: full suite, generated files fresh in CI's sense.
       3968 (76 B free after T-102, basis unfalsified) stands recorded in
       its own entry rather than raised.
 
+- [x] 5.14 **T-111, owner-ruled 2026-08-26: proceed with the readOnlyHint.**
+      All three tools now declare `annotations: { readOnlyHint: true }` -
+      they compute from their arguments and touch nothing, and the hint's
+      absence reads as false, so a host that honours it was asking for
+      approval the tools never needed. `openWorldHint` was offered in the
+      same finding and not taken; the owner named the one hint, so the one
+      hint ships. The tools/list test now asserts the hint on every listed
+      tool off the wire, and the pin was proven the stash way: annotations
+      stashed out of the source, the assertion fails on `undefined`, popped
+      and green at 583. Declared per tool rather than hoisted, because the
+      next tool added should have to say what it touches.
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`

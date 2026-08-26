@@ -84,6 +84,7 @@ describe('a client talking to the server', () => {
         additionalProperties?: boolean;
         properties?: { diagram?: { additionalProperties?: boolean } };
       };
+      annotations?: { readOnlyHint?: boolean };
     }[];
     expect(tools.map((t) => t.name).sort()).toEqual([
       'check_diagram',
@@ -92,6 +93,9 @@ describe('a client talking to the server', () => {
     ]);
     for (const tool of tools) {
       expect(tool.description).toBeTruthy();
+      // Every tool here is pure; the hint is declared, not defaulted, and a
+      // tool added without it should fail here rather than surprise a host.
+      expect(tool.annotations?.readOnlyHint).toBe(true);
       // The schema a client validates against says what the server does.
       // These two are the published half of the strict boundary: without
       // them a caller's own validator waves through a key the server is
