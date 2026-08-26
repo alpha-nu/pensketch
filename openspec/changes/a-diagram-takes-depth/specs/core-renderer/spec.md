@@ -83,11 +83,21 @@ Within the node phase the hand order SHALL be front outline, faces,
 face shading, the front face's own `hatch: true` shading, label — a shape
 node draws no wash, that is the group's treatment and a group never
 extrudes; the phase order of "Diagram render order is normative" SHALL
-NOT change. When a node is extruded, its `t` and `r` anchors SHALL move by the full
-extrusion vector — `t` to `(x + w/2 + d, y − DEPTH_RISE × d)`, `r` to
-`(x + w + d, y + h/2 − DEPTH_RISE × d)`, each the flat anchor plus `E`,
-which lands on the silhouette's ink for every shape — and `l` and `b` SHALL
-NOT move; `anchor` SHALL report the same points edges attach to **when
+NOT change. When a node is extruded, the anchors that move SHALL be the two
+sides of the covered rectangle that face the extrusion — its screen-top and
+screen-right, the sides an upright spelling names `t` and `r` — each by the
+full extrusion vector to the flat anchor plus `E`: upright, `t` to
+`(x + w/2 + d, y − DEPTH_RISE × d)` and `r` to
+`(x + w + d, y + h/2 − DEPTH_RISE × d)`, which lands on the silhouette's ink
+for every shape. The two front-plane sides — `l` and `b` upright — SHALL NOT
+move. The side is chosen off the screen geometry of the covered rectangle
+and never off its name: the pen reads winding off signed area, so a mirrored
+spelling draws the identical picture, and it SHALL move the identical points
+— with `w < 0` the side named `l` faces screen-right and moves while named
+`r` does not, with `h < 0` named `b` moves and named `t` does not. The
+anchor follows the ink here as everywhere: a name moved for a side the
+raised run never touches hands an edge a start point 9-15 px inside the
+slab, off any drawn ink. `anchor` SHALL report the same points edges attach to **when
 handed the depth `draw` resolved**. Its third parameter is a resolved depth,
 not a request: `anchor` SHALL apply what it is given and SHALL NOT resolve,
 so a caller passing a positive depth for a group — which `draw` never does —

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { pointToSegment } from '../src/geometry';
 import type {
   Diagram,
   DiagramEdge,
@@ -129,6 +130,50 @@ describe('anchor()', () => {
       expect(anchor(node, side, 0)).toEqual(anchor(node, side));
       expect(anchor(node, side, -8)).toEqual(anchor(node, side));
     }
+  });
+
+  // T-102. A mirrored spelling - negative `w` or `h` - names the covered
+  // rectangle's sides the other way round, and the raised run touches screen
+  // sides, not names: same covered rectangle, same silhouette, so the same
+  // point per geometric side. Exact equality, because the two spellings
+  // compute the same arithmetic or they do not - no ink, no tolerance. Every
+  // flip is spelled out, since the two axes fail separately: with `w < 0`
+  // alone the broken form moved the screen-left `r` and left the screen-right
+  // `l` flat while `t` stayed right, and `h < 0` alone did the same to the
+  // other pair.
+  it('gives a mirrored spelling the anchors of its upright one', () => {
+    const upright: DiagramNode = {
+      id: 'n',
+      shape: 'box',
+      x: 200,
+      y: 120,
+      w: 150,
+      h: 46,
+    };
+    // The same rectangle written from each of its other three corners, each
+    // with the map from the upright name of a side to this spelling's name
+    // for the same run of ink.
+    const spellings: [DiagramNode, Record<Side, Side>][] = [
+      [
+        { ...upright, x: 350, w: -150 },
+        { t: 't', b: 'b', l: 'r', r: 'l' },
+      ],
+      [
+        { ...upright, y: 166, h: -46 },
+        { t: 'b', b: 't', l: 'l', r: 'r' },
+      ],
+      [
+        { ...upright, x: 350, y: 166, w: -150, h: -46 },
+        { t: 'b', b: 't', l: 'r', r: 'l' },
+      ],
+    ];
+    for (const [node, names] of spellings)
+      for (const side of ['t', 'b', 'l', 'r'] as Side[]) {
+        expect(anchor(node, names[side])).toEqual(anchor(upright, side));
+        expect(anchor(node, names[side], 12)).toEqual(
+          anchor(upright, side, 12),
+        );
+      }
   });
 });
 
@@ -2005,6 +2050,61 @@ describe('draw() extrusion', () => {
     // says a face was drawn to attach to.
     expectNear(nth(pointsOf(nth(pathsOf(svg), 0)), 0), [262, 116]);
     expect(mutedPaths(svg).length).toBeGreaterThan(0);
+  });
+
+  // T-102, the ink half. The symmetry test in `anchor()` says the two
+  // spellings agree; this one says every point `anchor` reports is drawn -
+  // the delta's "lands on the silhouette's ink for every shape", held to the
+  // render. Each shape draws alone, extruded, upright and written from its
+  // far corner, and all four sides' anchors at the resolved depth are held
+  // to the nearest segment of any drawn path: the moved pair to the offset
+  // chain, the front pair to the front outline. Held on all four names
+  // because the broken form failed on the names it moved, not the names it
+  // should have: a mirrored `t` faces screen-bottom, and moving it anyway
+  // put it 9.1-15.1 px inside the slab, off any ink. The bound is measured,
+  // not derived: over these six renders the anchors sit at most 1.62 px from
+  // ink (the pill's sampled band), so 2 px splits the two populations, with
+  // the upright rows calibrating it against geometry known good.
+  it('lands the anchors of a mirrored slab on drawn ink, every side', () => {
+    const TOL = 2;
+    const inkDistance = (svg: SVGSVGElement, p: Point) =>
+      Math.min(
+        ...pathsOf(svg).flatMap((path) => {
+          const pts = pointsOf(path);
+          return pts.slice(1).map((q, k) => pointToSegment(p, nth(pts, k), q));
+        }),
+      );
+    // Each rectangle upright, then written from its far corner. The sides
+    // that move are the screen-top and screen-right either way; only the
+    // names change, and the assertion never names them.
+    // Typed past the group arm of the union, which takes no pair - the same
+    // narrowing `extrudes` answers with.
+    type Extrudable = Exclude<DiagramNode, { shape: 'group' }>;
+    const CASES: Extrudable[] = (
+      [
+        ['box', 200, 120, 150, 46],
+        ['pill', 100, 150, 150, 50],
+        ['diamond', 100, 300, 150, 80],
+      ] as const
+    ).flatMap(([shape, x, y, w, h]): Extrudable[] => [
+      { id: 'n', shape, x, y, w, h },
+      { id: 'n', shape, x: x + w, y: y + h, w: -w, h: -h },
+    ]);
+    for (const node of CASES) {
+      const svg = makeSvg();
+      draw(
+        svg,
+        { nodes: [{ ...node, extrude: true, depth: 12 }] },
+        { seed: 7 },
+      );
+      // The slab really drew - flat anchors sit on ink too, so without this
+      // a render that resolved flat would pass the distance bound trivially.
+      expect(mutedPaths(svg).length).toBeGreaterThan(0);
+      for (const side of ['t', 'b', 'l', 'r'] as Side[])
+        expect(inkDistance(svg, anchor(node, side, 12))).toBeLessThanOrEqual(
+          TOL,
+        );
+    }
   });
 });
 

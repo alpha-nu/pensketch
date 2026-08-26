@@ -13,8 +13,11 @@ idiom. For a shape node whose extrusion is on, every rule that measures the node
 **ink** — `node-overlap`, `out-of-bounds`, `group-escape` on the member's
 side, and every rule that walks its
 edges — SHALL use the swept box `(x, y − 0.75d, w + d, h + 0.75d)`, and the
-anchors it walks SHALL be the renderer's moved ones: `t` and `r` at the flat
-anchor plus the extrusion vector, `l` and `b` unmoved. `label-collision`
+anchors it walks SHALL be the renderer's moved ones: the covered rectangle's
+screen-top and screen-right — `t` and `r` on an upright spelling — at the
+flat anchor plus the extrusion vector, the two front-plane sides unmoved,
+the side chosen off the screen geometry exactly as the renderer chooses it,
+so a mirrored spelling walks the points its upright spelling walks. `label-collision`
 belongs to that second clause and not the first: it measures text against
 the paths a diagram draws, and a node's outline has never been one of them,
 so what depth changes for it is where the edges start. A rule that compared

@@ -813,6 +813,40 @@ Gate: full suite, generated files fresh in CI's sense.
       fight `--theme` in silence and recorder-owned seed/label win by
       spread order, priced at nothing because no shipped file does it.
 
+- [x] 5.12 **Owner on T-102, 2026-08-26: "FIX immediately."** The defect:
+      `anchor` moved the sides *named* `t` and `r` by the extrusion vector,
+      and on a mirrored spelling those names face screen-bottom and
+      screen-left - sides the raised run never touches - so the moved point
+      landed 9-15 px inside the slab, off any drawn ink, against the
+      delta's own "lands on the silhouette's ink for every shape". The
+      mechanism: the moved side is chosen off the screen geometry of the
+      covered rectangle - with `w < 0` the side named `l` faces
+      screen-right and moves while `r` does not, with `h < 0` named `b`
+      moves and `t` does not - one ternary per axis at the single `anchor`
+      site `draw` and `check` both resolve through, the upright path
+      byte-identical by construction and the goldens unmoved to prove it.
+      Measured against Truthful's +22/+25/+22 pricing: +18 B core (5331),
+      +18 B check (3892), +16 B server (5322), all three green, check's
+      free margin at 76 rather than the priced 69. Two tests, both proven
+      on the broken code by stashing the fix: the symmetry witness -
+      every mirrored spelling's anchor equals its upright spelling's,
+      exact, no tolerance - failed on `r` at [212, 134] against [200, 143],
+      and the ink witness - all four sides' anchors within 2 px of the
+      nearest drawn segment, the bound measured at 1.62 px max over six
+      renders with the broken mirrored `t` at 8.98 - failed with it.
+      The ink witness earned its shape the hard way: the first draft
+      asserted only the fix's own moved sides and passed against the
+      broken code - a flat-resolving render sits on ink trivially - so
+      the test now holds every side to the delta's sentence and guards
+      that the slab actually drew, which is what made the stash proof
+      mean something. Reworded to the screen-side truth stated in the named-side
+      vocabulary: the core-renderer delta's anchor requirement, the
+      diagram-checker delta's moved-anchors clause, design.md D3, the
+      `anchor` JSDoc, README.md's anchor table note, docs/agents.md's
+      "Anchors move" (resources regenerated), and the README comparison
+      row 5313 -> 5331. The "edge meets the slab" scenario reads true
+      under the fix and stands unchanged.
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`

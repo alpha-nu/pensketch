@@ -280,6 +280,10 @@ drawn, and the anchors do not move.
 extrusion vector, so an edge attaches to the silhouette rather than to the
 front box; `l` and `b` stay where they were. In the diagram above the
 connector leaves `queue` at (202, 54) rather than at the flat (190, 63).
+What moves is the screen side, not the name: a node written with a negative
+`w` or `h` draws the same picture and moves the same points, so with `w < 0`
+the side named `l` — facing screen-right — moves and `r` does not, and with
+`h < 0` named `b` moves and `t` does not.
 `anchor(node, side, depth)` applies the depth it is handed and never resolves
 one.
 

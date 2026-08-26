@@ -77,7 +77,10 @@ anchor plus `E`: `t` to `(x + w/2 + d, y - .75d)`, `r` to
 `(x + w + d, y + h/2 - .75d)`. One rule, both sides, and it lands on ink for
 all three shapes: the box's back-edge midpoint, the diamond's offset apex,
 the pill's offset arc to the sampling tolerance flat anchors already carry.
-`l` and `b` sit on the front plane and do not move. Without this, every
+`l` and `b` sit on the front plane and do not move. The extruded side is a
+screen side, not a name — those formulas are the upright spelling's, and a
+mirrored spelling moves the same points, `l` standing in for `r` when
+`w < 0` and `b` for `t` when `h < 0` (T-102). Without this, every
 left-to-right diagram self-occludes — hero-1's spine arrows had to be
 hand-routed around exactly this. `anchor` reports the same points `draw`
 uses, and the checker walks the same ones.

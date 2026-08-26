@@ -268,7 +268,10 @@ a node carries everything attached to it:
 
 When a node extrudes, `t` and `r` move by the full extrusion vector, so an
 arrow attaches to the silhouette rather than to the flat outline behind it.
-`l` and `b` do not move.
+`l` and `b` do not move. What moves is the screen side, not the name: a node
+written with a negative `w` or `h` draws the same picture and moves the same
+points, so with `w < 0` it is the side named `l` — which faces screen-right —
+that moves, and with `h < 0` the side named `b`.
 
 The `via` points are used exactly as given, in order, between the two anchors:
 the arrow walks the legs you describe, and nothing else is inferred.
@@ -549,7 +552,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **5313 B** | 8919 B |
+| Size, min+gzip | **5331 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

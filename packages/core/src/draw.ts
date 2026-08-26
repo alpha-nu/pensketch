@@ -40,13 +40,19 @@ import type {
  * carries everything attached to it.
  *
  * `depth` is a **resolved** depth, not a request. This applies what it is
- * given and resolves nothing: a positive value moves `t` and `r` by the full
- * extrusion vector `(depth, -DEPTH_RISE × depth)` - the flat anchor plus the
- * offset the pen drew the silhouette chain at, which lands on ink for every
- * shape: the box's back-edge midpoint, the diamond's offset apex, the pill's
- * offset arc to the sampling tolerance flat anchors already carry. `l` and
- * `b` sit on the front plane and never move, and anything non-positive - `0`,
- * the default - is the flat midpoint on all four sides.
+ * given and resolves nothing: a positive value moves the sides of the covered
+ * rectangle that face the extrusion - its screen-top and screen-right, the
+ * named `t` and `r` of an upright spelling - by the full extrusion vector
+ * `(depth, -DEPTH_RISE × depth)` - the flat anchor plus the offset the pen
+ * drew the silhouette chain at, which lands on ink for every shape: the box's
+ * back-edge midpoint, the diamond's offset apex, the pill's offset arc to the
+ * sampling tolerance flat anchors already carry. The pen reads winding off
+ * signed area, so a mirrored spelling - negative `w` or `h` - draws the same
+ * picture and moves the same points: with `w < 0` the side named `l` faces
+ * screen-right and moves while named `r` does not, with `h < 0` named `b`
+ * moves and named `t` does not. The two front-plane sides never move, and
+ * anything non-positive - `0`, the default - is the flat midpoint on all
+ * four sides.
  *
  * The number `draw` and `check` both pass is resolved before it arrives, by
  * one rule: extrusion is on where `node.extrude ?? options.extrude ?? false`
@@ -69,7 +75,13 @@ export function anchor(node: DiagramNode, side: Side, depth = 0): Point {
     r: [node.x + node.w, node.y + node.h / 2],
   };
   const [x, y] = sides[side];
-  return depth > 0 && (side === 't' || side === 'r')
+  // The moved sides are chosen off the screen geometry, not the name: the
+  // raised run touches the covered rectangle's screen-top and screen-right,
+  // which a mirrored spelling names the other way round - with `w < 0` the
+  // side named `l` faces screen-right, with `h < 0` named `b` faces
+  // screen-top. Upright, the pair is `t` and `r`, exactly as before.
+  return depth > 0 &&
+    (side === (node.h < 0 ? 'b' : 't') || side === (node.w < 0 ? 'l' : 'r'))
     ? [x + depth, y - DEPTH_RISE * depth]
     : [x, y];
 }
