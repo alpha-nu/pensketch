@@ -82,6 +82,8 @@ svg text {
   //   accent   where a drawing starts
   //   hatch    runs with no DOM anywhere in it
   //   dotted   a relationship no code crosses
+  //   depth    published: the slabs are what npm hands you, and the flat
+  //            shapes are what lives inside them or outside the package
   //
   // None of that is renderer behaviour. `hatch` and `dotted` mean whatever the
   // diagram using them says they mean, and this one says so out loud.
@@ -102,16 +104,16 @@ svg text {
       // drawn on. The page is a pill because it is not part of the package -
       // it is whatever HTML you already have.
       { id: 'page',   shape: 'pill',    x: 70,  y: 92,  w: 220, h: 46, lines: ['a page', 'and its <svg>'] },
-      { id: 'react',  shape: 'box',     x: 330, y: 92,  w: 220, h: 46, lines: ['@pensketch/react', 'PenSketch · useSketch'] },
-      { id: 'mcp',    shape: 'box',     x: 590, y: 92,  w: 220, h: 46, lines: ['@pensketch/mcp', 'three tools'] },
-      { id: 'anim',   shape: 'box',     x: 870, y: 92,  w: 200, h: 46, lines: ['@pensketch/animation', 'one stylesheet'] },
+      { id: 'react',  shape: 'box',     x: 330, y: 92,  w: 220, h: 46, lines: ['@pensketch/react', 'PenSketch · useSketch'], extrude: true },
+      { id: 'mcp',    shape: 'box',     x: 590, y: 92,  w: 220, h: 46, lines: ['@pensketch/mcp', 'three tools'], extrude: true },
+      { id: 'anim',   shape: 'box',     x: 870, y: 92,  w: 200, h: 46, lines: ['@pensketch/animation', 'one stylesheet'], extrude: true },
 
       // One package, four entry points, each with its own byte budget. A
       // consumer who never imports the checker ships none of it.
-      { id: 'root',   shape: 'box',     x: 70,  y: 272, w: 220, h: 46, lines: ['core', 'draw · pen · anchor'] },
-      { id: 'check',  shape: 'box',     x: 330, y: 272, w: 220, h: 46, lines: ['core/check', 'check()'] },
-      { id: 'server', shape: 'box',     x: 590, y: 272, w: 220, h: 46, lines: ['core/server', 'renderToString()'] },
-      { id: 'schema', shape: 'box',     x: 850, y: 272, w: 220, h: 46, lines: ['core/schema.json', 'generated'] },
+      { id: 'root',   shape: 'box',     x: 70,  y: 272, w: 220, h: 46, lines: ['core', 'draw · pen · anchor'], extrude: true },
+      { id: 'check',  shape: 'box',     x: 330, y: 272, w: 220, h: 46, lines: ['core/check', 'check()'], extrude: true },
+      { id: 'server', shape: 'box',     x: 590, y: 272, w: 220, h: 46, lines: ['core/server', 'renderToString()'], extrude: true },
+      { id: 'schema', shape: 'box',     x: 850, y: 272, w: 220, h: 46, lines: ['core/schema.json', 'generated'], extrude: true },
 
       // The renderer. `draw` is accented because it is where a drawing starts.
       { id: 'draw',   shape: 'box',     x: 70,  y: 452, w: 220, h: 46, lines: ['draw', 'six phases in order'], accent: true },

@@ -829,7 +829,8 @@ export const EXAMPLES = {
           "lines": [
             "@pensketch/react",
             "PenSketch · useSketch"
-          ]
+          ],
+          "extrude": true
         },
         {
           "id": "mcp",
@@ -841,7 +842,8 @@ export const EXAMPLES = {
           "lines": [
             "@pensketch/mcp",
             "three tools"
-          ]
+          ],
+          "extrude": true
         },
         {
           "id": "anim",
@@ -853,7 +855,8 @@ export const EXAMPLES = {
           "lines": [
             "@pensketch/animation",
             "one stylesheet"
-          ]
+          ],
+          "extrude": true
         },
         {
           "id": "root",
@@ -865,7 +868,8 @@ export const EXAMPLES = {
           "lines": [
             "core",
             "draw · pen · anchor"
-          ]
+          ],
+          "extrude": true
         },
         {
           "id": "check",
@@ -877,7 +881,8 @@ export const EXAMPLES = {
           "lines": [
             "core/check",
             "check()"
-          ]
+          ],
+          "extrude": true
         },
         {
           "id": "server",
@@ -889,7 +894,8 @@ export const EXAMPLES = {
           "lines": [
             "core/server",
             "renderToString()"
-          ]
+          ],
+          "extrude": true
         },
         {
           "id": "schema",
@@ -901,7 +907,8 @@ export const EXAMPLES = {
           "lines": [
             "core/schema.json",
             "generated"
-          ]
+          ],
+          "extrude": true
         },
         {
           "id": "draw",
