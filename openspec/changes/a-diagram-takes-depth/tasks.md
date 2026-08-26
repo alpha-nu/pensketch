@@ -680,6 +680,24 @@ Gate: full suite, generated files fresh in CI's sense.
       core, +145 on server - the budgets left at 1 B and 8 B, re-decided
       in their own commit
 
+- [x] 5.8 **Owner, third round: the band's wobble, and the diamond raised.**
+      The 5.7 ride was real and, at the hero's seed, invisible - the owner
+      said "looks the same" and the before/after crops agreed. What the eye
+      was catching was the second cause: the band stroked at the default
+      amplitude 2.6 against a front deliberately calmed to `PILL_AMP` 1.4,
+      so the back edge wobbled at nearly twice the front's hand. The band
+      now strokes at the outline's own amplitude, the test's tolerances
+      tighten from `AMP` to `PILL_AMP` - which is what kills the mutant
+      that falls back to the default - and the showcase GIF re-encoded
+      byte-identical, since no showcase node extrudes a pill.
+
+      And the hero's diamond extrudes, on the owner's instruction - the
+      opt-out removed, the fold reading deliberately with 5.6's crease at
+      its top vertex, the `miss` label up 3 px for the moved `r` anchor.
+      Zero findings flat and extruded. D8's "prefer it flat" stands as the
+      default guidance; the hero now demonstrates the fold used on purpose,
+      which is the difference between a default and a rule
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`

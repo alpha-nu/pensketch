@@ -243,9 +243,14 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
       const dy = (devy[k] as number) * (1 - t) + (devy[k + 1] as number) * t;
       return [px + Math.cos(a) * dx, py + Math.sin(a) * dy];
     };
+    // The band strokes at the outline's own amplitude, not the default: the
+    // front is deliberately calmed to PILL_AMP, and a back edge wobbling at
+    // nearly twice the front's amplitude reads as a different hand - the
+    // kinks survived the deviation ride because they never came from the
+    // deviations.
     extrude(
       arcPoints(cx, cy, rx, ry, 0, 2 * Math.PI).slice(0, -1),
-      opts,
+      { ...opts, amplitude: PILL_AMP },
       false,
       deform,
     );

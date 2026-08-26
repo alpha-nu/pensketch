@@ -663,26 +663,31 @@ describe('depth', () => {
     // radius jitter - the sanity check that the replay is the drawing's.
     expectNear(from, nth(out, 15), PILL_JX / 2);
     expectNear(to, nth(out, 2), PILL_JX / 2);
+    // Tolerances at PILL_AMP, not the default: the band strokes at the
+    // outline's own calmed amplitude, and a back edge wobbling at the
+    // default 2.6 against a front at 1.4 was the kink the ride alone could
+    // not remove. The tighter bound is what kills a band that falls back
+    // to the default.
     const chain = pointsOf(nth(paths, 2));
     expect(chain).toHaveLength(13 * MIN_STEPS + 1);
-    expectNear(nth(chain, 0), [from[0] + EX, from[1] + EY], spread(AMP));
+    expectNear(nth(chain, 0), [from[0] + EX, from[1] + EY], spread(PILL_AMP));
     expectNear(
       nth(chain, chain.length - 1),
       [to[0] + EX, to[1] + EY],
-      damped(AMP),
+      damped(PILL_AMP),
     );
 
     // Exactly two connectors, one at each silhouette point, from the ridden
     // outline out.
     const first = pointsOf(nth(paths, 4));
-    expectNear(nth(first, 0), from, spread(AMP));
+    expectNear(nth(first, 0), from, spread(PILL_AMP));
     expectNear(
       nth(first, first.length - 1),
       [from[0] + EX, from[1] + EY],
-      damped(AMP),
+      damped(PILL_AMP),
     );
     const second = pointsOf(nth(paths, 6));
-    expectNear(nth(second, 0), to, spread(AMP));
+    expectNear(nth(second, 0), to, spread(PILL_AMP));
     expectNear(
       nth(second, second.length - 1),
       [to[0] + EX, to[1] + EY],

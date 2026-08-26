@@ -55,9 +55,6 @@ export const HERO = {
       h: 76,
       lines: ['cached?'],
       size: 13,
-      // The one node that opts out: a diamond extrudes into a folded corner
-      // at every depth, and this one is a question rather than a thing.
-      extrude: false,
     },
     {
       id: 'work',
@@ -87,7 +84,9 @@ export const HERO = {
       to: ['work', 'l'],
       label: 'miss',
       lx: 450,
-      ly: 105,
+      // 102, not 105: the gate's `r` anchor moves by the extrusion vector,
+      // so this leg starts higher and ran through its own label.
+      ly: 102,
     },
     {
       from: ['gate', 'b'],
