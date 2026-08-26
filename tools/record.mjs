@@ -43,8 +43,11 @@ top level of the JSON:
   diagram   { nodes, edges, notes, braces }   required
   label     an accessible name   optional
   seed      the pen's seed, default 1   optional
+  options   draw options - extrude, depth, hops - optional; seed, label and
+            order stay the recorder's own
 
-  --out <file>         output path         (default: input path with .mp4)
+  --out <file>         output path; .gif encodes an animated GIF, anything
+                       else an MP4 (default: input path with .mp4)
   --scale <n>          device pixel ratio  (default 2)
   --fps <n>            frames per second   (default 30)
   --duration <ms>      the drawing         (default 4000)
@@ -194,6 +197,18 @@ if (config.label !== undefined && typeof config.label !== 'string')
   fail(`${source} has a \`label\` that is not a string`);
 if (config.seed !== undefined && !Number.isFinite(config.seed))
   fail(`${source} has a \`seed\` that is not a number`);
+// The file's own draw options - extrude, depth, hops - carried whole, the
+// way `render-assets.mjs` and `check-diagrams.mjs` carry a page's, so a
+// recording is a video of the drawing the page makes rather than of a flat
+// rendition of its data. Seed, label and order stay this file's: they are
+// what makes it a recording.
+if (
+  config.options !== undefined &&
+  (typeof config.options !== 'object' ||
+    config.options === null ||
+    Array.isArray(config.options))
+)
+  fail(`${source} has \`options\` that are not an object`);
 
 // The same constraint `tools/render-assets.mjs` documents, met here for the
 // same reason: the diagram is handed to the page through `page.evaluate`,
@@ -224,6 +239,15 @@ const label = config.label;
 const frameWidth = width * scale;
 const frameHeight = height * scale;
 
+// The format is the filename's, as everywhere else in this repository a
+// derived thing is named by its source. GIF is for the one place that
+// refuses video - a README rendered by GitHub and npm both, where an MP4
+// plays on one and is a dead link on the other - and it pays for the
+// privilege in bytes, so the MP4 stays the default. Decided here, before
+// the dimension rule below, because that rule is H.264's alone: GIF has no
+// chroma to subsample and takes any whole frame.
+const gifOut = (raw.out ?? '').toLowerCase().endsWith('.gif');
+
 // H.264 in yuv420p subsamples chroma 2x2, so an odd side carries half a
 // chroma sample and no encoder can represent it. Padding or rounding would
 // hand back a video of something other than what was asked for, and the check
@@ -231,9 +255,10 @@ const frameHeight = height * scale;
 // this after the fact costs another few hundred screenshots.
 const usable = (candidate) =>
   Number.isInteger(width * candidate) &&
-  (width * candidate) % 2 === 0 &&
   Number.isInteger(height * candidate) &&
-  (height * candidate) % 2 === 0;
+  // The evenness is H.264's constraint alone; the whole numbers are
+  // Playwright's, whose viewport is integral CSS pixels for any format.
+  (gifOut || ((width * candidate) % 2 === 0 && (height * candidate) % 2 === 0));
 
 if (!usable(scale)) {
   const better = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8]
@@ -525,6 +550,7 @@ try {
     (options) => {
       const svg = document.getElementById('diagram');
       window.__core.draw(svg, options.diagram, {
+        ...options.options,
         seed: options.seed,
         label: options.label,
         order: true,
@@ -538,6 +564,7 @@ try {
     },
     {
       diagram: config.diagram,
+      options: config.options,
       seed,
       label,
       duration,
@@ -651,6 +678,20 @@ await browser.close();
 // is past any recording that would be made here - it runs out at 99999
 // frames, which is over half an hour at 60fps.
 const pattern = join(dir, 'frame-%05d.png');
+
+// GIF holds 256 colors a frame, and ffmpeg's default answer to that is a
+// generic web palette plus ordered dither, which turns a two-color line
+// drawing into confetti. The two-filter form builds the palette from these
+// frames - `stats_mode=diff` weights what changes, which in a drawing that
+// accumulates is the ink - and dithers with it. `-loop 0` because a drawing
+// that draws itself once and freezes is a video's behaviour, not a GIF's:
+// the hold frames give the eye its pause, then the pen starts again.
+const GIF_ENCODE = [
+  '-vf',
+  'split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a',
+  '-loop',
+  '0',
+];
 const ENCODE = [
   '-c:v',
   'libx264',
@@ -676,7 +717,7 @@ if (framesDir !== undefined) {
   console.log(`wrote ${total} frames to ${framesDir}`);
   console.log(
     `to encode them: ffmpeg -framerate ${fps} -i ${pattern} ` +
-      `${ENCODE.join(' ')} ${out}`,
+      `${(gifOut ? GIF_ENCODE : ENCODE).join(' ')} ${out}`,
   );
   process.exit(0);
 }
@@ -693,7 +734,7 @@ const encode = await run(binary, [
   String(fps),
   '-i',
   pattern,
-  ...ENCODE,
+  ...(gifOut ? GIF_ENCODE : ENCODE),
   out,
 ]);
 if (encode.error) noFfmpeg(encode.error);

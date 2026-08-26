@@ -62,19 +62,28 @@ npm install @pensketch/animation @pensketch/core
 ## The architecture, drawn by the thing it describes
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/showcase-dark.png">
-  <img alt="pensketch's own architecture: three ways in and the package that makes a drawing draw itself, above core's four entry points, over a renderer and a checker that stand on the same geometry" src="docs/assets/showcase-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/showcase-dark.gif">
+  <img alt="pensketch's own architecture, drawing itself: three ways in and the package that makes a drawing draw itself, above core's four entry points, over a renderer and a checker that stand on the same geometry - with every published surface extruded into a slab" src="docs/assets/showcase-light.gif">
 </picture>
 
 Three ways in — a page, the React bindings, the MCP server — and a package
 that is not a way in: `@pensketch/animation` adds a stylesheet to a drawing
 that already exists, which is why it is the only thing in that top band with
-nothing drawn under it. Below them core, one package with four entry points;
+nothing drawn under it, and why this picture can draw itself in front of you:
+the animation above is that stylesheet at work, two calls and no keyframe of
+anyone's own. Below them core, one package with four entry points;
 below that a renderer and a checker that stand on the same geometry — which is
 why `sample` sits under both. Every byte of that picture came out of `draw`,
 from a plain object, with no `raw` callback in it: it is the diagram at
 [examples/showcase/](examples/showcase/), and an agent can read the same data
 back as `pensketch://example/showcase`.
+
+The slabs are `extrude`, and the split is the picture's own key: what npm
+hands you — three packages and core's four entries — stands up, and what
+lives inside them or outside the package lies flat. One optional field per
+node, or one switch for a whole diagram, and a group never extrudes either
+way, which is what keeps the bands reading as regions behind the objects
+they hold.
 
 It is also the widest use of the data model this repository ships — all three
 drawn shapes, `accent` and `hatch`, straight connectors and orthogonal ones, a

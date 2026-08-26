@@ -2,10 +2,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { chromium } from 'playwright-core';
 import { HERO, HERO_OPTIONS } from './hero-diagram.mjs';
-import { shippedDiagrams } from './shipped-diagrams.mjs';
 
-// Renders the README images with the locally installed Google Chrome: the hero
-// at the top, and the architecture overview below it.
+// Renders the README's still images with the locally installed Google Chrome
+// - the hero at the top of the page. The architecture overview is no longer
+// one of them: it draws itself, so it ships as the GIF
+// `tools/showcase-recording.mjs` records, and a still of a drawing whose
+// point is the drawing would be the poster frame standing in for the film.
 // The diagram is the hero's own rather than a parity fixture: coupling the
 // marketing image to a fixture would let a fixture edit silently redraw the
 // README. It lives in hero-diagram.mjs because the checker reads it too.
@@ -27,23 +29,7 @@ const SCHEMES = [
   { colorScheme: 'dark', background: [0x16, 0x1b, 0x21] },
 ];
 
-// The showcase is loaded from the example itself rather than copied here, so
-// the README's architecture overview cannot drift from the page that draws it -
-// the same loader the checker uses reads the same file.
-const SHOWCASE = (await shippedDiagrams()).find((d) => d.key === 'showcase');
-if (!SHOWCASE) fail('examples/showcase is not in shipped-diagrams.mjs');
-
-const TARGETS = [
-  { id: 'hero', width: 880, height: 300, name: 'hero' },
-  {
-    id: 'showcase',
-    // The frame the example's own `<svg>` declares, so the overview is the
-    // diagram at its intended proportions rather than a crop of it.
-    width: SHOWCASE.viewBox[2],
-    height: SHOWCASE.viewBox[3],
-    name: 'showcase',
-  },
-];
+const TARGETS = [{ id: 'hero', width: 880, height: 300, name: 'hero' }];
 
 function fail(message) {
   console.error(`FAIL render-assets: ${message}`);
@@ -100,27 +86,6 @@ window.__pensketch = pensketch;
 </script>
 `;
 
-// The showcase carries no `raw`, so it crosses to the page as JSON whole - the
-// property that lets it be served as a resource is the same one that lets it
-// be drawn here without a callback.
-//
-// The page's own options go in first, so a page that extrudes has an extruded
-// image in the README rather than a flat one beside a `npm run diagrams` that
-// measured slabs. Everything the page passes comes through, because it is a
-// choice about the drawing and this file photographs the drawing.
-//
-// Seed and label go in last and stay this file's: the seed is the one these
-// bytes were reviewed at, which is the same number the page passes today, and
-// the label names the README's picture rather than the page's.
-function drawShowcase({ diagram, options }) {
-  window.__pensketch.draw(document.getElementById('showcase'), diagram, {
-    ...options,
-    seed: 7,
-    label:
-      "The architecture of pensketch: what draws a diagram and what makes it draw itself, core's four entry points, the renderer and the checker",
-  });
-}
-
 // Runs in the page, so it reaches core through the global the page's module
 // script publishes. Nothing here closes over this file's scope - the diagram
 // arrives as an argument, which is why only its data half can live in
@@ -151,8 +116,8 @@ function drawHero({ diagram, options }) {
       ],
     },
     // The hero's own options first, seed and label last and still this
-    // file's - the same spread the showcase gets, so the PNG is drawn with
-    // exactly the options the checker measured.
+    // file's - the same spread `check-diagrams.mjs` reads with, so the PNG
+    // is drawn with exactly the options the checker measured.
     {
       ...options,
       seed: 7,
@@ -320,13 +285,7 @@ for (const target of TARGETS) {
     });
     await page.goto(`${ORIGIN}/`);
     await page.waitForFunction(() => Boolean(window.__pensketch));
-    if (target.id === 'hero')
-      await page.evaluate(drawHero, { diagram: HERO, options: HERO_OPTIONS });
-    else
-      await page.evaluate(drawShowcase, {
-        diagram: SHOWCASE.diagram,
-        options: SHOWCASE.options,
-      });
+    await page.evaluate(drawHero, { diagram: HERO, options: HERO_OPTIONS });
     await page.waitForFunction(
       (id) => document.getElementById(id).childElementCount > 0,
       target.id,

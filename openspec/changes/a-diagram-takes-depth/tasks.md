@@ -540,7 +540,7 @@ Gate: full suite, generated files fresh in CI's sense.
       valid drawing too. Measured, not assumed - the mutant was run. One test
       now asserts a served example's options extrude, and it dies on that
       mutant. Without it the requirement's new scenario was a wish
-- [ ] 5.5 **The README shows both features, owner-requested 2026-08-26.**
+- [x] 5.5 **The README shows both features, owner-requested 2026-08-26.**
       Three pictures and the prose around them.
 
       **The architecture diagram becomes a hybrid flat/extruded surface, with
@@ -586,6 +586,45 @@ Gate: full suite, generated files fresh in CI's sense.
          release is not held behind README images: 5.4 closes the spec gap
          this change opened, and the release can ship on it. If the owner
          would rather it rode here, it stays as 5.5 and group 6 waits
+
+      **Landed in three commits, riding here on the owner's "carry on" -
+      settle-point 3 answered by proceeding, 2 by the ask itself** (the
+      hybrid deliberately overrides the earlier "mixed feelings", with the
+      mix carrying meaning rather than decoration).
+
+      **5.5a, the hero** (e7f6254): pill at 17, diamond opted out, one label
+      moved 12 px for the moved `t` anchor. The plumbing was the real find:
+      the hero's options were declared twice - hardcoded where the PNG is
+      drawn, `{}` where the checker reads it - 4.0's envelope defect in the
+      one shipped diagram that is not a page. `HERO_OPTIONS` now lives beside
+      the diagram and both consumers read it.
+
+      **5.5b, the showcase hybrid** (b9d4482): the notation key gains
+      "depth - published", and the split is semantic - the three packages
+      and core's four entries stand up, the page, the internals and the
+      checker's diamond lie flat. Per-node `extrude: true`, the raising
+      direction of the override, where vanilla shows the flattening one.
+
+      **5.5c, the GIF.** `record.mjs` gains the file-carried `options` (the
+      envelope defect's third appearance: its draw call hardcoded seed,
+      label, order, so a recording of an extruded page would have been flat)
+      and a GIF encode chosen by the `--out` extension - palettegen from the
+      frames' own colors, `-loop 0`, the H.264 evenness rule exempted since
+      it is that codec's alone. Priced before chosen: 2x costs 1.22 MB a
+      theme against 1.5x's 0.94, and 2010 px covers a retina reader at
+      README width; 15 fps gives a 500 ms stroke seven frames; 6 s of
+      drawing because twenty nodes at 4 read as a race. Both themes encode
+      deterministically - recorded twice, hashed identical. The README's
+      architecture section now embeds the GIFs, carries the depth prose, and
+      the showcase stills are deleted with their render-assets target: a
+      still of a drawing whose point is the drawing would be the poster
+      frame standing in for the film.
+
+      **One measurement worth keeping**: the animation's element order is not
+      the z-order, and an eye-check nearly misread it as a defect. Read off
+      the `--ps-i` stamps: groups 0.00-0.07, shapes 0.07-0.58, edges
+      0.69-0.88, all text 0.91-0.96. The stylesheet re-times the drawing as
+      a hand would work - boxes first, connect them after, label last
 
 ## 6. Release
 
