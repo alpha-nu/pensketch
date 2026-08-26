@@ -474,41 +474,90 @@ Gate: full suite, generated files fresh in CI's sense.
       the stranded one, and its single load-bearing sentence promoted into
       the requirement body it was always about rather than deleted with it
 
-- [ ] 5.4 **OWNER CALL**, raised by the group 5 review: **nothing this
-      repository ships extrudes**, and neither outcome is recorded. Grepping
-      `examples/` and `docs/` for `extrude` returns only the worked snippet in
-      `docs/agents.md`, which no loader reads and no gate checks. Two
-      consequences. First, `openspec/specs/documentation-and-examples/spec.md`
-      says `showcase/` "SHALL reach for the breadth of the data model in one
-      diagram" and then enumerates what that means - every drawn shape,
-      `accent` and `hatch`, both kinds of brace, and so on - a closed list
-      that depth has silently made incomplete. This change carries **no
-      `documentation-and-examples` delta at all**, so `--strict` cannot see
-      it. Second, task 4.0's two envelopes exist for the day a shipped page
-      passes `options`, and that day has not come: the whole of 4.0 is still
-      exercised only by pages that pass none.
+- [ ] 5.4 **Owner decided 2026-08-26: ship an extruded example.** The gap the
+      review found stands: nothing this repository ships extrudes, so
+      `openspec/specs/documentation-and-examples/spec.md`'s closed enumeration
+      of what `showcase/` demonstrates has silently gone incomplete, this
+      change carries no delta for that capability, and task 4.0's two
+      envelopes are exercised by no page that passes `options`.
 
-      The options, and the reason this is not the agent's call: the owner has
-      already said they have **mixed feelings about mixed depth diagrams**,
-      and depth is a register rather than an accent - the ontologies hero
-      extrudes everything, the article figures extrude nothing. So the
-      question is which picture, if any, changes register.
+      **The pick is `examples/vanilla/` - the CI pipeline.** Measured against
+      every shipped diagram: extruded diagram-wide at `DEPTH`, the showcase
+      and the five react states check clean, vanilla raises one finding,
+      the ATM three, the hero two, and `custom-pen` six, which is what a
+      diagram of six pills predicts. Vanilla wins on what the picture means
+      rather than on the count: its stages are groups and stay flat by the
+      API's own rule, its jobs are boxes and become slabs, and its gate is a
+      diamond that stays flat on D8's guidance. The hybrid is semantic and
+      almost entirely free - a region is not an object, and the renderer
+      already refuses to extrude one. It is also the first example in the
+      README's table and the one a newcomer opens first.
 
-      (a) **Leave every shipped example flat**, and amend the enumeration to
-          say so with the reason. Cheapest, changes no published image, and
-          leaves 4.0 exercised by nothing.
-      (b) **Extrude the hero** (`tools/hero-diagram.mjs`), which is a
-          marketing image, is already its own diagram, and is where depth was
-          prototyped. Changes two committed PNGs and nothing a caller copies.
-      (c) **Extrude the showcase**, which is the diagram the requirement is
-          actually about. Puts depth under `npm run diagrams` and through the
-          MCP resource, and changes the README's largest image.
+      Three edits, all measured: `extrude: true` in the draw options,
+      `extrude: false` on the gate diamond, `depth: 16` on the `push` pill
+      (its height is 48 and D8 wants about a third), and the `smoke passed`
+      label from `lx: 652` to `662`, because `t` moves under extrusion where
+      `b` does not, so the edge tilts right under its own label. At those
+      values `check` reports **nothing** in either register, and both were
+      eye-checked side by side.
 
-      The recommendation is **(b)**: it exercises 4.0's envelopes through
-      `render-assets.mjs`, demonstrates the feature where a reader meets the
-      project, and keeps the data-model breadth diagram flat, which is what
-      "mixed feelings about mixed depth" argues for. Whichever is chosen, the
-      delta is owed
+      It also buys the coverage: vanilla goes through `npm run diagrams` and
+      is served as `pensketch://example/pipeline`, so `resources.ts`'s
+      three-field description is exercised by a page that really carries
+      `options`. `render-assets.mjs`, the other envelope, is exercised by 5.5.
+
+      Owed with it: a `documentation-and-examples` delta. Two requirements
+      need it. The `showcase/` enumeration should say which examples carry
+      depth and why the breadth diagram is not the one that does. And the
+      hero requirement fires on "a connector or annotation shape" added to
+      the data model, which depth is not - it is a node treatment - so the
+      sentence that means "a reader who meets the project there SHALL meet
+      what it can draw" currently lets a whole feature past. Widen it
+
+- [ ] 5.5 **The README shows both features, owner-requested 2026-08-26.**
+      Three pictures and the prose around them.
+
+      **The architecture diagram becomes a hybrid flat/extruded surface, with
+      animation.** Repurposed rather than replaced: it already draws 13 boxes,
+      4 groups, a diamond and 2 pills, and it already checks clean extruded
+      diagram-wide at `DEPTH` with no surgery at all - measured, 0 findings.
+      What the hybrid has to earn is meaning: the mix must say something
+      about the architecture rather than decorate it, so the split needs
+      deciding before it is drawn. The obvious reading is that the packages
+      and entry points are objects and the layers behind them are context,
+      which is the same argument that keeps a group flat.
+
+      **The hero gains extruded elements.** `tools/hero-diagram.mjs`, 2 boxes,
+      a diamond, a group and a pill. Extruded whole at `DEPTH` it raises two
+      `label-collision` findings, so this one needs real placement work rather
+      than a switch.
+
+      **The README prose then has to carry both features**, and today it
+      mentions animation only in the examples table.
+
+      Three things to settle before any of it is drawn:
+
+      1. **How animation reaches a README.** The file is rendered on GitHub
+         *and shipped to npm*, and `docs/assets/*.png` are static images that
+         cannot animate. `tools/record.mjs` produces **MP4**, which GitHub
+         plays and npm does not. So it is an animated GIF, a video that only
+         works on one of the two, or a still that links to the live page.
+         The owner's own recorded evidence is that a GIF counts as an image
+         where a video does not. A GIF of a 1340 x 800 diagram is heavy, and
+         weight is the constraint to price first: `showcase-light.png` is
+         already 548 kB as a still.
+      2. **Whether the showcase's hybrid is a second register or a third.**
+         The owner has previously said they have mixed feelings about mixed
+         depth diagrams, in the context of the ontologies figures. This asks
+         for exactly that mix, deliberately - which is fine, and worth saying
+         out loud so the earlier judgement is overridden on purpose rather
+         than forgotten.
+      3. **Where this work lives.** It is documentation and art, not API, and
+         it touches `documentation-and-examples` alone. The recommendation is
+         that 5.5 becomes **its own OpenSpec change**, so that group 6's
+         release is not held behind README images: 5.4 closes the spec gap
+         this change opened, and the release can ship on it. If the owner
+         would rather it rode here, it stays as 5.5 and group 6 waits
 
 ## 6. Release
 
