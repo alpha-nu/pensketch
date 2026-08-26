@@ -892,9 +892,20 @@ Gate: full suite, generated files fresh in CI's sense.
 
 ## 6. Release
 
-- [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`
+- [x] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`
       raises its core dependency floor to the minor that ships the pair;
       react and animation floors move only if a release actually exposes
-      depth through them, which this change does not require
+      depth through them, which this change does not require.
+
+      Done 2026-08-26 on the owner's instruction, locally rather than
+      through the version PR the bot would have opened: `npm run bump` -
+      `changeset version` plus the pin, the same command version.yml runs -
+      consumed the changeset, took core and mcp to 0.7.0, rewrote mcp's
+      core floor to `^0.7.0` and the four pinned `@pensketch/mcp@` install
+      lines in both READMEs. React and animation stand at 0.2.0 and 0.1.0,
+      their peer ranges already admitting the minor. Both changelogs carry
+      the changeset's paragraph, parity guarantee included. All thirteen
+      gates green after the bump; only 6.2 remains - push, and publish.yml
+      does the rest.
 - [ ] 6.2 **OWNER**: publish order per the standing release order; tags land
       via `publish.yml`, never by hand

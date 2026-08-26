@@ -26,7 +26,7 @@ reference, the schema and five worked examples served as resources, so the agent
 reads the data model instead of guessing at it:
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.6.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.7.0
 ```
 
 That is the one to reach for first if an agent is drawing. `check_diagram`
@@ -505,7 +505,7 @@ else will keep.
 five worked examples as resources:
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.6.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.7.0
 ```
 
 `render_png` matters more than it sounds: an agent handed

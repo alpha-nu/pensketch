@@ -8,7 +8,7 @@ the data without seeing the result.
 ## Register it
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.6.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.7.0
 ```
 
 Or, for a client configured by file:
@@ -18,7 +18,7 @@ Or, for a client configured by file:
   "mcpServers": {
     "pensketch": {
       "command": "npx",
-      "args": ["-y", "@pensketch/mcp@0.6.0"]
+      "args": ["-y", "@pensketch/mcp@0.7.0"]
     }
   }
 }
