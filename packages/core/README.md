@@ -58,7 +58,8 @@ diagram's `raw` array.
 | `rng()` | The pen's seeded PRNG; calling it advances the sequence. |
 
 That `depth` is the run of the outline facing up-right, redrawn offset by
-`(depth, -0.75 × depth)` and joined back at the two silhouette points. It is
+`(depth, -0.75 × depth)`, joined back at the two silhouette points and
+ribbed at each corner in between. It is
 what a node's `extrude` asks for, resolved as an edge's `hop` is against
 `hops` - `node.extrude ?? options.extrude ?? false`, at
 `node.depth ?? options.depth ?? 12` - and a group never extrudes. A shape too

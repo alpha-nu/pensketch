@@ -252,9 +252,12 @@ per-node value cuts both ways, so `extrude: true` raises one node out of a
 flat diagram and `extrude: false` flattens one in an extruded diagram.
 
 A shape of depth `d` is redrawn offset by `(d, -0.75 d)`, up and to the right,
-and joined to its front outline. The light is fixed top-left, as everywhere
-else here: that 0.75 is `DEPTH_RISE`, it is a fixed aesthetic constant, and no
-option moves it. The angle is the look; the magnitude is your data.
+joined to its front outline and ribbed at each corner in between; every face
+that descends the screen is hatched, so a box keeps a lit top face over a
+hatched right one and a pill's whole band is shaded. The light is fixed
+top-left, as everywhere else here: that 0.75 is `DEPTH_RISE`, it is a fixed
+aesthetic constant, and no option moves it. The angle is the look; the
+magnitude is your data.
 
 **A group never extrudes.** `draw` ignores the pair on a group, and the
 published schema refuses it there, as it already refuses `hatch` and `accent`.

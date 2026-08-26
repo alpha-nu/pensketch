@@ -35,8 +35,10 @@ export interface ShapeOptions extends StrokeOptions {
    * Extrude the shape by this many px. The faces are the run of the ideal
    * outline whose outward normals point up-right with the extrusion vector
    * `(depth, -0.75 × depth)`: that run is redrawn offset by the vector as one
-   * polyline, joined to the outline at its two silhouette points, and the
-   * right-facing faces are hatched in `theme.muted`. Winding is read off the
+   * polyline, joined to the outline at its two silhouette points and ribbed
+   * at each interior corner, and every face that descends the screen is
+   * hatched in `theme.muted` - a box's right face, a pill's whole band.
+   * Winding is read off the
    * outline's signed area, so a mirrored dimension still extrudes outward.
    * Default: absent.
    *
@@ -240,7 +242,8 @@ interface ShapeNode extends NodeBox {
   /**
    * Extrude this node into a slab: the run of its outline facing up-right is
    * redrawn offset by `(depth, -0.75 × depth)` and joined to it at the two
-   * silhouette points, with the right-facing strip hatched in `theme.muted`.
+   * silhouette points and ribbed at each interior corner, with every
+   * descending face hatched in `theme.muted`.
    * Default: the diagram's `extrude` option, then `false`. The override cuts
    * both ways - `true` raises this node out of a flat diagram, and `false`
    * flattens it in an extruded one.

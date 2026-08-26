@@ -49,15 +49,27 @@ aesthetic constant and SHALL NOT be runtime-configurable, the magnitude is
 data. An outline segment SHALL carry a face exactly when its outward normal
 dots positive with that vector. The facing chain SHALL be offset by the
 vector and drawn as one polyline between the two silhouette points, plus the
-two connectors — assembled from the same double-pass strokes as every other
-primitive, `reference/renderer.html` untouched, under the clause "Hand-sketch
-primitive fidelity" fixed for `arc`. The strip swept by the facing sub-chain whose
-outward normal has a positive x component SHALL be hatched as one region, in
-the muted theme color at `HATCH_GAP` through `hatch`'s clip arm — one call,
-one clip polygon, since the sub-chain is contiguous on a convex outline. On a box this
-degenerates to a top face and a right face with only the right face shaded.
-The front face SHALL keep its wash, its `hatch: true` shading and its label
-unchanged.
+two connectors, plus a **rib** — front vertex to offset vertex — at every
+corner interior to the facing run — assembled from the same double-pass
+strokes as every other primitive, `reference/renderer.html` untouched, under
+the clause "Hand-sketch primitive fidelity" fixed for `arc`. Which vertices
+are corners is the caller's fact, not the outline's: a box and a diamond
+extrude **faceted**, every vertex a fold, where a pill's sampled arc is one
+smooth face — a turn-angle threshold cannot make that call, because
+`ARC_MIN_CHORD` floors a mid-size pill's sampling at chords that turn more
+sharply than a wide diamond's corner. The first cut of this requirement had
+no ribs, and the picture said so before any review did: two faces fused into
+one bent strip, a box missing the upper-right edge the approved prototype
+drew, a defect the owner caught by eye in the shipped hero.
+
+Shading SHALL be decided per face — the runs between corners, the whole run
+where there are none. A face is shaded when any part of it descends the
+screen, in the muted theme color at `HATCH_GAP` through `hatch`'s clip arm,
+one call and one clip polygon per shaded face. On a box this is a lit top
+face and a hatched right face; on a pill it is the whole band, where the
+first cut's sub-chain rule stopped the hatch mid-face with no corner there
+to explain the boundary. The front face SHALL keep its wash, its
+`hatch: true` shading and its label unchanged.
 
 Within the node phase the hand order SHALL be front outline, faces,
 face shading, the front face's own `hatch: true` shading, label — a shape
@@ -88,7 +100,11 @@ draw nothing and consume nothing from the seeded sequence.
 
 #### Scenario: A pill and a diamond take the same depth
 - **WHEN** a `pill` and a `diamond` are drawn with extrusion on
-- **THEN** each appends one offset chain between its two silhouette points plus two connectors, from the same jittered passes — no second way of drawing
+- **THEN** each appends one offset chain between its two silhouette points plus its connectors and ribs, from the same jittered passes — no second way of drawing — the diamond's fold taking a rib at its interior vertex, the pill's smooth band taking none
+
+#### Scenario: A corner takes a rib, a curve does not
+- **WHEN** a box and a pill are drawn with extrusion on
+- **THEN** the box carries a rib at the corner between its top and right faces, with the top face lit and the right hatched, and the pill carries no rib and one whole hatched band
 
 #### Scenario: An edge meets the slab, not the wall behind it
 - **WHEN** an edge leaves side `r` of an extruded node

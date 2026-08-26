@@ -626,6 +626,35 @@ Gate: full suite, generated files fresh in CI's sense.
       0.69-0.88, all text 0.91-0.96. The stylesheet re-times the drawing as
       a hand would work - boxes first, connect them after, label last
 
+- [x] 5.6 **Owner eye-check of the shipped hero, 2026-08-26: two defects, one
+      cause.** The pill's extruded band lost its hatch mid-face, and every
+      box was missing the upper-right depth edge. Both trace to D2
+      generalizing the approved prototype away: `content/ontologies/hero`'s
+      box drew **three** verticals - connector, corner rib, connector - and
+      hatched the right *face*, where the spec said "one offset chain plus
+      two connectors" and hatched the descending *sub-chain*. Core
+      implemented its spec faithfully; the spec had no notion of a corner
+      interior to the facing run, so no rib could be drawn there and the
+      hatch could not split there.
+
+      The fix is the fact the pen already has: a box and a diamond hand
+      `extrude` their real corners, a pill hands a sampled arc. `extrude`
+      takes `faceted` - a rib at every interior vertex, shading decided per
+      face, a face shaded when any of it descends. A pill is one face,
+      hatched whole. A turn-angle threshold was considered and measured
+      out: `ARC_MIN_CHORD` floors a 40 px pill's sampling at ~36° chord
+      turns, coarser than a wide diamond's corner, so no angle separates
+      them - the caller states the fact instead.
+
+      Box: lit top, hatched right, one rib - the prototype exactly.
+      Diamond: gains a crease at its fold. Pill: the coin's rim shades
+      whole. +57 B core, +59 server, measured. Four mutants killed: the rib
+      loop deleted (5 tests), `faceted` ignored (4), faces always
+      per-segment (1 - the pill's whole-band hatch), the shading criterion
+      inverted (8). Flat goldens byte-identical; hero PNGs and both GIFs
+      re-rendered; the mechanism sentence corrected in the delta, both
+      READMEs, `docs/agents.md` and two JSDoc sites
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`

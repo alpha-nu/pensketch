@@ -1442,9 +1442,9 @@ describe('draw() extrusion', () => {
     draw(extruded, BOX, { extrude: true });
 
     // The slab is ordinary passes: one chain (two passes), two connectors
-    // (two each), and the muted face shading after them - which the flat
-    // render has none of.
-    expect(inkPaths(extruded)).toHaveLength(inkPaths(flat).length + 6);
+    // (two each), the corner rib (two), and the muted face shading after
+    // them - which the flat render has none of.
+    expect(inkPaths(extruded)).toHaveLength(inkPaths(flat).length + 8);
     expect(mutedPaths(flat)).toHaveLength(0);
     expect(mutedPaths(extruded).length).toBeGreaterThan(0);
   });

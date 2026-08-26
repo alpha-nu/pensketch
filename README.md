@@ -307,7 +307,9 @@ p.label(395, 65, ['a pill', '(two lines)']);
 
 That `depth` is the extrusion a node's `extrude` asks for: the run of the
 outline facing up-right, redrawn offset by `(depth, -0.75 × depth)`, joined
-back at the two silhouette points, with the right-facing strip hatched. The
+back at the two silhouette points, ribbed at each corner in between, with
+every face that descends the screen hatched - a box's right face, a pill's
+whole band. The
 pen ignores an absent, zero, negative or non-finite depth - no faces, and
 nothing taken from the sequence - where `draw` throws on the same value.
 
@@ -548,7 +550,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **5102 B** | 8919 B |
+| Size, min+gzip | **5159 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

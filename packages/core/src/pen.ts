@@ -185,6 +185,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
         [x, y + h],
       ],
       opts,
+      true,
     );
   }
 
@@ -258,6 +259,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
         [x, cy],
       ],
       opts,
+      true,
     );
   }
 
@@ -273,7 +275,17 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   // quads swept by its descending segments - outward normal x positive - are
   // hatched muted. Guarded before anything draws: a shape without a usable
   // depth consumes nothing from the seeded sequence, so its bytes cannot move.
-  function extrude(outline: Point[], opts: ShapeOptions) {
+  // `faceted` is the one fact the outline cannot reveal about itself: a box
+  // and a diamond hand over their real corners, so every interior vertex of
+  // the facing run is a fold and takes a rib - the third kind of extrusion
+  // line, front vertex to offset vertex, which the silhouette-only chain
+  // left out and the drawing read as two faces fused into one bent strip. A
+  // pill hands over a sampled arc whose vertices are chords, not corners, so
+  // its swept band is a single face. A turn-angle threshold cannot make this
+  // call instead: `ARC_MIN_CHORD` floors a mid-size pill's sampling at
+  // chords that turn more sharply than a wide diamond's corner, so any angle
+  // that spares the pill loses the diamond.
+  function extrude(outline: Point[], opts: ShapeOptions, faceted = false) {
     const d = opts.depth;
     if (typeof d !== 'number' || !Number.isFinite(d) || d <= 0) return;
     const ex = d;
@@ -301,30 +313,36 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     stroke(off, opts);
     stroke([run[0] as Point, off[0] as Point], opts);
     stroke([run[run.length - 1] as Point, off[off.length - 1] as Point], opts);
-    // The shaded sub-run is contiguous within the facing run, because the
-    // normals of a convex outline turn monotonically.
-    let s0 = -1;
-    let s1 = -1;
-    for (let k = 0; k + 1 < run.length; k++)
-      if (((run[k + 1] as Point)[1] - (run[k] as Point)[1]) * wind > 0) {
-        if (s0 < 0) s0 = k;
-        s1 = k + 1;
-      }
-    if (s0 < 0) return;
-    const strip = [
-      ...run.slice(s0, s1 + 1),
-      ...off.slice(s0, s1 + 1).reverse(),
-    ];
-    const x0 = Math.min(...strip.map((p) => p[0]));
-    const y0 = Math.min(...strip.map((p) => p[1]));
-    hatch(
-      x0,
-      y0,
-      Math.max(...strip.map((p) => p[0])) - x0,
-      Math.max(...strip.map((p) => p[1])) - y0,
-      theme.muted,
-      strip,
-    );
+    if (faceted)
+      for (let k = 1; k + 1 < run.length; k++)
+        stroke([run[k] as Point, off[k] as Point], opts);
+    // Faceted, every segment is its own face; smooth, the whole run is one.
+    // A face is shaded when any of it descends on screen - the criterion the
+    // sub-run rule used, lifted to the face, so a box's top face stays lit,
+    // its right face hatches whole, and a pill's single curved face hatches
+    // whole instead of losing its hatch mid-band where the descent begins,
+    // with no corner there to explain the boundary.
+    const faces: [number, number][] = faceted
+      ? run.slice(0, -1).map((_, k): [number, number] => [k, k + 1])
+      : [[0, run.length - 1]];
+    for (const [a, b] of faces) {
+      let shaded = false;
+      for (let k = a; k < b; k++)
+        if (((run[k + 1] as Point)[1] - (run[k] as Point)[1]) * wind > 0)
+          shaded = true;
+      if (!shaded) continue;
+      const strip = [...run.slice(a, b + 1), ...off.slice(a, b + 1).reverse()];
+      const x0 = Math.min(...strip.map((p) => p[0]));
+      const y0 = Math.min(...strip.map((p) => p[1]));
+      hatch(
+        x0,
+        y0,
+        Math.max(...strip.map((p) => p[0])) - x0,
+        Math.max(...strip.map((p) => p[1])) - y0,
+        theme.muted,
+        strip,
+      );
+    }
   }
 
   // Diagonals across the box, clipped to it at both ends - or, when an outline

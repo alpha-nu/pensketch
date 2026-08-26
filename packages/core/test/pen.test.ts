@@ -556,13 +556,13 @@ describe('depth', () => {
   const EX = 10;
   const EY = -7.5;
 
-  it('extrudes a box into a slab: one chain over the top and right, two connectors', () => {
+  it('extrudes a box into a slab: one chain, two connectors, a corner rib', () => {
     const svg = makeSvg();
     pen(svg).rect(0, 0, 100, 50, { depth: 10 });
 
     const paths = pathsOf(svg);
-    // 8 front, 2 chain, 4 connectors, and the shading after them.
-    expect(paths).toHaveLength(28);
+    // 8 front, 2 chain, 4 connectors, 2 rib, and the shading after them.
+    expect(paths).toHaveLength(30);
 
     // One polyline TL+E -> TR+E -> BR+E: the facing run offset whole, not a
     // stroke per face.
@@ -584,13 +584,22 @@ describe('depth', () => {
       [100 + EX, 50 + EY],
       damped(AMP),
     );
+
+    // The rib at the one corner interior to the facing run - the top-right -
+    // which is what separates the lit top face from the hatched right one.
+    // The approved prototype drew it (content hero.mjs drew three verticals);
+    // the silhouette-only chain lost it, and the two faces read as one bent
+    // strip until it came back.
+    const rib = pointsOf(nth(paths, 14));
+    expectNear(nth(rib, 0), [100, 0], spread(AMP));
+    expectNear(nth(rib, rib.length - 1), [100 + EX, 0 + EY], damped(AMP));
   });
 
   it('shades only the right face of a box, muted, through the clip arm', () => {
     const svg = makeSvg();
     pen(svg).rect(0, 0, 100, 50, { depth: 10 });
 
-    const shading = pathsOf(svg).slice(14);
+    const shading = pathsOf(svg).slice(16);
     expect(shading).toHaveLength(14);
     shading.forEach((path, i) => {
       expect(attr(path, 'stroke')).toBe(defaultTheme.muted);
@@ -612,7 +621,12 @@ describe('depth', () => {
     pen(svg).pill(0, 0, 150, 50, { depth: 10 });
 
     const paths = pathsOf(svg);
-    expect(paths).toHaveLength(22);
+    // No rib anywhere: a pill's outline vertices are chords of a sampled
+    // arc, not corners, so its band is a single face - and that face is
+    // hatched whole, 15 clipped lines against the descending sub-run's 7,
+    // because a curved face losing its hatch mid-band had no corner there
+    // to explain the boundary.
+    expect(paths).toHaveLength(38);
 
     // The ideal ellipse, sampled exactly as the hatch clip samples it: 26
     // chords at this size. The facing run is 13 of them and wraps the seam
@@ -658,7 +672,9 @@ describe('depth', () => {
     pen(svg).diamond(0, 0, 100, 60, { depth: 10 });
 
     const paths = pathsOf(svg);
-    expect(paths).toHaveLength(16);
+    // 2 front, 2 chain, 4 connectors, 2 rib at the top vertex - the fold of
+    // the folded corner, which had no crease line before - then the shading.
+    expect(paths).toHaveLength(18);
 
     // 0.75 * 50 > 30, so the left-to-top segment faces along with
     // top-to-right and the run wraps the outline's seam at the top vertex:
@@ -674,9 +690,14 @@ describe('depth', () => {
     expectNear(nth(pointsOf(nth(paths, 4)), 0), [0, 30], spread(AMP));
     expectNear(nth(pointsOf(nth(paths, 6)), 0), [100, 30], spread(AMP));
 
+    // The rib at the top vertex, the run's one interior corner.
+    const rib = pointsOf(nth(paths, 8));
+    expectNear(nth(rib, 0), [50, 0], spread(AMP));
+    expectNear(nth(rib, rib.length - 1), [50 + EX, 0 + EY], damped(AMP));
+
     // Only the top-to-right face descends the screen, so only its quad is
     // shaded: the left-to-top face is outlined and left bare.
-    const shading = paths.slice(8);
+    const shading = paths.slice(10);
     expect(shading).toHaveLength(8);
     for (const path of shading)
       expect(attr(path, 'stroke')).toBe(defaultTheme.muted);
@@ -721,9 +742,15 @@ describe('depth', () => {
     expectNear(nth(pointsOf(nth(paths, 10)), 0), [0, 50], spread(AMP));
     expectNear(nth(pointsOf(nth(paths, 12)), 0), [-100, 0], spread(AMP));
 
+    // The rib rides the mirrored winding too: the run's interior corner is
+    // the screen top-right one, written here as the box's origin.
+    const rib = pointsOf(nth(paths, 14));
+    expectNear(nth(rib, 0), [0, 0], spread(AMP));
+    expectNear(nth(rib, rib.length - 1), [0 + EX, 0 + EY], damped(AMP));
+
     // The shape spans x in [-100, 0]; outward shading keeps every hatch
     // point in the band beside its screen-right edge, none in the interior.
-    const shading = paths.slice(14);
+    const shading = paths.slice(16);
     expect(shading.length).toBeGreaterThan(0);
     for (const path of shading) {
       expect(attr(path, 'stroke')).toBe(defaultTheme.muted);
