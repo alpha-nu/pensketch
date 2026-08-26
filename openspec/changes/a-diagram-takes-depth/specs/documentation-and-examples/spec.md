@@ -1,16 +1,5 @@
 # documentation-and-examples — Delta Specification
 
-> Two enumerations went false the same way and neither gate could see it. The
-> hero requirement fires on "a connector or annotation shape" and depth is a
-> node treatment; the examples requirement lists what the bundled diagrams
-> demonstrate and never learned the word. Both are widened, the folder that
-> carries extrusion is named, and the general hazard is written into the body
-> so the next enumeration is read rather than trusted. The stranded
-> blockquote at the end of "Runnable examples" is dropped here rather than at
-> archive - it is a previous change's note to its own reviewer, it is about
-> "Root README covers the full learning path" and not about examples at all,
-> and its one durable sentence is promoted into the requirement body.
-
 ## MODIFIED Requirements
 
 ### Requirement: README hero images are generated, deterministic, and committed

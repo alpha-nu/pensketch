@@ -1,9 +1,5 @@
 # mcp-server — Delta Specification
 
-> The depth pair crosses the tool boundary the way `hops` did — with one
-> deliberate difference: the checker takes it, because depth changes
-> findings and hops change none. a-diagram-takes-depth/design.md D1, D6.
-
 ## ADDED Requirements
 
 ### Requirement: All three tools accept the diagram-wide depth pair

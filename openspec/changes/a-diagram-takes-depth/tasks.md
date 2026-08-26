@@ -465,14 +465,25 @@ Gate: full suite, generated files fresh in CI's sense.
       that nothing shipped extrudes is a decision, carried to the owner as
       5.4 rather than settled here
 
-- [ ] 5.3 **T-57, and it applies to every change from here**: a delta's
+- [x] 5.3 **T-57, and it applies to every change from here**: a delta's
       header blockquote is a note to the reviewer of that change, not spec
       text, and `openspec archive` copies it into the base spec wherever it
       happens to land — the animation change's budget note spent a week
       inside the "Scoped packages" requirement, which is not about budgets.
       Strip this change's four headers at archive. Done once already for
       the stranded one, and its single load-bearing sentence promoted into
-      the requirement body it was always about rather than deleted with it
+      the requirement body it was always about rather than deleted with it.
+
+      Stripped at archive, 2026-08-26 — and the count in the line above had
+      gone stale the way this change keeps proving counts do: five headers,
+      not four, because the documentation-and-examples delta arrived with
+      5.4 after this task counted. Each header read before deletion:
+      nothing load-bearing lost — three are pointers into design.md, the
+      repo-tooling narrative closes by naming D7 and `check-size.mjs` as
+      where its content lives, and the documentation-and-examples header's
+      one durable act (the stranded blockquote's promotion) was performed
+      in the requirement body when it was written. `--strict` green with
+      the headers gone.
 
 - [x] 5.4 **Owner decided 2026-08-26: ship an extruded example.** The gap the
       review found stands: nothing this repository ships extrudes, so

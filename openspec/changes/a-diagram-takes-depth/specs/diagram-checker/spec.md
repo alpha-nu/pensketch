@@ -1,9 +1,5 @@
 # diagram-checker — Delta Specification
 
-> The checker measures what the renderer draws, and an extruded node is
-> bigger than its box. The swept box, the moved anchors and the defect that
-> motivates them: a-diagram-takes-depth/design.md D3, D6.
-
 ## ADDED Requirements
 
 ### Requirement: Extruded geometry is measured extruded

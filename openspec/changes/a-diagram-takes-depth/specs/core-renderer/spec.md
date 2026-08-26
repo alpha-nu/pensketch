@@ -1,9 +1,5 @@
 # core-renderer — Delta Specification
 
-> A shape can take depth: an oblique extrusion assembled from the passes the
-> goldens already norm. Where the pair lives, what a face is, where anchors
-> move and what the constants are: a-diagram-takes-depth/design.md D1–D5, D8.
-
 ## ADDED Requirements
 
 ### Requirement: A shape can take depth

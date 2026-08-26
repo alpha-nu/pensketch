@@ -1,21 +1,5 @@
 # repo-tooling — Delta Specification
 
-> Three budgets move for depth, across five commits. `./check` and
-> `./server` were sized together in one step from a built rehearsal of the
-> whole core-side surface, reverted after it was read. `./server` then moved
-> again when the validation the spec actually demands falsified that
-> arithmetic by 118 B; `./check` moved again when group 3's label split and
-> anchor walks — work its own column had excluded — falsified it by 131 B;
-> the root entry moved next, 217 B past its column with 21 B of headroom
-> left, the firing nobody caught until the group 3 review read the
-> arithmetic; and root and `./server` moved twice more on the owner's two
-> eye-checks of the shipped hero — the corner rib and per-face hatch, then
-> the band riding the drawn outline — the firings no rehearsal could have
-> priced. Each
-> correction was taken at a green gate, in its own commit. The numbers and
-> the reasons are in a-diagram-takes-depth/design.md D7 and beside each
-> budget in `tools/check-size.mjs`.
-
 ## MODIFIED Requirements
 
 ### Requirement: Size budgets are enforced
