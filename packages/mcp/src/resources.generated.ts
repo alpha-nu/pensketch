@@ -37,6 +37,9 @@ export const EXAMPLES = {
       880,
       340
     ],
+    "options": {
+      "extrude": true
+    },
     "diagram": {
       "nodes": [
         {
@@ -70,7 +73,8 @@ export const EXAMPLES = {
           "h": 48,
           "lines": [
             "push"
-          ]
+          ],
+          "depth": 16
         },
         {
           "id": "lint",
@@ -115,7 +119,8 @@ export const EXAMPLES = {
           "lines": [
             "all green?"
           ],
-          "size": 12
+          "size": 12,
+          "extrude": false
         },
         {
           "id": "staging",
@@ -226,7 +231,7 @@ export const EXAMPLES = {
             "t"
           ],
           "label": "smoke passed",
-          "lx": 652,
+          "lx": 662,
           "ly": 156,
           "anchor": "start"
         },

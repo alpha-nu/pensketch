@@ -71,11 +71,17 @@ svg text {
       { id: 'ci',      shape: 'group',   x: 30,  y: 30,  w: 470, h: 230, lines: ['continuous integration'] },
       { id: 'rel',     shape: 'group',   x: 530, y: 30,  w: 320, h: 230, lines: ['release'] },
 
-      { id: 'push',    shape: 'pill',    x: 55,  y: 120, w: 110, h: 48, lines: ['push'] },
+      // A pill wants a depth near a third of its height to read as a coin;
+      // at the diagram-wide 12 it reads as a second outline instead. 48 tall,
+      // so 16.
+      { id: 'push',    shape: 'pill',    x: 55,  y: 120, w: 110, h: 48, lines: ['push'], depth: 16 },
       { id: 'lint',    shape: 'box',     x: 195, y: 55,  w: 120, h: 44, lines: ['lint'] },
       { id: 'test',    shape: 'box',     x: 195, y: 122, w: 120, h: 44, lines: ['test'] },
       { id: 'build',   shape: 'box',     x: 195, y: 189, w: 120, h: 44, lines: ['build'] },
-      { id: 'gate',    shape: 'diamond', x: 355, y: 106, w: 120, h: 76, lines: ['all green?'], size: 12 },
+      // Flat on purpose, and the one node that opts out. A diamond extrudes
+      // into a folded corner at every depth, and this one is a question
+      // rather than a thing the pipeline builds.
+      { id: 'gate',    shape: 'diamond', x: 355, y: 106, w: 120, h: 76, lines: ['all green?'], size: 12, extrude: false },
       { id: 'staging', shape: 'box',     x: 570, y: 75,  w: 150, h: 48, lines: ['deploy staging'], size: 12 },
       { id: 'prod',    shape: 'box',     x: 570, y: 180, w: 150, h: 48, lines: ['deploy prod'], accent: true },
     ],
@@ -90,7 +96,10 @@ svg text {
       { from: ['build', 'r'],   to: ['gate', 'l'] },
 
       { from: ['gate', 'r'],    to: ['staging', 'l'], label: 'green', lx: 500, ly: 100 },
-      { from: ['staging', 'b'], to: ['prod', 't'],    label: 'smoke passed', lx: 652, ly: 156, anchor: 'start' },
+      // 662 and not 652: `t` moves by the extrusion vector where `b` does
+      // not, so this leg leans right when the slabs are on and would be drawn
+      // through its own label at the old position.
+      { from: ['staging', 'b'], to: ['prod', 't'],    label: 'smoke passed', lx: 662, ly: 156, anchor: 'start' },
 
       // The way back. `via` walks the legs exactly as given - under both
       // groups, then up into the pill it started from.
@@ -109,7 +118,11 @@ svg text {
       { x: 850, y: 292, lines: ['prod only from a tag'], anchor: 'end',
         arrowFrom: [770, 283], arrowTo: [700, 238] },
     ],
-  }, { seed: 7 });
+    // The stages stay flat and the jobs stand up, which is not a setting:
+    // `draw` never extrudes a group, because a group bounds a set rather than
+    // being an object. So one switch says "the things in this pipeline are
+    // things", and the two rectangles behind them go on reading as regions.
+  }, { seed: 7, extrude: true });
 </script>
 </body>
 </html>

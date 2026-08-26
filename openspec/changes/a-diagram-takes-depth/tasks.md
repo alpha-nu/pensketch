@@ -474,7 +474,7 @@ Gate: full suite, generated files fresh in CI's sense.
       the stranded one, and its single load-bearing sentence promoted into
       the requirement body it was always about rather than deleted with it
 
-- [ ] 5.4 **Owner decided 2026-08-26: ship an extruded example.** The gap the
+- [x] 5.4 **Owner decided 2026-08-26: ship an extruded example.** The gap the
       review found stands: nothing this repository ships extrudes, so
       `openspec/specs/documentation-and-examples/spec.md`'s closed enumeration
       of what `showcase/` demonstrates has silently gone incomplete, this
@@ -514,6 +514,32 @@ Gate: full suite, generated files fresh in CI's sense.
       sentence that means "a reader who meets the project there SHALL meet
       what it can draw" currently lets a whole feature past. Widen it
 
+      **Landed, and the delta was owed more than the two lines expected.**
+      Both enumerations are widened to name a *treatment* beside a shape, the
+      folder that carries extrusion is named with the argument for it, and
+      the general hazard is written into the requirement body: a requirement
+      that lists what a document or a diagram contains goes false the moment
+      either grows, and `--strict` cannot see it. Neither modified
+      requirement lost a scenario - 2 and 9 restated, one added - checked by
+      diffing the scenario titles against the base rather than by counting.
+      A stranded blockquote at the end of "Runnable examples" went with it:
+      a previous change's note to its own reviewer, sitting under a
+      requirement it is not about, its one durable sentence promoted into the
+      body. That is T-57's defect found a second time, and it is in the base
+      spec rather than in this change's deltas.
+
+      **`pipeline` is the first shipped page whose served envelope carries
+      `options`** - `{"extrude":true}` beside its diagram and viewBox - so
+      4.0's resource work is exercised by something at last rather than by
+      the no-options case alone.
+
+      **And the scenario needed a witness.** `check-diagrams.mjs` does measure
+      a page with the page's own options, so an extruded example is checked
+      extruded. But a page that quietly went flat passed every gate: the
+      diagrams check, the suite and a regenerated tree, because flat is a
+      valid drawing too. Measured, not assumed - the mutant was run. One test
+      now asserts a served example's options extrude, and it dies on that
+      mutant. Without it the requirement's new scenario was a wish
 - [ ] 5.5 **The README shows both features, owner-requested 2026-08-26.**
       Three pictures and the prose around them.
 
@@ -537,15 +563,17 @@ Gate: full suite, generated files fresh in CI's sense.
 
       Three things to settle before any of it is drawn:
 
-      1. **How animation reaches a README.** The file is rendered on GitHub
-         *and shipped to npm*, and `docs/assets/*.png` are static images that
-         cannot animate. `tools/record.mjs` produces **MP4**, which GitHub
-         plays and npm does not. So it is an animated GIF, a video that only
-         works on one of the two, or a still that links to the live page.
-         The owner's own recorded evidence is that a GIF counts as an image
-         where a video does not. A GIF of a 1340 x 800 diagram is heavy, and
-         weight is the constraint to price first: `showcase-light.png` is
-         already 548 kB as a still.
+      1. **Settled by the owner 2026-08-26: an animated GIF, never a video.**
+         The reason it was a question at all is worth keeping: `README.md` is
+         rendered on GitHub *and shipped to npm*, `docs/assets/*.png` are
+         static, and `tools/record.mjs` makes **MP4**, which GitHub plays and
+         npm does not - so a video is invisible to half the audience where a
+         GIF is an image everywhere. What remains is engineering, not choice:
+         `record.mjs` needs a GIF path beside its MP4 one, and **weight is
+         the constraint to price first**, since `showcase-light.png` is
+         already 548 kB as a single still. Expect to trade frame rate, palette
+         and dimensions against it, and to record the numbers, since nothing
+         gates the size of a README asset today.
       2. **Whether the showcase's hybrid is a second register or a third.**
          The owner has previously said they have mixed feelings about mixed
          depth diagrams, in the context of the ontologies figures. This asks

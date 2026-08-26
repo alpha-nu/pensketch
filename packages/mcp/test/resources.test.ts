@@ -175,6 +175,25 @@ describe('the showcase counts what the code has', () => {
   });
 });
 
+// A shipped example draws with depth, and this is the only thing that says so.
+// `npm run diagrams` measures a page with the page's own options, so an
+// extruded example is checked extruded - but a page that quietly went flat
+// would pass that gate, pass the suite, and regenerate a clean tree, because
+// flat is a valid drawing too. The documentation-and-examples requirement
+// says a treatment the data model expresses appears in a shipped example;
+// without this, that sentence is a wish.
+describe('a shipped example draws with depth', () => {
+  it('serves at least one example whose options extrude', () => {
+    const extruded = Object.entries(EXAMPLES).filter(
+      ([, e]) => (e as { options?: { extrude?: boolean } }).options?.extrude,
+    );
+    expect(
+      extruded.map(([key]) => key),
+      'no served example is drawn extruded',
+    ).not.toEqual([]);
+  });
+});
+
 // The package README tells an agent what it can fetch, which makes its two
 // counts the same kind of published fact - and both had gone stale: it said
 // seven resources where the server registers eight, and four example diagrams
