@@ -12,6 +12,17 @@
 /** The `<svg viewBox>` the hero is drawn into, as the checker wants it. */
 export const HERO_VIEW_BOX = [0, 0, 880, 300];
 
+/**
+ * The options the hero is drawn with, minus the seed and label that stay
+ * `render-assets.mjs`'s own. One export read by the asset pipeline and the
+ * checker both, because the hero had its options declared twice - hardcoded
+ * where it is drawn and `{}` where it is checked - which is the envelope
+ * defect 4.0 closed for the HTML pages, surviving here in the one diagram
+ * that is not a page. Extruded because the hero is the first drawing anyone
+ * sees, and a reader who meets the project there meets what it can draw.
+ */
+export const HERO_OPTIONS = { extrude: true };
+
 export const HERO = {
   nodes: [
     {
@@ -31,6 +42,9 @@ export const HERO = {
       w: 150,
       h: 52,
       lines: ['request'],
+      // A third of its height, so it reads as a coin rather than as a second
+      // outline - the diagram-wide 12 is calibrated on a box.
+      depth: 17,
     },
     {
       id: 'gate',
@@ -41,6 +55,9 @@ export const HERO = {
       h: 76,
       lines: ['cached?'],
       size: 13,
+      // The one node that opts out: a diamond extrudes into a folded corner
+      // at every depth, and this one is a question rather than a thing.
+      extrude: false,
     },
     {
       id: 'work',
@@ -77,7 +94,9 @@ export const HERO = {
       to: ['store', 't'],
       dotted: true,
       label: 'hit',
-      lx: 352,
+      // 364, not 352: the cache's `t` anchor moves by the extrusion vector,
+      // so this leg leans right and would land on its own label there.
+      lx: 364,
       ly: 186,
       anchor: 'start',
     },

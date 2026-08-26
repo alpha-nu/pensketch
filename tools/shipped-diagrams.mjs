@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { transform } from 'esbuild';
-import { HERO, HERO_VIEW_BOX } from './hero-diagram.mjs';
+import { HERO, HERO_OPTIONS, HERO_VIEW_BOX } from './hero-diagram.mjs';
 
 // Every diagram this repository ships, loaded as data. Two things need this
 // and neither should own it: the checker that holds these diagrams to the
@@ -139,7 +139,7 @@ export async function shippedDiagrams() {
       key: 'hero',
       name: 'docs/assets/hero',
       diagram: HERO,
-      options: {},
+      options: HERO_OPTIONS,
       viewBox: HERO_VIEW_BOX,
     },
   ];

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { chromium } from 'playwright-core';
-import { HERO } from './hero-diagram.mjs';
+import { HERO, HERO_OPTIONS } from './hero-diagram.mjs';
 import { shippedDiagrams } from './shipped-diagrams.mjs';
 
 // Renders the README images with the locally installed Google Chrome: the hero
@@ -125,7 +125,7 @@ function drawShowcase({ diagram, options }) {
 // script publishes. Nothing here closes over this file's scope - the diagram
 // arrives as an argument, which is why only its data half can live in
 // hero-diagram.mjs: page arguments cross as JSON, and `raw` holds functions.
-function drawHero(diagram) {
+function drawHero({ diagram, options }) {
   const PEN = 'var(--ps-pen, #2B5B8A)';
   const MUTED = 'var(--ps-muted, #5A6572)';
 
@@ -150,7 +150,14 @@ function drawHero(diagram) {
         },
       ],
     },
-    { seed: 7, label: 'A hand-sketched request flow drawn by pensketch' },
+    // The hero's own options first, seed and label last and still this
+    // file's - the same spread the showcase gets, so the PNG is drawn with
+    // exactly the options the checker measured.
+    {
+      ...options,
+      seed: 7,
+      label: 'A hand-sketched request flow drawn by pensketch',
+    },
   );
 }
 
@@ -313,7 +320,8 @@ for (const target of TARGETS) {
     });
     await page.goto(`${ORIGIN}/`);
     await page.waitForFunction(() => Boolean(window.__pensketch));
-    if (target.id === 'hero') await page.evaluate(drawHero, HERO);
+    if (target.id === 'hero')
+      await page.evaluate(drawHero, { diagram: HERO, options: HERO_OPTIONS });
     else
       await page.evaluate(drawShowcase, {
         diagram: SHOWCASE.diagram,
