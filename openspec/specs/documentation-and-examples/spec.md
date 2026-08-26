@@ -45,16 +45,6 @@ schema), an honest pensketch-vs-rough.js comparison, and license.
 - **WHEN** the README grows a section this enumeration does not name
 - **THEN** the requirement is false and nothing fails, which is why the enumeration is corrected in the change that adds the section rather than the one that notices
 
-> **README snippets have one source of truth** is edited in one place: what a
-> snippet's source may be when Appendix A does not cover it. Appendix A was
-> archived with `initial-release` and holds A1 through A5; it cannot grow, so a
-> rule naming it as the only source makes every snippet about anything added
-> since unsourceable. The rule's purpose was never the file — it was that a
-> snippet has exactly one home and an API change updates that home rather than
-> five copies. A published `@example` is that home, and a better one: it ships
-> in the `.d.ts`, so a caller reads it in their editor whether or not they ever
-> open a README.
-
 ### Requirement: Package READMEs stand alone on npm
 Each package SHALL ship an npm-facing README per design.md D7 (core: A1 + Pen
 table + variable table; react: A2 + props table + `useSketch`), embedding
@@ -131,20 +121,30 @@ corner pixels verified against the background; the PNGs SHALL be committed
 and reproducible from the same repo state.
 
 The hero is the first drawing anyone sees, and a reader who meets the project
-there SHALL meet what it can draw. A release that adds a connector or
-annotation shape to the data model SHALL read the hero again against it and
-draw the shape where the picture is better for it. The hero is a picture
+there SHALL meet what it can draw. A release that adds anything to the data
+model a reader would see in a picture - a connector shape, an annotation
+shape, or a **treatment** applied to nodes that already exist - SHALL read the
+hero again against it and draw it where the picture is better for it. The
+earlier wording named shapes alone, and depth is a treatment rather than a
+shape, so an entire feature passed a rule whose whole point is that the first
+drawing shows what the library does. The hero is a picture
 first: a shape appears because the drawing wanted it, never so that every
 field is on display. Where the picture is better without a shape, that
 judgement SHALL be recorded, so an absence reads as a decision rather than as
 an oversight.
+
+Depth takes the second arm. Extrusion was drawn on the hero first and stood
+there through three rounds of polish; the owner then read the picture against
+it and judged it better flat. The treatment is carried by `vanilla/` and on
+show in the showcase instead, so the hero's flatness is that recorded
+judgement - a decision, not an oversight.
 
 #### Scenario: Regeneration is a no-op on an unchanged repo
 - **WHEN** the asset script re-runs with no source changes
 - **THEN** the committed PNGs are unchanged
 
 #### Scenario: The hero draws what the package can draw
-- **WHEN** a release adds a connector or annotation shape to the data model
+- **WHEN** a release adds a connector shape, an annotation shape, or a node treatment to the data model
 - **THEN** the hero draws it, or the change records why the picture is better without it
 
 ### Requirement: A served example says what its data cannot carry
@@ -231,17 +231,42 @@ set: an anchor is free and a `bow` is a claim.
 The bundled examples SHALL demonstrate what the library can draw, not only
 what it once could not. Every connector shape the data model expresses — a
 self-transition, and a pair of nodes joined both ways without the two lines
-landing on top of each other — and every annotation shape it expresses — a
-brace and a bracket over a span — SHALL appear in at least one shipped
+landing on top of each other — every annotation shape it expresses — a
+brace and a bracket over a span — and every **treatment** it expresses over
+the nodes themselves, extrusion included, SHALL appear in at least one shipped
 example, so that a reader learning from the examples meets the feature and a
 caller copying one starts from a diagram that uses it. An example added for
 that purpose SHALL still earn its folder: it is a picture worth looking at
 that happens to use the feature, never a feature demonstration with a diagram
 wrapped around it.
 
+Extrusion SHALL be carried and taught by `vanilla/`, and the choice is the
+picture's rather than the count's: a pipeline's stages are groups, which the
+renderer never extrudes because a group bounds a set rather than being an
+object, while its jobs are boxes and its gate is a decision that opts out.
+The hybrid therefore says something true about the drawing instead of
+demonstrating a field. The showcase draws the whole register raised, by owner
+decision of 2026-08-26, the diagram-wide `extrude` stated once in its
+options: the breadth diagram shows the treatment across every shape at once,
+and the groups' refusal to extrude does the work of keeping the bands reading
+as regions behind the objects they hold. What the earlier ruling guarded
+against still holds: a picture reaching for every shape at once remains the
+worst place to introduce a register per node, and it is `vanilla/` that
+introduces it. The showcase applies the register with one switch, and asks
+the reader to have met the field elsewhere.
+
+A requirement that enumerates what a document or a diagram contains goes false
+the moment either grows, and `openspec validate --strict` cannot see it. Every
+list in this requirement is therefore a claim with a short life, and a change
+that adds to the data model SHALL read them against the addition rather than
+trusting that a gate would have said something.
+
 Every shipped diagram SHALL be loadable as data by `tools/shipped-diagrams.mjs`
 and SHALL pass `check` in CI, so that an example cannot teach a defect the
-project publishes a rule against.
+project publishes a rule against. A diagram that extrudes SHALL pass it
+**extruded**, checked with the pair the page draws with, since the sweep is
+what the rules measure and a flat check of an extruded page is a check of a
+drawing nobody is making.
 
 #### Scenario: Vanilla example runs from a fresh clone
 - **WHEN** a user runs `npm ci && npm run build` at the root, serves the repository over HTTP, and opens `examples/vanilla/index.html` (browsers refuse ES-module imports over `file://`)
@@ -254,6 +279,10 @@ project publishes a rule against.
 #### Scenario: What the data model gained is on show
 - **WHEN** a reader looks through the shipped examples after this change
 - **THEN** they find a self-transition, a bowed pair, and a braced span drawn from data, rather than reading that all three are possible and seeing none of them
+
+#### Scenario: A node treatment is on show, not only described
+- **WHEN** a reader looks through the shipped examples for extrusion
+- **THEN** they find a diagram drawn with it, checked extruded by `npm run diagrams` and served with its `options` beside its data, rather than reading in the reference that the fields exist
 
 #### Scenario: A demonstration still has to be a diagram
 - **WHEN** an example is changed to show a new connector or annotation shape
@@ -278,16 +307,4 @@ project publishes a rule against.
 #### Scenario: The bindings are demonstrated where their failures are visible
 - **WHEN** the animated `<PenSketch>` runs in `examples/react`
 - **THEN** it does so under StrictMode and while the diagram is stepping on its timer, so a doubled stylesheet, a missing one, and a drawing that restarts on every render would all be seen rather than reasoned about
-
-> **Root README covers the full learning path** gains one section, and loses a
-> staleness it already carried. The animation section sits after the React
-> quickstart and before the drawing model, which is where a reader meets it:
-> it needs both quickstarts to make sense and none of the model below it.
->
-> The architecture section is not this change's doing — it has been in the
-> README since the showcase example landed and was never added here, so the
-> enumeration has been false for one section already. A requirement that lists
-> what a document contains goes false the moment the document grows, and
-> `--strict` cannot see it, which is why both are corrected together rather
-> than only the one this change is responsible for.
 

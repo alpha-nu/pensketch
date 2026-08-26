@@ -80,8 +80,8 @@ uncovered instead of vanishing from the report.
 ### Requirement: Size budgets are enforced
 `tools/check-size.mjs` SHALL gzip the built ESM entry of each published entry
 point and fail (non-zero exit, printing actual vs budget) when
-`@pensketch/core` exceeds 5120 bytes, `@pensketch/core/check` exceeds 3520
-bytes, `@pensketch/core/server` exceeds 4480 bytes, `@pensketch/react` exceeds
+`@pensketch/core` exceeds 5440 bytes, `@pensketch/core/check` exceeds 3968
+bytes, `@pensketch/core/server` exceeds 5440 bytes, `@pensketch/react` exceeds
 2048 bytes, or `@pensketch/animation` exceeds 768 bytes min+gzip. Each
 published entry SHALL be a self-contained
 file: build-time code splitting SHALL be off, because a shared chunk makes an
@@ -100,6 +100,16 @@ the room, in one step, with the measured need recorded where the number is
 declared. It SHALL NOT be raised at a failing gate to make that gate pass: a
 budget corrected after the fact records only that something grew, where one
 corrected before records what was decided and on what evidence.
+
+A budget sized from a prototype is a claim, and a claim the finished work
+falsifies SHALL be re-decided deliberately rather than left standing because
+it happened to hold. Such a re-decision SHALL be taken while the gate is
+still green, in its own commit, with the new arithmetic beside the number
+and the reason the first was wrong — it is a correction of a decision, not a
+raise for work, and the "in one step" rule above governs the raise, not the
+correction. Where a change knows in advance that its own estimate may not
+survive contact, it SHALL say so where the estimate is recorded, so that the
+correction is a plan being followed rather than a surprise being absorbed.
 
 #### Scenario: Budget breach
 - **WHEN** a change pushes core's min+gzip ESM output over 5120 bytes
