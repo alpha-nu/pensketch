@@ -754,11 +754,70 @@ Gate: full suite, generated files fresh in CI's sense.
       the bands stay flat, the note pointer stops in clear water above
       schema's slab, and no label sits on ink
 
+- [x] 5.11 **SWAT at the groups 4-5 boundary, 2026-08-26: one combined
+      review over both groups - Sage, Wise and Adversarial, Truthful
+      binding - findings T-102..T-113.** Three blockers: T-102, the
+      mirrored-anchor call, and T-103/T-104, both remediated in this round.
+
+      T-103: the depth-cost prose predated 5.6's corner rib and per-face
+      hatch and no longer reproduced. Re-measured on the docs' own probe -
+      one 150 x 46 box at seed 7, `renderToString` from dist, growth over
+      the flat render, least squares over depths 100 to 1000 - the slope is
+      **83.8 B per px** (was "about 80"), the fixed face cost as the d->0
+      growth over flat is **4,558 B** (was 4,126), and one box at
+      `depth: 1000` renders **90,303 B** = 90 kB (was 86). At
+      `depth: 20000` the render is 6,388 paths and 1,690,153 B. Of the
+      review's REJECTED claims, two matter to the record: group 5 added
+      zero bytes to check - the growth the review first read as group 5's
+      was 3.5's and the N-fixes' - and at 20000 both figures went stale,
+      1.6 MB to 1.7 and 6,386 paths to 6,388. The units are decimal, the
+      navigator proving it from the old build's own arithmetic (86,286 B
+      was the "86 kB"), so the next re-measure need not re-litigate the
+      convention. Every stale figure moved -
+      docs/agents.md, both READMEs, the `depth` JSDoc - and the probe
+      recipe stands beside the numbers, seed included, so the next
+      re-measure can re-run it. `npm run resources` re-embedded the
+      corrected spec; `npm run size` unmoved at 5313/3874/5306, JSDoc
+      being free.
+
+      T-104: the changeset, `.changeset/a-diagram-takes-depth.md`, naming
+      core AND mcp at minor explicitly - `updateInternalDependencies:
+      "patch"` would under-declare mcp on a core-only entry - with the
+      parity guarantee stated. And 6.1's "peer floor" corrected to
+      "dependency floor": the core range lives under `dependencies` in
+      mcp's manifest, not in any peer field.
+
+      Three OWNER CALLS left open, exactly as calls. T-102: mirrored
+      extruded anchors land off the ink, and the delta's own "anchor
+      follows the ink" passage argues for the fix Truthful priced by
+      patching and rebuilding - +22 B core, +25 B check, +22 B server,
+      all three green under it - against
+      confining the promise to upright spellings. T-107: check stands at
+      94 B free with conflicting margin precedents, and the T-102 fix
+      would take it to 69. T-111: whether the three tools declare
+      readOnlyHint/openWorldHint annotations - new public surface, so not
+      assumed.
+
+      The nits landed in this round: the two "nothing shipped extrudes"
+      comments rewritten to the served truth (T-105), the README rows
+      naming what vanilla and the showcase extrude (T-106), the depth
+      description owning the boundary's refusal of a non-finite number
+      with a protocol test pinning it (T-108), the printed GIF advice
+      single-quoting its filtergraph so it pastes into zsh and bash
+      (T-109), and the `-loop 0` comment saying the flag pins the muxer's
+      default rather than causes the looping (T-110). Recorded rather
+      than built: T-112 as a follow-up - resources.test.ts reaches the
+      SDK-private `_registeredResources`, so migrate it to resources/list
+      over the InMemoryTransport pair - and T-113's no-guard disposition
+      on record.mjs options passthrough: a page's `options.theme` would
+      fight `--theme` in silence and recorder-owned seed/label win by
+      spread order, priced at nothing because no shipped file does it.
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`
-      raises its core peer floor to the minor that ships the pair; react and
-      animation floors move only if a release actually exposes depth through
-      them, which this change does not require
+      raises its core dependency floor to the minor that ships the pair;
+      react and animation floors move only if a release actually exposes
+      depth through them, which this change does not require
 - [ ] 6.2 **OWNER**: publish order per the standing release order; tags land
       via `publish.yml`, never by hand

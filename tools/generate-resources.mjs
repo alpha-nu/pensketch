@@ -66,9 +66,10 @@ const RAW_DRAWS = {};
 // it. The key is absent rather than empty when a page passes neither, so a
 // served example says nothing about depth unless there is something to say.
 //
-// Nothing shipped extrudes today, so this adds no bytes to the generated file
-// yet. It is here so that the day one does, the example serves the picture the
-// page draws instead of a flat copy of it.
+// Two shipped examples extrude today - the pipeline and the showcase both
+// draw with `extrude: true` - so the generated file carries their pairs, and
+// a served example is the picture the page draws rather than a flat copy of
+// it.
 const pair = ({ extrude, depth } = {}) => {
   const options = {
     ...(extrude === undefined ? {} : { extrude }),

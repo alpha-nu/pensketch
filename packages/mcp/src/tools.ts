@@ -100,7 +100,7 @@ const depth = z
   .number()
   .optional()
   .describe(
-    `How deep a slab is drawn, in px, for every node without a \`depth\` of its own. Default ${constants.DEPTH}, calibrated on a box; a pill wants about a third of its height, and a diamond reads as a folded corner at every depth probed, so prefer it flat. Must be a positive finite number wherever it could be read - whenever extrude is on, and through any node extruding on its own - or the render is refused naming the field. A value nothing reads is ignored.`,
+    `How deep a slab is drawn, in px, for every node without a \`depth\` of its own. Default ${constants.DEPTH}, calibrated on a box; a pill wants about a third of its height, and a diamond reads as a folded corner at every depth probed, so prefer it flat. Must be a positive finite number wherever it could be read - whenever extrude is on, and through any node extruding on its own - or the render is refused naming the field. A value nothing reads is ignored, except a non-finite one: the boundary refuses that before anything decides whether to read it.`,
   );
 
 // The same four substitutions core makes when it serializes an attribute.

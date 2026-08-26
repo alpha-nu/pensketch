@@ -201,7 +201,12 @@ if (config.seed !== undefined && !Number.isFinite(config.seed))
 // way `render-assets.mjs` and `check-diagrams.mjs` carry a page's, so a
 // recording is a video of the drawing the page makes rather than of a flat
 // rendition of its data. Seed, label and order stay this file's: they are
-// what makes it a recording.
+// what makes it a recording. Carried whole cuts both ways, and the hazard is
+// recorded rather than guarded: a file's `options.theme` would ride into
+// `draw` and fight `--theme`'s palette in silence, and the recorder-owned
+// `seed` and `label` always win by spread order. No shipped file does
+// either, and the house does not price a guard against an input that does
+// not exist.
 if (
   config.options !== undefined &&
   (typeof config.options !== 'object' ||
@@ -683,9 +688,10 @@ const pattern = join(dir, 'frame-%05d.png');
 // generic web palette plus ordered dither, which turns a two-color line
 // drawing into confetti. The two-filter form builds the palette from these
 // frames - `stats_mode=diff` weights what changes, which in a drawing that
-// accumulates is the ink - and dithers with it. `-loop 0` because a drawing
-// that draws itself once and freezes is a video's behaviour, not a GIF's:
-// the hold frames give the eye its pause, then the pen starts again.
+// accumulates is the ink - and dithers with it. `-loop 0` is the muxer's own
+// default - infinite, per `ffmpeg -h muxer=gif` - spelled out to pin it
+// against change rather than to cause the looping: the hold frames give the
+// eye its pause, then the pen starts again.
 const GIF_ENCODE = [
   '-vf',
   'split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a',
@@ -715,9 +721,16 @@ const ENCODE = [
 
 if (framesDir !== undefined) {
   console.log(`wrote ${total} frames to ${framesDir}`);
+  // Quoted for the shell it will be pasted into: the GIF arm's `-vf` value
+  // carries `;` and `[]`, which zsh refuses outright and bash splits at the
+  // `;`. The arrays above stay bare - they are argv for spawn, which no
+  // shell reads - so only this printed line wears the quotes, and the MP4
+  // arm needs none.
+  const pasteable = (args) =>
+    args.map((arg) => (/[;[\]]/.test(arg) ? `'${arg}'` : arg)).join(' ');
   console.log(
     `to encode them: ffmpeg -framerate ${fps} -i ${pattern} ` +
-      `${(gifOut ? GIF_ENCODE : ENCODE).join(' ')} ${out}`,
+      `${pasteable(gifOut ? GIF_ENCODE : ENCODE)} ${out}`,
   );
   process.exit(0);
 }

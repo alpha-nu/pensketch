@@ -295,10 +295,10 @@ consumes nothing from the seeded sequence, and renders bytes identical to the
 call that asked for no depth at all. `check` reports what `draw` throws on, in
 the same words, as `undrawable-depth`.
 
-**The cost is linear and nothing bounds it.** About **80 B per px** of depth
-(least squares over depths 100 to 1000 on one 150 × 46 box), on top of a fixed
-**4,126 B** for the faces themselves, which is what the markup grows by as the
-depth approaches nought. One box at `depth: 1000` renders 86 kB. No rule caps a depth, and `check` reads its form
+**The cost is linear and nothing bounds it.** About **84 B per px** of depth
+(least squares over depths 100 to 1000 on one 150 × 46 box at seed 7), on top
+of a fixed **4,558 B** for the faces themselves, which is what the markup
+grows by as the depth approaches nought. One box at `depth: 1000` renders 90 kB. No rule caps a depth, and `check` reads its form
 rather than its price.
 
 ## Errors you will hit, and what they mean
@@ -472,7 +472,7 @@ can use.
 draw, in the same words the throw uses, as `duplicate-id` does. It reads a
 depth's form and never its cost: `check` passes `depth: 20000` on a one-box
 diagram in **0.46 ms**, where `draw` on the same diagram takes **38 ms**,
-emits **1.6 MB** of markup and allocates **34 MB** of heap.
+emits **1.7 MB** of markup and allocates **34 MB** of heap.
 
 Findings arrive sorted by severity, then rule, then position, so the array is
 stable enough to snapshot. `at` is a point in the diagram's own coordinates,

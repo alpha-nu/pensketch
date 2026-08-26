@@ -107,8 +107,9 @@ describe('the examples are served as data', () => {
       // The envelope's own options, for the reason `tools/check-diagrams.mjs`
       // carries them: an example drawn with a pair and measured without it is
       // measured as a different picture, and a slab crossing the frame would
-      // pass here and clip in the render. Nothing shipped extrudes yet, so
-      // this spreads an absent key today and holds the day one does.
+      // pass here and clip in the render. The pipeline and the showcase
+      // both ship extruded, so this spread carries a real pair for those and
+      // an absent key for the rest.
       expect(check(diagram, { ...options, viewBox })).toEqual([]);
     },
   );

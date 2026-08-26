@@ -404,10 +404,10 @@ root provides.
 
 | Folder | Shows | Run |
 |---|---|---|
-| `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, a dotted edge back to the start, and a brace marking two deploys as one build promoted. | `npx serve .`, then open `/examples/vanilla/` |
+| `examples/vanilla/` | **A CI pipeline.** Groups as stages, a gate diamond, three jobs fanning out of one push, a dotted edge back to the start, and a brace marking two deploys as one build promoted — the jobs and deploys extruded into slabs, the gate opted back out flat. | `npx serve .`, then open `/examples/vanilla/` |
 | `examples/custom-pen/` | **An order lifecycle.** States as pills, terminal states hatched, a retry that stays where it is — a self-transition sized by `out` and `span` — and a square bracket over the states the money has moved for, plus `pen()` on its own. | `npx serve .`, then open `/examples/custom-pen/` |
 | `examples/state-machine/` | **An ATM.** A decision that splits the flow, a dotted retry routed back down the left margin, a keypad loop at the default size, and a transition and its reverse bowed apart rather than drawn on one line. | `npx serve .`, then open `/examples/state-machine/` |
-| `examples/showcase/` | **pensketch's own architecture.** A layered logical architecture — what draws a diagram and what makes it draw itself, core's four entry points, the renderer and the checker — that reaches for nearly the whole data model in one picture: all three drawn shapes, `accent` and `hatch`, orthogonal `via` routing, a self-transition, both kinds of brace, and note pointers that bow and take corners. No `raw` anywhere, which is why it can be served as data. | `npx serve .`, then open `/examples/showcase/` |
+| `examples/showcase/` | **pensketch's own architecture.** A layered logical architecture — what draws a diagram and what makes it draw itself, core's four entry points, the renderer and the checker — that reaches for nearly the whole data model in one picture: all three drawn shapes, `accent` and `hatch`, orthogonal `via` routing, a self-transition, both kinds of brace, and note pointers that bow and take corners — the whole of it extruded by one switch. No `raw` anywhere, which is why it can be served as data. | `npx serve .`, then open `/examples/showcase/` |
 | `examples/animation/` | **Photosynthesis in five panels**, each one drawing itself as you reach it. The page holds five diagrams as data and makes two calls per panel — `draw` with `order`, then `animate` — and writes no keyframe, index or `pathLength` of its own. | `npx serve .`, then open `/examples/animation/` |
 | `examples/react/` | **An incident, stepped through.** Five stages that fork at a decision, with the accented node, the stages shaded behind it and the arrows already taken all derived from React state — and it walks itself through on arrival, until you stop it. Plus a seed control: the stage changes the data, the seed changes which drawing of it you get, and every redraw draws itself through the `animate` prop — under StrictMode, so a doubled stylesheet or a missing one would show. | `cd examples/react && npm install && npm run dev` |
 
@@ -485,10 +485,10 @@ so at `depth: 40` the same pair is reported at 119 px. Both over-state, which
 is the direction the whole checker errs in.
 
 **`check` validates a depth's form, not its cost.** A `depth: 20000` on one box
-passes in under half a millisecond, and drawing that same diagram emits 6,386
-paths, 1.6 MB of markup and 34 MB of heap - 38 ms through `renderToString`, and
-around twenty times that through jsdom. Depth costs about 80 B per px on top of
-a fixed 4.1 kB for the faces, and nothing bounds it: no rule here reports a
+passes in under half a millisecond, and drawing that same diagram emits 6,388
+paths, 1.7 MB of markup and 34 MB of heap - 38 ms through `renderToString`, and
+around twenty times that through jsdom. Depth costs about 84 B per px on top of
+a fixed 4.6 kB for the faces, and nothing bounds it: no rule here reports a
 number that is merely expensive.
 
 This repository runs the checker over its own examples and its README image

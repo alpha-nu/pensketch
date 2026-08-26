@@ -560,11 +560,11 @@ export interface DrawOptions extends PenOptions {
    * ignored.
    *
    * Bounded by nothing, and the most expensive number in this object. Depth
-   * costs about 80 B of markup per px - least squares over depths of 100 to
-   * 1000 on one 150 x 46 box - on top of about 4 kB for the faces
-   * themselves, so that one box at `depth: 1000` renders 86 kB. `check`
+   * costs about 84 B of markup per px - least squares over depths of 100 to
+   * 1000 on one 150 x 46 box at seed 7 - on top of about 4.6 kB for the
+   * faces themselves, so that one box at `depth: 1000` renders 90 kB. `check`
    * reads this number's form and not its cost: it passes `depth: 20000` in
-   * under a millisecond, where drawing the same one-box diagram emits 1.6 MB
+   * under a millisecond, where drawing the same one-box diagram emits 1.7 MB
    * of markup.
    */
   depth?: number;

@@ -44,7 +44,7 @@ touching the reference.
   schema regenerates with the node fields.
 - **Docs and release.** The field tables, `docs/agents.md`, the generated
   schema and MCP resources regenerate; core takes a minor; packages exposing
-  the pair raise their core peer floor to the minor that ships it.
+  the pair raise their core dependency floor to the minor that ships it.
 
 ## What does not change
 

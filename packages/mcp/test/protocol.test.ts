@@ -287,6 +287,38 @@ describe('the tool boundary refuses what it cannot carry', () => {
   // name - which tells a caller that hops are not something `check` models,
   // where accepting it and returning findings computed as though it had been
   // applied would tell them the opposite.
+  // `JSON.parse('1e999')` is `Infinity`: a number JSON can write that nothing
+  // can send back. The schema's `z.number()` refuses it before any handler
+  // decides whether to read it - `extrude` unset included, where a finite
+  // depth would be ignored - which is the boundary the description's "except
+  // a non-finite one" sentence owns up to. Pinned here so the sentence and
+  // the behaviour cannot drift apart in silence.
+  it('refuses a non-finite depth at the boundary, read or not', async () => {
+    const depth = JSON.parse('1e999') as number;
+    const cases: [string, Record<string, unknown>][] = [
+      ['render_diagram', { viewBox: BOX, extrude: true }],
+      ['render_diagram', { viewBox: BOX }],
+      ['check_diagram', {}],
+    ];
+    for (const [name, rest] of cases) {
+      const text = await refusal(name, {
+        diagram: { nodes: [NODE] },
+        ...rest,
+        depth,
+      });
+      expect(text).toContain('depth');
+    }
+    // And on the checker it is a refusal of the call rather than a finding:
+    // no findings array comes back, and no rule is named.
+    const checked = await called('check_diagram', {
+      diagram: { nodes: [NODE] },
+      extrude: true,
+      depth,
+    });
+    expect(checked.isError).toBe(true);
+    expect(checked.content?.[0]?.text).not.toContain('undrawable-depth');
+  });
+
   it('refuses hops on check_diagram, which does not model them', async () => {
     const text = await refusal('check_diagram', {
       diagram: { nodes: [NODE] },
