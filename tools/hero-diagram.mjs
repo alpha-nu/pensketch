@@ -18,10 +18,12 @@ export const HERO_VIEW_BOX = [0, 0, 880, 300];
  * checker both, because the hero had its options declared twice - hardcoded
  * where it is drawn and `{}` where it is checked - which is the envelope
  * defect 4.0 closed for the HTML pages, surviving here in the one diagram
- * that is not a page. Extruded because the hero is the first drawing anyone
- * sees, and a reader who meets the project there meets what it can draw.
+ * that is not a page. Empty because flat is a decision: extrusion was drawn
+ * here first, and the owner judged the picture better without it
+ * (2026-08-26); the treatment is on show in `vanilla/` and the showcase
+ * instead.
  */
-export const HERO_OPTIONS = { extrude: true };
+export const HERO_OPTIONS = {};
 
 export const HERO = {
   nodes: [
@@ -42,9 +44,6 @@ export const HERO = {
       w: 150,
       h: 52,
       lines: ['request'],
-      // A third of its height, so it reads as a coin rather than as a second
-      // outline - the diagram-wide 12 is calibrated on a box.
-      depth: 17,
     },
     {
       id: 'gate',
@@ -84,18 +83,14 @@ export const HERO = {
       to: ['work', 'l'],
       label: 'miss',
       lx: 450,
-      // 102, not 105: the gate's `r` anchor moves by the extrusion vector,
-      // so this leg starts higher and ran through its own label.
-      ly: 102,
+      ly: 105,
     },
     {
       from: ['gate', 'b'],
       to: ['store', 't'],
       dotted: true,
       label: 'hit',
-      // 364, not 352: the cache's `t` anchor moves by the extrusion vector,
-      // so this leg leans right and would land on its own label there.
-      lx: 364,
+      lx: 352,
       ly: 186,
       anchor: 'start',
     },

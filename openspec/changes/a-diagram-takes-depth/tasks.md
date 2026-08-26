@@ -698,6 +698,18 @@ Gate: full suite, generated files fresh in CI's sense.
       default guidance; the hero now demonstrates the fold used on purpose,
       which is the difference between a default and a rule
 
+- [x] 5.9 **Owner, fourth round, 2026-08-26: "revert to the plain old flat
+      hero."** The reversal of 5.5a, and of that alone: the picture data is
+      back at its pre-5.5a form, and the re-rendered PNGs hash byte-identical
+      to the pre-5.5a committed assets - light
+      `86b8bd95b446e123881415aa5c696f8879a23df8`, dark
+      `bcb4c1afbf49f234e6e2106d433b9171b86a7df4` - which is the whole
+      verification. `HERO_OPTIONS` stays exported at `{}`, because the
+      envelope fix outlives the option it carried. The judgement is recorded
+      in the documentation-and-examples delta's hero requirement; the
+      5.6-5.8 renderer fixes are untouched by this reversal, and the
+      treatment stays on show in `vanilla/` and the showcase
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`

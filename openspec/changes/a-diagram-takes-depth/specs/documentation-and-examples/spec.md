@@ -33,6 +33,12 @@ field is on display. Where the picture is better without a shape, that
 judgement SHALL be recorded, so an absence reads as a decision rather than as
 an oversight.
 
+Depth takes the second arm. Extrusion was drawn on the hero first and stood
+there through three rounds of polish; the owner then read the picture against
+it and judged it better flat. The treatment is carried by `vanilla/` and on
+show in the showcase instead, so the hero's flatness is that recorded
+judgement - a decision, not an oversight.
+
 #### Scenario: Regeneration is a no-op on an unchanged repo
 - **WHEN** the asset script re-runs with no source changes
 - **THEN** the committed PNGs are unchanged
