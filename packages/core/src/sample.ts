@@ -123,8 +123,10 @@ export function arcPoints(
  * which is where the pen puts it - `Math.sign(NaN)` is `NaN` and nothing
  * dots positive with the vector.
  *
- * A pill whose sampled outline has collapsed to a chord. `pill` extrudes the
- * ellipse `arcPoints` samples rather than the jittered points it strokes, and
+ * A pill whose sampled outline has collapsed to a chord. `pill` decides its
+ * extrusion on the ellipse `arcPoints` samples rather than on the jittered
+ * points it strokes - the ink then rides the drawn deviations, but what
+ * faces, winds and collapses is the ideal - and
  * `ARC_MIN_CHORD` floors that sampling at `MIN_STEPS`: two chords, whose three
  * points are one diameter with its first repeated, and a diameter encloses
  * nothing. Three chords is the first outline with an area to wind, which a

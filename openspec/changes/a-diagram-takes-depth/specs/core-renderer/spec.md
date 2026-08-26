@@ -62,6 +62,14 @@ no ribs, and the picture said so before any review did: two faces fused into
 one bent strip, a box missing the upper-right edge the approved prototype
 drew, a defect the owner caught by eye in the shipped hero.
 
+The band SHALL ride the outline the front was drawn with: a pill deforms
+its radii point by point before stroking, and an offset of the bare ideal is
+parallel to a curve nobody drew — the drawn front wanders around it, so the
+band pinched and bulged against the edge the eye compares it to, and the
+owner read its back edge as not parallel. The ideal still decides — the
+facing run, the winding, whether a face exists at all — and the deviations
+the front was drawn at carry the ink.
+
 Shading SHALL be decided per face — the runs between corners, the whole run
 where there are none. A face is shaded when any part of it descends the
 screen, in the muted theme color at `HATCH_GAP` through `hatch`'s clip arm,

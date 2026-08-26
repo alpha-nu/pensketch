@@ -28,6 +28,7 @@ const {
   PASS2_W,
   PILL_AMP,
   PILL_JX,
+  PILL_JY,
   PILL_STEPS,
   SEG_LEN,
   SIZE,
@@ -633,10 +634,35 @@ describe('depth', () => {
     // at sample 0, beginning at sample 15, low on the left, and ending at
     // sample 2, low on the right - pinned as indices rather than recomputed
     // from the facing rule.
+    //
+    // What is inked, though, is the ideal *ridden by the deviations the
+    // front was drawn with* - the band offset from the bare ideal was
+    // parallel to a curve nobody drew, and the owner read its back edge as
+    // not parallel to the front. The deviations replay exactly: a pill's
+    // first 54 draws are its 27 radius pairs, in x-then-y order, so a
+    // second pen at the same seed hands this test the numbers the drawing
+    // used. At this seed the ride moves the run's end nearly a pixel, so
+    // the tight tolerances below are what kill a band that falls back to
+    // the ideal.
+    const replica = pen(makeSvg());
+    const draws: number[] = [];
+    for (let i = 0; i < 54; i++) draws.push(replica.rng());
+    const ride = (k: number): Point => {
+      const a = (k / PILL_STEPS) * 2 * Math.PI;
+      return [
+        75 + Math.cos(a) * (75 + ((draws[2 * k] as number) - 0.5) * PILL_JX),
+        25 +
+          Math.sin(a) * (25 + ((draws[2 * k + 1] as number) - 0.5) * PILL_JY),
+      ];
+    };
     const out = arcPoints(75, 25, 75, 25, 0, 2 * Math.PI);
     expect(out).toHaveLength(27);
-    const from = nth(out, 15);
-    const to = nth(out, 2);
+    const from = ride(15);
+    const to = ride(2);
+    // The replayed ride sits on the ideal sample, displaced by under half a
+    // radius jitter - the sanity check that the replay is the drawing's.
+    expectNear(from, nth(out, 15), PILL_JX / 2);
+    expectNear(to, nth(out, 2), PILL_JX / 2);
     const chain = pointsOf(nth(paths, 2));
     expect(chain).toHaveLength(13 * MIN_STEPS + 1);
     expectNear(nth(chain, 0), [from[0] + EX, from[1] + EY], spread(AMP));
@@ -646,7 +672,8 @@ describe('depth', () => {
       damped(AMP),
     );
 
-    // Exactly two connectors, one at each silhouette point.
+    // Exactly two connectors, one at each silhouette point, from the ridden
+    // outline out.
     const first = pointsOf(nth(paths, 4));
     expectNear(nth(first, 0), from, spread(AMP));
     expectNear(

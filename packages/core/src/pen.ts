@@ -201,19 +201,54 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     const rx = w / 2;
     const ry = h / 2;
     const pts: Point[] = [];
+    // The deviation each point was drawn at, kept so the extrusion can ride
+    // it. The same two `j` draws per point as ever, in the same order, so a
+    // flat pill's bytes do not move.
+    const devx: number[] = [];
+    const devy: number[] = [];
     for (let i = 0; i <= PILL_STEPS; i++) {
       const a = (i / PILL_STEPS) * 2 * Math.PI;
-      pts.push([
-        cx + Math.cos(a) * j(rx, PILL_JX),
-        cy + Math.sin(a) * j(ry, PILL_JY),
-      ]);
+      const rxi = j(rx, PILL_JX);
+      const ryi = j(ry, PILL_JY);
+      devx.push(rxi - rx);
+      devy.push(ryi - ry);
+      pts.push([cx + Math.cos(a) * rxi, cy + Math.sin(a) * ryi]);
     }
     stroke(pts, { ...opts, amplitude: PILL_AMP });
     // The ideal ellipse the loop above jitters around, sampled by the same
     // rule `hatchClip` samples it by - the outline this codebase already
     // treats as the pill's, not a second one. A full sweep repeats its first
     // point, which `extrude` must not see as a segment.
-    extrude(arcPoints(cx, cy, rx, ry, 0, 2 * Math.PI).slice(0, -1), opts);
+    //
+    // The ideal decides - the facing run, the winding, whether there is a
+    // face at all - and the deform below is how the ink then rides the
+    // outline the front was actually drawn with. A band offset from the
+    // ideal is parallel to a curve nobody drew: the front wanders up to
+    // half `PILL_JX` around it, low-frequency and per point, so against
+    // the drawn edge the band pinched and bulged, and the owner read its
+    // back edge as not parallel. The angle is recovered exactly because an
+    // outline point is `(cx + cos(a) rx, cy + sin(a) ry)` by construction,
+    // whatever the sign of either radius; the captured deviations are
+    // interpolated between samples, so a pill large enough for `arcPoints`
+    // to sample finer than `PILL_STEPS` rides the same drawn shape.
+    const deform = ([px, py]: Point): Point => {
+      let a = Math.atan2((py - cy) / ry, (px - cx) / rx);
+      if (a < 0) a += 2 * Math.PI;
+      // `a` is in [0, 2 pi), so `f` is under `PILL_STEPS` and `k + 1` never
+      // outruns the 27 samples the loop above captured.
+      const f = (a / (2 * Math.PI)) * PILL_STEPS;
+      const k = Math.floor(f);
+      const t = f - k;
+      const dx = (devx[k] as number) * (1 - t) + (devx[k + 1] as number) * t;
+      const dy = (devy[k] as number) * (1 - t) + (devy[k + 1] as number) * t;
+      return [px + Math.cos(a) * dx, py + Math.sin(a) * dy];
+    };
+    extrude(
+      arcPoints(cx, cy, rx, ry, 0, 2 * Math.PI).slice(0, -1),
+      opts,
+      false,
+      deform,
+    );
   }
 
   // A curve here is a denser point list and nothing else, which is what lets
@@ -285,7 +320,12 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   // call instead: `ARC_MIN_CHORD` floors a mid-size pill's sampling at
   // chords that turn more sharply than a wide diamond's corner, so any angle
   // that spares the pill loses the diamond.
-  function extrude(outline: Point[], opts: ShapeOptions, faceted = false) {
+  function extrude(
+    outline: Point[],
+    opts: ShapeOptions,
+    faceted = false,
+    deform?: (p: Point) => Point,
+  ) {
     const d = opts.depth;
     if (typeof d !== 'number' || !Number.isFinite(d) || d <= 0) return;
     const ex = d;
@@ -307,8 +347,13 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
     for (let i = 0; i < m && start < 0; i++)
       if (facing(i) && !facing(i + m - 1)) start = i;
     if (start < 0) return;
-    const run: Point[] = [outline[start] as Point];
-    for (let i = start; facing(i); i++) run.push(outline[(i + 1) % m] as Point);
+    // Facing and winding were read off the ideal above; what gets inked is
+    // the deformed run, so the band's edges wander with the front outline
+    // they hang off rather than with the ideal it was reasoned about.
+    const ideal: Point[] = [outline[start] as Point];
+    for (let i = start; facing(i); i++)
+      ideal.push(outline[(i + 1) % m] as Point);
+    const run = deform ? ideal.map(deform) : ideal;
     const off = run.map(([px, py]): Point => [px + ex, py + ey]);
     stroke(off, opts);
     stroke([run[0] as Point, off[0] as Point], opts);

@@ -655,6 +655,31 @@ Gate: full suite, generated files fresh in CI's sense.
       re-rendered; the mechanism sentence corrected in the delta, both
       READMEs, `docs/agents.md` and two JSDoc sites
 
+- [x] 5.7 **Owner eye-check, second round: the pill's back edge was not
+      parallel to its front.** Not the owner's eyes. `pill` deforms each
+      outline point's radii by up to half `PILL_JX` before stroking - the
+      hand-drawn look - while the band was offset from the bare ideal, so
+      its back edge was parallel to a curve nobody drew and diverged from
+      the drawn front by up to ~3 px on a 21 px band. A box hides the same
+      mismatch behind its corners; a continuous band cannot.
+
+      The band now rides the drawn deviations: `pill` captures them - the
+      same two `j` draws per point in the same order, so a flat pill's
+      bytes do not move and the goldens stay untouched - and hands
+      `extrude` a deform that recovers each ideal sample's angle and
+      interpolates the captured deviation there, which also carries a pill
+      big enough for `arcPoints` to sample finer than `PILL_STEPS`. The
+      ideal still decides facing, winding and the face bound; the ink
+      rides the drawing.
+
+      The test replays the drawing's own numbers: a pill's first 54 draws
+      are its 27 radius pairs, so a second pen at the same seed hands the
+      test the exact deviations, and the chain is pinned to the ridden
+      positions at the old tight tolerances. Two mutants die: the deform
+      dropped, and its interpolation frozen at the first sample. +153 B on
+      core, +145 on server - the budgets left at 1 B and 8 B, re-decided
+      in their own commit
+
 ## 6. Release
 
 - [ ] 6.1 **OWNER**: core minor (0.7.0) via the release flow; `@pensketch/mcp`
