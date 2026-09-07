@@ -1,0 +1,54 @@
+name: Pages
+
+# Publishes `docs/showcase/` to GitHub Pages.
+#
+# It deploys what is committed rather than regenerating here. The page is a
+# generated artefact held to a fresh generation by CI's tree-clean assertion,
+# so building it again in this workflow would prove nothing the other job has
+# not already proved, and would let a deploy succeed from a tree CI had
+# rejected. What ships is what was reviewed.
+#
+# Pages has to be enabled once by hand, with Source set to GitHub Actions.
+# Until then this workflow fails at the configure step, which is the right
+# failure: a deploy that quietly did nothing would be worse.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/showcase/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Read the tree, write a Pages deployment, and mint the OIDC token the deploy
+# action exchanges. Nothing else.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a newer push wins. `cancel-in-progress: false`
+# would queue them and publish an older page after a newer one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/configure-pages@v5
+
+      # The directory, not the repository: the page is self-contained, so
+      # nothing else needs to travel with it.
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/showcase
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -37,6 +37,21 @@ root unless told otherwise.
   and the diagrams this repository ships. `git diff` must be clean
   afterwards, which is what stops a resource telling an agent something the
   repository stopped doing.
+- `npm run showcase` - regenerates `docs/showcase/index.html`, the published
+  page showing every diagram this repository ships. `git diff` must be clean
+  afterwards, which is what stops the page claiming a figure the repository
+  stopped drawing. The generator refuses in both directions: a diagram it
+  names that `shippedDiagrams()` no longer returns, and a diagram
+  `shippedDiagrams()` returns that the page does not place. Adding an example
+  therefore stops the build until someone decides where it goes, which is the
+  only way a generated page stays curated.
+- `npm run http` - spawns the built HTTP server the way a deployment spawns
+  it and completes a real round trip over a socket: initialize, list the
+  tools, call one. The suite drives the same handler through `fetch` with no
+  socket at all; this proves the file `bin` names starts under a bare `node`,
+  that the shared chunks code splitting produces resolve at runtime, that
+  nothing reaches stdout, and that `render_png` is absent from the list an
+  HTTP client is sent.
 - `npm run exports` - loads every published entry point, as ESM and as CJS,
   and asserts each exposes exactly its documented surface. Nothing else in the
   project loads `dist/`, so this is the only thing that would notice an

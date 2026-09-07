@@ -276,7 +276,7 @@ describe('the listener', () => {
 
 describe('the body cap', () => {
   const post = (port: number, headers: Record<string, string>, body: string) =>
-    new Promise<number>((resolve, reject) => {
+    new Promise<number>((resolve) => {
       const req = request(
         {
           host: '127.0.0.1',
