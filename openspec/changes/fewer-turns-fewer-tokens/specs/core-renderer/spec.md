@@ -4,9 +4,11 @@
 
 ### Requirement: A node without a shape is a box
 `shape` SHALL be optional on a node and SHALL default to `box`. The default
-exists to shorten what an agent writes: 41 of the 49 nodes in this
-repository's shipped figures are plain boxes and every one of them spells the
-field out.
+exists to shorten what an agent writes: 71 of the 100 drawn nodes across the
+15 figures this repository ships are plain boxes and every one of them spells
+the field out. Any figure quoting that share SHALL name the corpus it counted
+and the denominator it used, because the two differ - 110 nodes are shipped
+and 100 of them are drawn rather than group frames.
 
 The relaxation SHALL be additive. Every diagram valid before this change SHALL
 draw byte-identically after it, because a stated `shape: "box"` and an omitted

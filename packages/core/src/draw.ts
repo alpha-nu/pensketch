@@ -463,7 +463,12 @@ export function draw(
     .filter((n) => n.shape !== 'group')
     .forEach((n) => {
       // An omitted shape is a box: the common case, and the one an agent
-      // should not have to spell out. A wrong one still names itself.
+      // should not have to spell out. A wrong one still names itself, with
+      // the one exception `??` buys - `null` coalesces too, so a generator
+      // that writes `"shape": null` gets a box rather than the error it used
+      // to get. TypeScript forbids it and the schema refuses it; the tools
+      // do not validate inside a node, so it can arrive over JSON. Left as
+      // it is: `null` there means "no shape", and a box is what that means.
       const shape = shapes.get(n.shape ?? 'box');
       if (!shape)
         throw new Error(

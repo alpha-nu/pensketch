@@ -216,9 +216,9 @@ interface ShapeNode extends NodeBox {
   /**
    * Which outline to trace around the box. Default: `'box'`.
    *
-   * Optional because a box is what most nodes are - 41 of the 49 nodes in
-   * this repository's own shipped figures - and every one of them spelled the
-   * field out. An agent writing a diagram pays for that in tokens it
+   * Optional because a box is what most nodes are - 71 of the 100 drawn nodes
+   * across the 15 figures this repository ships - and every one of them
+   * spelled the field out. An agent writing a diagram pays for that in tokens it
    * generates one at a time, so the common case is the one that should be
    * free to write. An omitted `shape` and `shape: 'box'` produce the same
    * bytes; nothing existing changes.

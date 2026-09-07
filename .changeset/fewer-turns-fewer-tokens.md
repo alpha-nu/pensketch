@@ -16,11 +16,10 @@ block carrying the message, because there is no drawing to report findings
 for. `check_diagram` is unchanged and stays: it is what you call for findings
 without markup, and before spending a multi-second `render_png`.
 
-`shape` is now optional on a drawn node, and defaults to `box`. 41 of the 49
-nodes in this repository's own shipped figures are boxes, and every one of
-them spelled the field out - an agent generates that one token at a time. An
-omitted `shape` and `shape: 'box'` produce the same bytes, proved by a test
-that reverts each of the three read sites in turn.
+`shape` is now optional on a drawn node, and defaults to `box`. 71 of the 100
+drawn nodes across the 15 figures this repository ships are boxes, and every
+one of them spelled the field out - an agent generates that one token at a time. An
+omitted `shape` and `shape: 'box'` produce the same bytes.
 
 **Nothing existing changes meaning.** Every diagram written against 0.7
 renders byte for byte what it rendered. Minor rather than patch because the
