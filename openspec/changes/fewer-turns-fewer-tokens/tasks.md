@@ -60,4 +60,11 @@ after the fact is a lever nobody knows landed.
 
 - [ ] 5.1 `/swat` over the whole change
 - [ ] 5.2 Every Truthful finding remediated
-- [ ] 5.3 A changeset; core and mcp both move
+- [x] 5.3 A changeset; core and mcp both move
+
+      `.changeset/fewer-turns-fewer-tokens.md`, both at minor. At release,
+      mcp's core floor moves with it: `^0.7.0` cannot stand, because mcp
+      serves a schema saying `shape` is optional and core 0.7 throws
+      `unknown shape "undefined"` on a node that omits it. The floor is
+      rewritten by `changeset version` the way `d86113c` did it, and that is
+      the owner's step, not the agent's.
