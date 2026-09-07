@@ -125,6 +125,11 @@ box that means "decided not to" reads as "done" to anyone scanning.
 
 ## 5. Group boundary
 
-- [ ] 5.1 `/swat` over the whole change
-- [ ] 5.2 Every Truthful finding remediated
+- [x] 5.1 `/swat` over the whole change
+- [x] 5.2 Every Truthful finding remediated
+
+      T-23 to T-32. The blocker was T-23: `render_png` was excluded for
+      holding the loop 2.4 s, and `render_diagram` could be made to hold it
+      longer and then run out of memory, which made the whole SVG-only
+      argument false until a bound existed.
 - [ ] 5.3 **OWNER** publish and tag
