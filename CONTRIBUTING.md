@@ -157,9 +157,19 @@ Two workflows, both `workflow_dispatch`, and each refuses the other's job:
 1. **Version** — opens or updates the "Version Packages" pull request from the
    pending changesets, correcting the install pin in the same breath. Refuses
    when nothing is pending. Merge the pull request it opens.
-2. **Publish** — publishes to npm and pushes the tags. Refuses while a
-   changeset is still pending, and refuses a commit whose CI run has not
-   concluded successfully.
+2. **Publish** — publishes to npm, pushes the tags, and lists the release in
+   the MCP registry. Refuses while a changeset is still pending, and refuses a
+   commit whose CI run has not concluded successfully.
+
+The registry step is last, and it has to be: the registry verifies ownership by
+fetching the *published* package and matching the `mcpName` in it against the
+server name in `packages/mcp/server.json`. It authenticates with the same OIDC
+token npm's trusted publisher uses, so there is no secret for it. It asks the
+registry what it already has rather than assuming — a re-dispatch of a complete
+release finds the version listed and does nothing, and a dispatch where npm
+succeeded but the listing failed finds it missing and retries. If it ever fails
+on its own, the release itself is done; `mcp-publisher publish` from
+`packages/mcp/` finishes it.
 
 They are separate files because one is reversible and the other is not, and a
 single control that decides for itself which it is doing cannot be read before

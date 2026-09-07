@@ -209,3 +209,55 @@ jobs:
           done
 
           git push origin --tags
+
+      # The MCP registry listing, last because it is the only step here whose
+      # failure costs nothing already done, and because it cannot run earlier:
+      # the registry verifies ownership by fetching the *published* package and
+      # matching the `mcpName` in it against the server name in `server.json`.
+      # Run before the publish above, it would be checking a version npm does
+      # not have.
+      #
+      # `login github-oidc` rather than a stored token: the same
+      # `id-token: write` npm's trusted publisher uses, so this adds no secret
+      # to the one file in this repository that holds release credentials.
+      #
+      # Guarded on what the registry says it has, not on whether this dispatch
+      # published anything. Those differ in the case that matters: a dispatch
+      # where npm succeeded and this step failed. A "did we publish" guard
+      # would skip the retry and leave the listing permanently a release
+      # behind; asking the registry finds the version missing and publishes it.
+      # A re-dispatch of a complete release finds it present and does nothing.
+      - name: List the release in the MCP registry
+        run: |
+          set -euo pipefail
+
+          name=$(node -p "require('./packages/mcp/server.json').name")
+          version=$(node -p "require('./packages/mcp/server.json').version")
+          encoded=$(node -p 'encodeURIComponent(process.argv[1])' "$name")
+          at="https://registry.modelcontextprotocol.io/v0.1/servers/${encoded}/versions/${version}"
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$at")
+
+          if [ "$code" = "200" ]; then
+            echo "${name}@${version} is already listed. Nothing to do."
+            exit 0
+          fi
+
+          # Neither listed nor absent is not an answer this step can act on, so
+          # it stops rather than publishing over a state it could not read.
+          if [ "$code" != "404" ]; then
+            echo "::error::The registry answered ${code} for ${name}@${version}."
+            echo "Expected 200 (listed) or 404 (not yet). The release itself is"
+            echo "published and tagged; only the listing is outstanding, and"
+            echo "\`mcp-publisher publish\` from packages/mcp/ completes it."
+            exit 1
+          fi
+
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" \
+            | tar xz -C "$RUNNER_TEMP" mcp-publisher
+
+          # `server.json` sits beside the manifest it mirrors, so the publisher
+          # runs from there rather than from the repository root.
+          cd packages/mcp
+          "$RUNNER_TEMP/mcp-publisher" login github-oidc
+          "$RUNNER_TEMP/mcp-publisher" publish

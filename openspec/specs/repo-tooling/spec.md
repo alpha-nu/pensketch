@@ -309,6 +309,14 @@ tools depend on when they happened to launch.
 - **WHEN** the registry manifest's server name and the package's `mcpName` differ
 - **THEN** the generator fails naming both, rather than leaving the refusal to happen at the registry
 
+#### Scenario: The listing is part of the release, not a chore after it
+- **WHEN** a version is published to npm by the publishing workflow
+- **THEN** the same dispatch lists it in the MCP registry, authenticating with the workflow's own OIDC token rather than a stored credential, and after the npm publish rather than before it, because the registry verifies ownership against the published package
+
+#### Scenario: A listing step that failed can be run again
+- **WHEN** the publishing workflow is re-dispatched after npm succeeded and the registry step did not
+- **THEN** it publishes the listing, because the step asks the registry which versions it holds rather than whether this dispatch published anything
+
 #### Scenario: A release cannot ship instructions for the release before it
 - **WHEN** a version bump changes what `@pensketch/mcp` publishes as
 - **THEN** the same pull request carries READMEs naming the new version, and CI's tree-clean assertion fails if it does not
