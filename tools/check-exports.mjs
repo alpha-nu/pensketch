@@ -60,6 +60,25 @@ const ENTRIES = [
     base: 'packages/animation/dist/index',
     surface: ['animate', 'animateMarkup', 'rules'],
   },
+  {
+    // The server was absent from this list until 2026-09-07, and `require` of
+    // it had never once worked: `render.ts` calls `createRequire(import.meta.url)`
+    // and esbuild left that expression in the CJS output, so loading it threw
+    // before a single line ran. Two published `require` conditions, both
+    // false, and nothing here to notice - this file is the only thing in the
+    // repository that loads `dist/`, by its own comment above, and it was not
+    // asked about the one package whose entry points are also a `bin`.
+    //
+    // `ToolOptions` is a type, erased before this can see it.
+    name: '@pensketch/mcp',
+    base: 'packages/mcp/dist/index',
+    surface: ['createServer'],
+  },
+  {
+    name: '@pensketch/mcp/http',
+    base: 'packages/mcp/dist/http',
+    surface: ['createGuardedHandler', 'createHandler', 'serve'],
+  },
 ];
 
 let problems = 0;
