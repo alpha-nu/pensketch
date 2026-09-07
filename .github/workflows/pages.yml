@@ -5,19 +5,23 @@ name: Pages
 # It deploys what is committed rather than regenerating here. The page is a
 # generated artefact held to a fresh generation by CI's tree-clean assertion,
 # so building it again in this workflow would prove nothing the other job has
-# not already proved, and would let a deploy succeed from a tree CI had
-# rejected. What ships is what was reviewed.
+# not already proved.
+#
+# That reasoning only holds if CI's verdict actually gates this, and the first
+# draft of this file claimed it did while triggering on `push` - a sibling of
+# CI, not a consequence of it. A commit that failed CI *on the very assertion
+# saying the page is stale* would have published anyway. `workflow_run` is
+# what the comment always described.
 #
 # Pages has to be enabled once by hand, with Source set to GitHub Actions.
 # Until then this workflow fails at the configure step, which is the right
 # failure: a deploy that quietly did nothing would be worse.
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'docs/showcase/**'
-      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 # Read the tree, write a Pages deployment, and mint the OIDC token the deploy
@@ -27,11 +31,18 @@ permissions:
   pages: write
   id-token: write
 
-# One deployment at a time, and a newer push wins. `cancel-in-progress: false`
-# would queue them and publish an older page after a newer one.
+# One deployment at a time, and the in-flight one is allowed to finish.
+#
+# `cancel-in-progress: true` was the first draft, on the reasoning that `false`
+# would queue runs and publish an older page after a newer one. It would not:
+# a group keeps at most one pending run by default, so the newest still wins
+# either way. What cancelling actually buys is the documented failure where a
+# deploy killed mid-flight leaves the site wedged on "deployment request
+# failed due to in progress deployment", recoverable only through the REST
+# API.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -39,16 +50,25 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
+    # Only a green CI publishes. A dispatch is the manual escape hatch, and
+    # the first deploy after Pages is enabled by hand needs it.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
+      # The commit CI passed on, not whatever the default branch has moved to
+      # since - and, on a dispatch, the ref it was dispatched from.
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
       # The directory, not the repository: the page is self-contained, so
       # nothing else needs to travel with it.
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/showcase
 
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

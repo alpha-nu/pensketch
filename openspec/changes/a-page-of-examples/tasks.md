@@ -64,8 +64,21 @@ Group 1 is blocked on all four owner calls in `proposal.md`.
 - [x] 4.1 The deploy workflow for whichever target 1.0 named
 - [x] 4.2 A CI check that the committed page matches a fresh generation,
       under the same tree-clean assertion as the goldens and the schema
-- [x] 4.3 README links the page
-- [ ] 4.4 **OWNER** enable Pages (or the equivalent) and confirm the URL
+- [ ] 4.3 README links the page — BLOCKED ON 4.4
+
+      Ticked once and reverted. The link went into `README.md` while Pages was
+      still disabled, so the repository's front page advertised a URL that
+      answered 404 - verified, not assumed. 4.3 cannot be done before 4.4;
+      the link goes back once the site answers.
+- [ ] 4.4 **OWNER** enable Pages and confirm the URL, then add the README link
+
+      Settings → Pages → Source: **GitHub Actions**, not "Deploy from a
+      branch". The branch option with `/docs` would publish `docs/agents.md`
+      and 2.3 MB of `docs/assets/` alongside the page, and would serve it at
+      `/pensketch/showcase/` rather than at the root the README link expects.
+
+      Then dispatch the Pages workflow once by hand: it now triggers on CI
+      completing, so nothing fires until the next commit otherwise.
 
 ## 5. Group boundary
 

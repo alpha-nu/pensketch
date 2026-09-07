@@ -7,9 +7,6 @@
   <img alt="A hand-sketched request flow drawn by pensketch" src="docs/assets/hero-light.png">
 </picture>
 
-**[See every diagram it ships](https://alpha-nu.github.io/pensketch/)** — one
-page, drawn by the library from the same data its tests measure.
-
 ## Why pensketch
 
 - **A diagram is data.** A plain object, in your repository, that reviews and
