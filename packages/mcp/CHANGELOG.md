@@ -1,5 +1,94 @@
 # @pensketch/mcp
 
+## 0.8.0
+
+### Minor Changes
+
+- 559a8ec: Three fixes to how this package is built and what it will accept. No tool
+  changes behaviour, and nothing an existing client does needs revisiting.
+
+  `require()` of this package now works, and never has. `render.ts` calls
+  `createRequire(import.meta.url)` and esbuild left that expression in the CJS
+  output, so both published `require` conditions threw on load. `tsup` gains
+  `shims`, and the exports gate - the only thing in the repository that loads
+  `dist/` - gains this package, which it had never been asked about. That gate is
+  why the next one cannot come back.
+
+  The tarball is a little over half what it was: 284 KB packed before, **152 KB**
+  now,
+  measured 2026-09-07. The two entries each inlined their own copy of the SDK;
+  as shared chunks they do not. Code splitting is what buys that, and it is
+  allowed here because no entry of this package is measured against a byte
+  budget. Dated rather than gated, for the same reason.
+
+  **A diagram is now capped at 500 nodes, 50 edges, and 500 braces or notes.**
+  This narrows an existing contract, so it is the one thing here a caller can
+  notice: a diagram over those counts worked before and is refused now.
+
+  The two numbers differ because the two costs do. Several of the checker's rules
+  compare every pair, so the work grows with the square - but a curved edge is
+  sampled into many chords before each crossing test, so edges cost far more per
+  pair than nodes. 500 overlapping nodes is 67 ms. 500 bowed edges is minutes.
+  Measured on a hub with n spokes: 50 bowed edges is 593 ms, 100 is 2.5 s, 200 is
+  9.8 s. Braces and notes are cheap - 200 of them cost 39 ms - and stay at 500.
+
+  Nobody hand-writes 500 nodes, so what a cap catches is a generated diagram. An
+  agent that gets an immediate refusal naming the number can act on it; a call
+  that simply takes a minute is a turn it can neither spend nor explain.
+
+- bae2e73: Fewer turns, fewer tokens. Two changes aimed at what an agent pays to draw a
+  diagram, both measured before and after against the same scenario.
+
+  `render_diagram` now returns the layout findings beside the markup. A fix
+  cycle was two calls - `check_diagram`, then `render_diagram` - and is one.
+  The markup stays the first content block, so a caller already reading that
+  index is untouched; the findings are the second. They are measured on the
+  geometry actually rendered, `extrude` and `depth` included, or they would
+  describe a drawing nobody made. `check_diagram` is unchanged and stays: it is
+  what you call for findings without markup, and before spending a multi-second
+  `render_png`.
+
+  Three shapes come back, and the difference matters to anyone reading
+  `content[1]`. A drawing with findings returns both blocks. A diagram `draw`
+  refuses returns one, carrying the renderer's message, because there is no
+  drawing to report findings for. And a drawing the _checker_ cannot read -
+  `check` accepts less than `draw` does, a bare string where it wants an array
+  of lines being the known case - returns the markup and a note that the report
+  could not be taken. Ink already made is never discarded for a second opinion
+  about it.
+
+  `shape` is now optional on a drawn node, and defaults to `box`. 71 of the 100
+  drawn nodes across the 15 figures this repository ships are boxes, and every
+  one of them spelled the field out - an agent generates that one token at a
+  time. An omitted `shape` and `shape: 'box'` produce the same bytes.
+
+  **Nothing existing changes meaning.** Every diagram written against 0.7
+  renders byte for byte what it rendered. Minor rather than patch because the
+  type widened and a tool returns something it did not return before, not
+  because a caller who changes nothing sees anything move.
+
+  Measured on 2026-09-06, over the 15 diagrams this repository shipped that
+  day: 4 turns to 3 on one scenario, and 3.8% off their JSON. A share of a
+  corpus moves when the corpus does, so it is dated rather than gated.
+
+  The `diagram` description also asks for compact JSON, worth up to 49.6%
+  against a machine's pretty-printer and as little as 0.4% against an agent
+  already writing compactly - it can only ask, and the change's own `RESULTS.md`
+  says so rather than banking it. The rest of that file is the part that does
+  not flatter: the levers made each pass cheaper and removed one pass, and did
+  not make a wrong first attempt right.
+
+  One limit worth knowing before you rely on the new findings. `check_diagram`
+  does not carry the renderer's structural refusals: a diagram with an edge
+  `label` and no `lx`/`ly` reports "No findings." and is then refused by
+  `render_diagram`. Findings ride with a successful render, so they say nothing
+  about one that throws.
+
+### Patch Changes
+
+- Updated dependencies [bae2e73]
+  - @pensketch/core@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes
