@@ -90,8 +90,8 @@ export default defineConfig({
       // the thresholds below pass vacuously.
       include: ['packages/*/src/**'],
       // `stdio.ts` starts talking on stdin the moment it is imported, and
-      // `serve-http.ts` binds a port, so neither can be covered by importing
-      // it. Both are transport entries of a few lines, and both are verified
+      // `cli.ts` does one or the other as soon as it is, so neither can be
+      // covered by importing it. Both are transport entries of a few lines, and both are verified
       // by spawning the built server and completing a real round trip
       // instead - `npm run stdio` and `npm run http`. Excluded because they
       // cannot be imported, not because they are untested: an exclusion
@@ -101,7 +101,7 @@ export default defineConfig({
         'tools/**',
         '**/dist/**',
         'packages/mcp/src/stdio.ts',
-        'packages/mcp/src/serve-http.ts',
+        'packages/mcp/src/cli.ts',
       ],
       // Per-package thresholds, so a well-covered package cannot mask a
       // poorly covered one. Globs match paths relative to the repo root.

@@ -13,7 +13,7 @@ export default defineConfig({
   // The factory and the transports are separate entries so that a second
   // transport stays additive: `stdio.ts` and `http.ts` are each a few lines
   // over `index.ts`, and `serve-http.ts` is the bin over `http.ts`.
-  entry: ['src/index.ts', 'src/stdio.ts', 'src/http.ts', 'src/serve-http.ts'],
+  entry: ['src/index.ts', 'src/stdio.ts', 'src/http.ts', 'src/cli.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   minify: true,

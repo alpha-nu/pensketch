@@ -83,21 +83,66 @@ const refuses = (subject: string, noun: string, takes: string) => ({
  */
 const MAX_ITEMS = 500;
 
-const many = (what: string) =>
+/**
+ * And how many edges, which is a different number for a measured reason.
+ *
+ * The first draft of this bound was 500 for everything, calibrated on nodes
+ * laid one pixel apart. That is not the expensive shape. Edges are checked
+ * for crossings against each other, and a curved edge is sampled into many
+ * chords before the crossing test runs, so the cost per pair is far higher
+ * than a rectangle overlap. Measured, a hub with n spokes:
+ *
+ * | edges | straight | bowed |
+ * |---|---|---|
+ * | 20 | 5 ms | 96 ms |
+ * | 50 | 23 ms | 593 ms |
+ * | 100 | 81 ms | 2,469 ms |
+ * | 200 | 308 ms | 9,813 ms |
+ *
+ * 500 nodes is 67 ms and 500 bowed edges is minutes. Same number, two orders
+ * of magnitude apart, and the first draft said "500 is 118 ms" in a changeset
+ * on the strength of the cheap shape alone.
+ *
+ * 50 is where the *expensive* shape stays a request: 593 ms, four times under
+ * the 2416 ms raster this project's HTTP transport declines to serve for
+ * exactly this reason. It is three times the largest diagram this repository
+ * ships, which carries 16 edges.
+ *
+ * Braces and notes stay at 500: measured at 200 they cost 39 ms and 4 ms.
+ */
+const MAX_EDGES = 50;
+
+const many = (what: string, cap: number, evidence: string) =>
   z
     .array(z.unknown())
-    .max(MAX_ITEMS, {
-      error: `A diagram takes at most ${MAX_ITEMS} ${what}. Several rules compare every pair, so the work grows with the square: 500 is 118 ms and 2000 is 1.4 s. Split the drawing, or draw fewer things.`,
+    .max(cap, {
+      error: `A diagram takes at most ${cap} ${what}. ${evidence} Split the drawing, or draw fewer things.`,
     })
     .optional();
 
 const diagram = z
   .strictObject(
     {
-      nodes: many('nodes'),
-      edges: many('edges'),
-      braces: many('braces'),
-      notes: many('notes'),
+      nodes: many(
+        'nodes',
+        MAX_ITEMS,
+        'Several rules compare every pair, so the work grows with the square: 500 overlapping nodes is 67 ms and 2000 is 1.4 s.',
+      ),
+      edges: many(
+        'edges',
+        MAX_EDGES,
+        'Edges are checked for crossings against each other, and a curved one is sampled into many chords first: 50 bowed edges is 593 ms and 100 is 2.5 s.',
+      ),
+      braces: many(
+        'braces',
+        MAX_ITEMS,
+        'Several rules compare every pair, so the work grows with the square.',
+      ),
+      notes: many(
+        'notes',
+        MAX_ITEMS,
+        'Several rules compare every pair, so the work grows with the square.',
+      ),
     },
     refuses(
       'A diagram',

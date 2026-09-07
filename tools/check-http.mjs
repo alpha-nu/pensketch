@@ -19,11 +19,11 @@ import { fileURLToPath } from 'node:url';
 // Run locally after `npm run build`: `npm run http`.
 
 const root = new URL('../', import.meta.url);
-const bin = new URL('packages/mcp/dist/serve-http.js', root);
+const bin = new URL('packages/mcp/dist/cli.js', root);
 
 if (!existsSync(bin)) {
   console.error(
-    'FAIL packages/mcp/dist/serve-http.js is missing - run `npm run build`',
+    'FAIL packages/mcp/dist/cli.js is missing - run `npm run build`',
   );
   process.exit(1);
 }
@@ -36,7 +36,7 @@ const at = `http://${HOST}:${PORT}/`;
 
 const child = spawn(
   process.execPath,
-  [fileURLToPath(bin), String(PORT), HOST],
+  [fileURLToPath(bin), 'http', String(PORT), HOST],
   {
     stdio: ['ignore', 'pipe', 'pipe'],
   },
@@ -150,5 +150,5 @@ if (drawn.result?.content?.[1]?.text !== 'No findings.')
 
 child.kill();
 console.log(
-  `PASS pensketch-mcp-http: listening, ${names.length} tools, ${svg.length} B of svg, stdout silent`,
+  `PASS pensketch-mcp http: listening, ${names.length} tools, ${svg.length} B of svg, stdout silent`,
 );

@@ -10,8 +10,7 @@
   },
   "type": "module",
   "bin": {
-    "pensketch-mcp": "dist/stdio.js",
-    "pensketch-mcp-http": "dist/serve-http.js"
+    "pensketch-mcp": "dist/cli.js"
   },
   "exports": {
     ".": {

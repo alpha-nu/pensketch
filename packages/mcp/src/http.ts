@@ -214,7 +214,13 @@ export function serve({
   const at = port ?? Number(process.env.PORT ?? 3000);
   return new Promise<{ server: typeof server; close: () => Promise<void> }>(
     (resolve, reject) => {
-      server.once('error', reject);
+      // The handler exists before the socket does, so a bind that fails
+      // leaves it orphaned along with its event bus. Garbage rather than a
+      // hang, but a consumer retrying ports in-process would accumulate one
+      // per attempt.
+      server.once('error', (error) => {
+        void handler.close().finally(() => reject(error));
+      });
       server.listen(at, host, () => {
         resolve({
           server,
