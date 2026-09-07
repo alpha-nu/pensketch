@@ -95,6 +95,14 @@ it is spawned, never bundled into a page — but its packed tarball size SHALL
 be reported at build time, because a WebAssembly rasterizer and an embedded
 font dominate it and a user fetching it through `npx` waits for every byte.
 
+The splitting rule above follows the budgets and SHALL therefore apply to the
+budgeted entries only. `@pensketch/mcp` has no budget for a chunk to hide a
+re-export from, and the rule cost it real bytes: with four entries each
+inlining its own copy of the SDK the tarball packed at 556 KB, and as shared
+chunks at **165 KB** — less than the 270 KB it packed with two entries, since
+the duplication predated the fourth. Where an entry carries no budget, a
+shared chunk measures nothing wrongly and the download is what it saves.
+
 A budget SHALL be raised deliberately and in advance of the work that needs
 the room, in one step, with the measured need recorded where the number is
 declared. It SHALL NOT be raised at a failing gate to make that gate pass: a
@@ -130,6 +138,10 @@ correction is a plan being followed rather than a surprise being absorbed.
 #### Scenario: The server's download weight is visible
 - **WHEN** `@pensketch/mcp` is packed
 - **THEN** its tarball size is reported, so the wait an `npx` user pays for is a known number rather than an accident
+
+#### Scenario: A package with no budget may share chunks
+- **WHEN** `@pensketch/mcp` is built with more than one entry
+- **THEN** code splitting is allowed there, because no entry of it is measured against a budget, and the packed size the gate reports falls rather than rises
 
 #### Scenario: A drawing feature is caught in the entry that carries it
 - **WHEN** a feature is added to `draw` and only the root entry is measured
