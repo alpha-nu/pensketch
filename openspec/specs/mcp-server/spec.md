@@ -364,7 +364,11 @@ an example reaches for.
 
 ### Requirement: A diagram is bounded, on every transport
 The tools SHALL refuse a diagram carrying more than a fixed number of nodes,
-edges, braces or notes. Several of the checker's rules compare every pair, so
+edges, braces or notes. Those numbers SHALL be set per array from that
+array's own measured cost, and SHALL NOT be one number standing for several:
+a curved edge is sampled into many chords before each crossing test, so 500
+nodes cost 67 ms where 500 bowed edges cost minutes, and a single bound
+justified by the cheaper measurement admits the more expensive shape. Several of the checker's rules compare every pair, so
 both the time they take and the findings they hold grow with the square, and
 both are spent before anything can be returned. Measured worst case: 500
 nodes is 118 ms, 2,000 is 1.4 s and 2.9 million findings held in memory, and
@@ -379,8 +383,12 @@ refusal above is downstream of parsing and cannot see a body it has not
 finished reading.
 
 #### Scenario: A diagram too big to check
-- **WHEN** a diagram carries more of anything than the bound allows
+- **WHEN** a diagram carries more of anything than that array's bound allows
 - **THEN** it is refused naming the count and the fix, before any rule runs
+
+#### Scenario: The expensive array is bounded on its own terms
+- **WHEN** the bound on edges is compared with the bound on nodes
+- **THEN** they differ, because the measured cost per item differs by orders, and each carries the measurement it was set from
 
 #### Scenario: A body too big to parse
 - **WHEN** a request body exceeds the cap, whether it declares its length or not
