@@ -68,7 +68,7 @@ const diagram = z
     ),
   )
   .describe(
-    'A diagram: nodes, edges, braces and notes as plain data. Read the pensketch://schema resource for every field. Any other top-level key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry. Fields inside a node, an edge, a brace or a note are not checked here - pensketch://schema is what describes those.',
+    'A diagram: nodes, edges, braces and notes as plain data. Read the pensketch://schema resource for every field. Any other top-level key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry. Fields inside a node, an edge, a brace or a note are not checked here - pensketch://schema is what describes those. Write it compact - no indentation, no line breaks between fields - which costs about half the tokens of the same diagram pretty-printed. That is a request rather than a rule: nothing here refuses pretty JSON, and nothing can tell afterwards which you sent.',
   );
 
 const viewBox = z
