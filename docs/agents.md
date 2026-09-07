@@ -101,6 +101,9 @@ type Side  = 't' | 'b' | 'l' | 'r';   // top, bottom, left, right edge midpoint
 type DiagramNode =
   | { id: string; x: number; y: number; w: number; h: number;
       shape: 'group'; lines: string[] }          // lines REQUIRED: a group is titled
+                           // and `shape` REQUIRED: it is the only thing that
+                           // makes a group a group. Omit it and you get a box
+                           // over your members, valid and silent
   | { id: string; x: number; y: number; w: number; h: number;
       shape?: 'box' | 'pill' | 'diamond';  // default 'box'. Omit it: a box is
                            // what most nodes are, and the bytes are identical
@@ -312,7 +315,7 @@ rather than its price.
 |---|---|
 | `edge N names unknown node "x" in from; known ids are …` | typo in `from`/`to`; the message lists the real ids |
 | `two nodes share the id "x"` | ids must be unique — edges name nodes by id |
-| `node "x" has unknown shape "y"` | one of `group`, `box`, `pill`, `diamond` |
+| `node "x" has unknown shape "y"` | one of `group`, `box`, `pill`, `diamond` — or leave it out, which is a box |
 | `edge N has label "…" but lx and ly are not both numbers` | a label is positioned by hand, because text is never measured |
 | `edge N names node "x" at both ends but sides "t" and "r"` | a self-transition attaches to one side; name the same side in `from` and `to` |
 | `edge N carries bow; its path is already described by via` | a path is described once — drop whichever of the two the arrow is not to take. A note pointer carrying both says `note N` and means the same |

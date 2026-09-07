@@ -14,6 +14,15 @@ The relaxation SHALL be additive. Every diagram valid before this change SHALL
 draw byte-identically after it, because a stated `shape: "box"` and an omitted
 `shape` SHALL produce the same element.
 
+It costs one diagnostic, and that cost SHALL be stated rather than discovered.
+`shape` was the schema's only handle on what makes a group a group, so a node
+intended as a group and written without it used to be refused by name and is
+now a valid box: drawn over its own members, and reported as two
+`node-overlap` errors and an `orphan-node` against nodes that were correctly
+placed. Three symptoms, no mention of the cause. Documentation that describes
+the group node SHALL say that `shape` is required there, beside the `lines`
+requirement it already states.
+
 #### Scenario: The field is omitted
 - **WHEN** a node carries no `shape`
 - **THEN** it draws exactly what the same node with `shape: "box"` draws, byte for byte

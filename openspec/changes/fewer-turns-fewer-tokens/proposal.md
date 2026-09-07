@@ -36,6 +36,18 @@ single source of truth. The consequence is a mandatory read of
 `pensketch://schema` (4,774 tokens) or `pensketch://spec` (8,640) before a
 first node can be written.
 
+## The three levers, named once
+
+They are named rather than numbered everywhere in this change, because the
+numbers went two ways at once: `tasks.md` group 1 is the turns and group 2 is
+the tokens, while two other files called the turn lever "lever 2". A reader
+who resolved a number against the wrong file got the wrong lever.
+
+- **the turn lever** — `render_diagram` returns findings beside its markup
+- **the shape default** — `shape` becomes optional on a drawn node
+- **the schema read** — the mandatory `pensketch://schema` read, left to
+  client caching
+
 ## What changes
 
 - **`render_diagram` reports what it drew.** Findings return with the markup,
@@ -55,7 +67,7 @@ first node can be written.
 
 - **Layout.** `TRAPS.coordinates` stands: pensketch performs no layout and
   routes no edges. Fewer turns, not automatic ones.
-- **Prompt caching.** The larger half of lever 3 lives in whatever client
+- **Prompt caching.** The larger half of the schema read lives in whatever client
   calls the model, setting `cache_control` on its tools block. Nothing in
   this repository can do it.
 - **Making `render_png` cheaper.** That is `mcp-speaks-http`'s problem.
@@ -66,7 +78,7 @@ first node can be written.
 carrying `label` without `lx`/`ly` passes the checker with "No findings." and
 throws in `draw`. It was found by executing the baseline's turn 3, which the
 baseline had only counted. It is pre-existing, it is not caused by anything
-here, and lever 2 does not fix it: findings ride along with a *successful*
+here, and the turn lever does not fix it: findings ride along with a *successful*
 render, and this render does not succeed.
 
 It belongs in this change's story because it is a turn nobody counted, which

@@ -57,7 +57,8 @@ Two things follow, and both are worth more than the corrected number.
    the unverified step that was wrong.
 2. **A gap exists between the two tools, and it is not this change's doing.**
    A caller obeying `check_diagram`'s own former instruction — run this
-   before rendering — could still be refused by the renderer. Lever 2 does
+   before rendering — could still be refused by the renderer. The turn lever
+   does
    not close it: folding findings into a successful render says nothing about
    a render that throws. Recorded here as found; whether `check` should carry
    the renderer's structural rules is an owner call, logged in `proposal.md`.

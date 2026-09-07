@@ -1,4 +1,4 @@
-# Re-run, 2026-09-06, levers 1 and 2 landed
+# Re-run, 2026-09-06, the turn lever and the shape default landed
 
 Same scenario as `BASELINE.md`, driven against the locally built server. The
 connected MCP client still points at published 0.7.0, so the re-run drove
@@ -66,8 +66,14 @@ console.log({ P, M, D });
 ## What each lever is worth
 
 **The turn lever landed exactly as claimed.** Four turns to three, and both
-separate `check_diagram` calls gone. One turn per fix cycle, no more, and it
-is enforced: `render_diagram` cannot now return markup without findings.
+separate `check_diagram` calls gone. One turn per fix cycle, no more.
+
+It also has a tail the first measurement never looked at. Findings are
+quadratic in overlapping nodes - 40 nodes a pixel apart produce 1,249 of them,
+122 KB, some 30,000 tokens - so a lever that saves hundreds could spend tens
+of thousands on the diagram most in need of repair. The listing is capped at
+50 with the true count above it; the saving is bounded and so, now, is the
+cost.
 
 **The `shape` default landed, small and reliable.** 3.8% of the corpus, 6.9%
 of the scenario diagram. It is enforced by the type, so it is worth that
@@ -103,8 +109,8 @@ to be stated rather than left to inference. Both runs were driven by an agent
 that already knew the data model, so neither paid the 4,774-token cold read.
 Both columns are therefore optimistic by the same amount, which is why the
 comparison between them survives; neither is a figure to quote at a cold
-agent. Lever 3 chose to leave that read to client caching, so nothing in this
-change was ever going to move it.
+agent. The schema read was left to client caching, so nothing in this change
+was ever going to move it.
 
 ## Contamination, stated
 
