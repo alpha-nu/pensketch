@@ -83,7 +83,6 @@ const { LATEST_PROTOCOL_VERSION } = await import(
   '@modelcontextprotocol/server'
 );
 
-let session;
 const rpc = async (method, params) => {
   const response = await fetch(at, {
     method: 'POST',
@@ -91,7 +90,6 @@ const rpc = async (method, params) => {
       'content-type': 'application/json',
       accept: 'application/json, text/event-stream',
       'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
-      ...(session ? { 'mcp-session-id': session } : {}),
     },
     body: JSON.stringify({
       jsonrpc: '2.0',
@@ -100,7 +98,6 @@ const rpc = async (method, params) => {
       ...(params === undefined ? {} : { params }),
     }),
   });
-  session ??= response.headers.get('mcp-session-id') ?? undefined;
   const text = await response.text();
   const frames = text
     .split('\n')

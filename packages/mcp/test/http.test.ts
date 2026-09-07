@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
+import { request } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/server';
-import { describe, expect, it } from 'vitest';
-import { createHandler, serve } from '../src/http';
+import { describe, expect, it, vi } from 'vitest';
+import { createGuardedHandler, createHandler, serve } from '../src/http';
 import { createServer } from '../src/index';
 import { svgFor } from '../src/tools';
 
@@ -74,7 +75,15 @@ const rpc = async (
   };
 };
 
-/** An initialized session, since a tool call before one is refused. */
+/**
+ * A handler that has been initialized.
+ *
+ * Not because it has to be: the legacy path builds a fresh server per POST
+ * with no session id at all, so `tools/list` answers a handler that has never
+ * seen an `initialize`. The handshake is here because it is what a client
+ * does, and because a test that skips it would stop noticing if that ever
+ * stopped being true.
+ */
 const opened = async () => {
   const { fetch } = createHandler();
   await rpc(fetch, 'initialize', {
@@ -131,16 +140,21 @@ describe('the http handler', () => {
     expect(body.result?.content?.[1]?.text).toBe('No findings.');
   });
 
-  it('refuses render_png as an unknown tool rather than serving it', async () => {
+  // Absence, not refusal. The tool is not registered, so the SDK answers a
+  // call naming it as an unknown method - `not found`, not a message about
+  // transports. Asserted for what it is rather than for what would be nicer,
+  // because a scenario that says "it names stdio" and a server that says
+  // "not found" cannot both be the specification.
+  it('answers a render_png call as an unknown tool', async () => {
     const fetch = await opened();
     const { body } = await rpc(fetch, 'tools/call', {
       name: 'render_png',
       arguments: { diagram: FLOW, viewBox: VIEW_BOX },
     });
 
-    expect(
-      body.result?.content?.[0]?.text ?? body.error?.message ?? '',
-    ).toMatch(/render_png/);
+    const said = body.result?.content?.[0]?.text ?? body.error?.message ?? '';
+    expect(said).toContain('render_png');
+    expect(said).toMatch(/not found|unknown/i);
   });
 });
 
@@ -201,6 +215,252 @@ describe('the listener', () => {
       if (before === undefined) delete process.env.PORT;
       else process.env.PORT = before;
     }
+  });
+
+  // The flag `serve-http.ts` takes from argv, and the trap it used to be. A
+  // non-loopback bind left the loopback allowlist in place, so the socket
+  // came up and then refused every request that reached it with a 403 naming
+  // a header the operator never set. A server that serves nothing
+  // convincingly is worse than one that will not start.
+  it('refuses a non-loopback bind rather than 403ing everything', () => {
+    expect(() => serve({ port: 0, host: '0.0.0.0' })).toThrow(/allowedHosts/);
+  });
+
+  it('binds a named host once told which names it answers to', async () => {
+    const { server, close } = await serve({
+      port: 0,
+      host: '0.0.0.0',
+      allowedHosts: ['mcp.example'],
+    });
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+
+    // `node:http` rather than `fetch`, which sets Host from the URL and
+    // discards an override - so a fetch-based test of a Host guard can only
+    // ever prove that 127.0.0.1 is not in the list.
+    const withHost = (host: string) =>
+      new Promise<number>((resolve, reject) => {
+        const req = request(
+          {
+            host: '127.0.0.1',
+            port,
+            method: 'POST',
+            path: '/',
+            headers: {
+              host,
+              'content-type': 'application/json',
+              accept: 'application/json, text/event-stream',
+              'mcp-protocol-version': VERSION,
+            },
+          },
+          (res) => {
+            res.resume();
+            resolve(res.statusCode ?? 0);
+          },
+        );
+        req.on('error', reject);
+        req.end(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+        );
+      });
+
+    try {
+      expect(await withHost('mcp.example')).toBe(200);
+      // And the guard is still a guard: a name it was not given is refused.
+      expect(await withHost('evil.example')).toBe(403);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe('the body cap', () => {
+  const post = (port: number, headers: Record<string, string>, body: string) =>
+    new Promise<number>((resolve, reject) => {
+      const req = request(
+        {
+          host: '127.0.0.1',
+          port,
+          method: 'POST',
+          path: '/',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json, text/event-stream',
+            'mcp-protocol-version': VERSION,
+            ...headers,
+          },
+        },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        },
+      );
+      // A refusal cuts the socket while the client is still writing, so the
+      // client's own view of it is EPIPE rather than a status line. Both are
+      // the same event; report it as one.
+      req.on('error', () => resolve(413));
+      req.end(body);
+    });
+
+  // Downstream of this the tools refuse a 501st node - but that refusal comes
+  // after parsing, so without a cap here a 256 MB body is read and parsed
+  // before anything counts anything.
+  it('refuses an oversized body, declared or not', async () => {
+    const { server, close } = await serve({ port: 0, host: '127.0.0.1' });
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    const big = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/list',
+      params: { pad: 'x'.repeat(2 * 1024 * 1024) },
+    });
+
+    try {
+      expect(await post(port, {}, big)).toBe(413);
+
+      // And the half a declared length cannot cover: a chunked body declares
+      // nothing, so the only bound is what has actually been read so far.
+      const chunked = await new Promise<number>((resolve) => {
+        const req = request(
+          {
+            host: '127.0.0.1',
+            port,
+            method: 'POST',
+            path: '/',
+            headers: {
+              'content-type': 'application/json',
+              accept: 'application/json, text/event-stream',
+              'transfer-encoding': 'chunked',
+            },
+          },
+          (res) => {
+            res.resume();
+            resolve(res.statusCode ?? 0);
+          },
+        );
+        req.on('error', () => resolve(413));
+        for (let i = 0; i < 4; i++) req.write('x'.repeat(512 * 1024));
+        req.end();
+      });
+      expect(chunked).toBe(413);
+      // And a body that fits still goes through, so the cap is a cap and not
+      // a wall.
+      expect(
+        await post(
+          port,
+          {},
+          JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+        ),
+      ).toBe(200);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe('what an operator is told when something goes wrong', () => {
+  // `onerror` is the only sink there is. Without it a content-type rejection,
+  // an unsupported protocol version and a factory throw all reach the caller
+  // as a bare `-32603 Internal server error` and reach the operator as
+  // nothing at all - the response is byte-identical either way.
+  it('reports an out-of-band error rather than swallowing it', async () => {
+    const seen: string[] = [];
+    const { server, close } = await serve({
+      port: 0,
+      host: '127.0.0.1',
+      onerror: (error) => seen.push(error.message),
+    });
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+
+    try {
+      const refused = await fetch(`http://127.0.0.1:${port}/`, {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: 'not json',
+      });
+
+      expect(refused.status).toBeGreaterThanOrEqual(400);
+      expect(seen.length).toBeGreaterThan(0);
+    } finally {
+      await close();
+    }
+  });
+
+  // And the default sink is stderr, never stdout: stdout is a JSON-RPC stream
+  // under the other transport, and one habit must not cross over.
+  it('writes to stderr by default, never stdout', async () => {
+    const err = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const { server, close } = await serve({ port: 0, host: '127.0.0.1' });
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+
+    try {
+      await fetch(`http://127.0.0.1:${port}/`, {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: 'not json',
+      });
+      expect(err).toHaveBeenCalled();
+      expect(out).not.toHaveBeenCalled();
+    } finally {
+      await close();
+      err.mockRestore();
+      out.mockRestore();
+    }
+  });
+});
+
+describe('the guarded handler', () => {
+  // The shape the README shows a Worker deployment, and the reason it does
+  // rather than showing the bare one: `createHandler` is validation-free by
+  // design - the SDK says so of its own entry - which is right behind
+  // something that validates and wrong as the example a reader copies.
+  it('turns away a foreign host and origin before any tool runs', async () => {
+    const { fetch: guarded } = createGuardedHandler();
+    const at = (headers: Record<string, string>) =>
+      guarded(
+        new Request('http://evil.example/', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json, text/event-stream',
+            'mcp-protocol-version': VERSION,
+            ...headers,
+          },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+        }),
+      );
+
+    // A `Request` built here carries no Host of its own, where one built by a
+    // real runtime from a real socket does. Set it explicitly, or this tests
+    // the guard's missing-header branch rather than its allowlist.
+    expect((await at({ host: 'evil.example' })).status).toBe(403);
+    expect(
+      (await at({ host: '127.0.0.1', origin: 'https://evil.example' })).status,
+    ).toBe(403);
+    expect((await at({ host: '127.0.0.1' })).status).toBe(200);
+  });
+
+  // The bare handler is what the guarded one wraps, and the contrast is the
+  // whole point: it answers a request naming any host at all.
+  it('is what the bare handler is not', async () => {
+    const { fetch: bare } = createHandler();
+    const answered = await bare(
+      new Request('http://evil.example/', {
+        method: 'POST',
+        headers: {
+          host: 'evil.example',
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+          'mcp-protocol-version': VERSION,
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      }),
+    );
+    expect(answered.status).toBe(200);
   });
 });
 
