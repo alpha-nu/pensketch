@@ -113,6 +113,28 @@ describe('a client talking to the server', () => {
   // it needs nothing else, and what a viewer that cannot animate it shows
   // instead. Asserted for the same reason the traps are - a description nobody
   // checks is a description that rots.
+  //
+  // Over the wire, not off the zod node. A `.describe()` this file already
+  // records as lossy in composition is not the artefact a client reads, and a
+  // serialization that dropped the field description would leave every caller
+  // blind while an assertion against the builder stayed green.
+  it('asks for compact JSON in the schema a client is sent', async () => {
+    const { send } = await connected();
+    const { result } = await send('tools/list');
+    const tools = result?.tools as {
+      name: string;
+      inputSchema?: { properties?: Record<string, { description?: string }> };
+    }[];
+    const diagram =
+      tools.find((t) => t.name === 'render_diagram')?.inputSchema?.properties
+        ?.diagram?.description ?? '';
+
+    expect(diagram).toContain('compact');
+    // The one lever nothing can enforce, so the ask has to say it is an ask
+    // or a reader takes it for a rule the server checks.
+    expect(diagram).toContain('request rather than a rule');
+  });
+
   it('teaches the animate parameter in the schema itself', async () => {
     const { send } = await connected();
     const { result } = await send('tools/list');

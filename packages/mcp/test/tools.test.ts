@@ -491,21 +491,6 @@ describe('the tool descriptions', () => {
     expect(check).toContain('render_diagram');
   });
 
-  // The one lever nothing can enforce. `shape` defaults in the type, so an
-  // omitted one is free whatever the caller believes; compact JSON is only
-  // ever asked for, and the ask has to say so or a reader takes it for a
-  // rule the server checks.
-  it('asks for compact JSON and admits it cannot insist', () => {
-    const diagram = (
-      toolsOf(createServer()) as Record<
-        string,
-        { inputSchema?: { shape?: { diagram?: { description?: string } } } }
-      >
-    ).render_diagram?.inputSchema?.shape?.diagram?.description;
-    expect(diagram).toContain('compact');
-    expect(diagram).toContain('request rather than a rule');
-  });
-
   it('tells the caller which tool owns questions of fit', () => {
     const png = (
       toolsOf(createServer()) as Record<string, { description?: string }>
