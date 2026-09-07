@@ -206,7 +206,30 @@ const failed = (error: unknown) => ({
   content: [{ type: 'text' as const, text: String(error) }],
 });
 
-export function registerTools(server: McpServer): void {
+/** What a server may do, beyond the two tools every server has. */
+export interface ToolOptions {
+  /**
+   * Whether to register `render_png`. Default: `true`.
+   *
+   * The one tool a transport can have an opinion about, and only because of
+   * how it is implemented rather than what it does: the rasterizer is
+   * synchronous WebAssembly and holds the event loop for the whole of a
+   * raster - 2416 ms measured on a 1760 x 1000 frame at 2x. Under stdio each
+   * client owns a process and that is its own business. In a process serving
+   * many clients it is everyone else's latency, so a transport that serves
+   * many callers declines it here rather than serving it slowly.
+   *
+   * Not registered is better than registered-and-refusing: an agent pays for
+   * every tool description it is sent, and a tool it cannot call is a
+   * description it paid for and a turn it may spend discovering that.
+   */
+  raster?: boolean;
+}
+
+export function registerTools(
+  server: McpServer,
+  { raster = true }: ToolOptions = {},
+): void {
   server.registerTool(
     'check_diagram',
     {
@@ -351,6 +374,8 @@ export function registerTools(server: McpServer): void {
       }
     },
   );
+
+  if (!raster) return;
 
   server.registerTool(
     'render_png',
