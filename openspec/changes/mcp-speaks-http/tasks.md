@@ -82,7 +82,11 @@ in `proposal.md` and stays true; it is simply not this change's problem.*
 
 ## 4. Serving and documentation
 
-- [x] 4.1 gzip for text responses; **not** for `render_png`
+Two items here are marked `[ ]` with a reason rather than `[x]`, on the
+terms groups 2 and 3 already use. Nothing was built for either, and a ticked
+box that means "decided not to" reads as "done" to anyone scanning.
+
+- [ ] 4.1 gzip for text responses; **not** for `render_png` — NOT BUILT
 
       **Not implemented, and the reason is not laziness.** The exclusion this
       task was written to enforce is moot: `render_png` is not served here at
@@ -110,13 +114,13 @@ in `proposal.md` and stays true; it is simply not this change's problem.*
       prose every agent pays for on a read the proposal already calls
       expensive. A caller learns which tools exist from `tools/list`, which is
       accurate per transport by construction.
-- [x] 4.3 Byte budgets in `tools/check-size.mjs` for the new entry
+- [ ] 4.3 Byte budgets in `tools/check-size.mjs` for the new entry — SUPERSEDED
 
       **Superseded by the live spec, which forbids it.** `@pensketch/mcp`
       SHALL NOT carry a byte budget - it is spawned, never bundled into a
       page - and the HTTP entry is no different. What the spec does require is
       the packed tarball, which the gate reports and which this change moved
-      from 270 KB to 152 KB. The delta amends the splitting rule instead.
+      from 270 KB to 165 KB. The delta amends the splitting rule instead.
 - [x] 4.4 A changeset
 
 ## 5. Group boundary

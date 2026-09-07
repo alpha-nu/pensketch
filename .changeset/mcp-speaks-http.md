@@ -27,11 +27,29 @@ of any page the user has open, so an unguarded local endpoint is reachable by
 every site they visit. Throughput is one core's worth of drawing; run more
 processes.
 
+`require()` of this package now works. It never has: `render.ts` calls
+`createRequire(import.meta.url)` and esbuild left that expression in the CJS
+output, so both published `require` conditions threw on load. `tsup` gains
+`shims`, and the exports gate — the only thing in the repository that loads
+`dist/` — gains this package, which it had never been asked about.
+
 Transport cost is a rounding error next to that. Measured over loopback,
 warm: `check_diagram` 0.4 ms over stdio against 1.6 ms over HTTP, a small
 `render_diagram` 0.6 ms against 2.3 ms. A flat ~1.5 ms, whatever the payload.
 
-The tarball shrinks despite growing: 270 KB packed before, **152 KB** now.
-Four entries each inlining their own copy of the SDK packed at 535 KB, and as
-shared chunks at 152 — less than two entries managed, because the duplication
-predated the fourth.
+**A diagram is now capped at 500 nodes, edges, braces or notes, on both
+transports.** This narrows an existing contract, so it is the one thing here a
+stdio caller can notice: a diagram over 500 of anything worked before and is
+refused now. Several of the checker's rules compare every pair, so the time
+and the findings both grow with the square — 500 is 118 ms, 2,000 is 1.4 s and
+holds 2.9 million findings, and 8,000 runs out of memory. That is longer than
+the raster this transport declines to serve, reached from a socket, which made
+the SVG-only decision self-defeating until this bound existed. It is
+twenty-five times the largest diagram this repository ships. HTTP additionally
+caps a request body at 1 MB, because the refusal is downstream of parsing.
+
+The tarball shrinks despite growing: 270 KB packed before, **165 KB** now.
+Four entries each inlining their own copy of the SDK packed at 556 KB, and as
+shared chunks at 165 — less than two entries managed, because the duplication
+predated the fourth. All three figures are with the CJS shims above; without
+them it is 152 KB, and a `require` that throws.

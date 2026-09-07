@@ -45,10 +45,15 @@ The handler is also importable, as the web-standard `fetch` shape a Worker,
 Bun or Deno deployment exports directly:
 
 ```js
-import { createHandler } from '@pensketch/mcp/http';
+import { createGuardedHandler } from '@pensketch/mcp/http';
 
-export default createHandler();
+export default createGuardedHandler({ allowedHosts: ['mcp.example.com'] });
 ```
+
+`createHandler()` is the same thing without the Host and Origin checks, for a
+deployment already behind something that does them. Reach for it deliberately:
+those checks are what stop every page the user has open from reaching the
+endpoint.
 
 Read this part before you deploy it.
 
@@ -63,13 +68,29 @@ Read this part before you deploy it.
   that reason, and anything else needs a proxy in front deciding who may
   reach it. That proxy is also what compresses the responses; the transport
   does not.
+- **Binding anything but loopback needs `allowedHosts`,** and `serve()` throws
+  without it rather than binding. The rebinding guard would otherwise refuse
+  every request for naming a host nobody configured. Whichever name reaches
+  *this* server is the one to list: most proxies preserve the client's `Host`
+  — Caddy's `reverse_proxy` and Traefik do — while nginx's default
+  `proxy_set_header Host $proxy_host` rewrites it to the upstream.
 - **Host and Origin are validated on every request.** A browser will send a
   cross-origin request to `127.0.0.1` on behalf of any page the user has open,
   so an unguarded local endpoint is reachable by every site they visit.
+- **A diagram is capped at 500 of each thing, and a body at 1 MB.** Several of
+  the checker's rules compare every pair, so both the time and the findings
+  grow with the square: 500 nodes is 118 ms, 2,000 is 1.4 s and holds 2.9
+  million findings, and 8,000 runs out of memory. The cap is twenty times
+  under the raster this transport declines to serve for that same reason, and
+  twenty-five times the largest diagram this repository ships. It applies on
+  stdio too — a bound the project does not run against itself is not a bound.
 - **The ceiling is one process.** Measured over loopback, HTTP costs a flat
   ~1.5 ms of protocol overhead on top of a call: `check_diagram` 0.4 ms → 1.6
   ms, a small `render_diagram` 0.6 ms → 2.3 ms. Drawing is CPU on the same
-  loop, so throughput is what one core gives you. Run more processes.
+  loop, and a capped diagram still costs up to ~120 ms of it, so throughput is
+  what one core gives you. Run more processes.
+- **There is no rate limiting**, here or in any MCP server surveyed, or in the
+  protocol. Whatever fronts this owns it.
 
 Both transports serve identical results: the same factory backs them, and no
 tool can observe which one carried its call.
