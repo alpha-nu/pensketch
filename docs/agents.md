@@ -102,7 +102,8 @@ type DiagramNode =
   | { id: string; x: number; y: number; w: number; h: number;
       shape: 'group'; lines: string[] }          // lines REQUIRED: a group is titled
   | { id: string; x: number; y: number; w: number; h: number;
-      shape: 'box' | 'pill' | 'diamond';
+      shape?: 'box' | 'pill' | 'diamond';  // default 'box'. Omit it: a box is
+                           // what most nodes are, and the bytes are identical
       lines?: string[];    // omit for an unlabelled shape
       size?: number;       // label font px, default 13.5
       accent?: boolean;    // stroke in --ps-pen instead of --ps-ink

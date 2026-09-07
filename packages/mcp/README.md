@@ -39,12 +39,14 @@ command.
 | tool | what it does |
 |---|---|
 | `check_diagram` | Reports overlapping boxes, a label a connector or a brace will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. |
-| `render_diagram` | Returns SVG markup. Deterministic: same diagram, same seed, same bytes. |
+| `render_diagram` | Returns SVG markup, and beside it the layout findings for the drawing it just made. The markup is first and the findings second, so one call both draws and checks. Deterministic: same diagram, same seed, same bytes. |
 | `render_png` | Rasterises it, so it can actually be looked at. |
 
-Run `check_diagram` before rendering and again after moving anything. It is
-the only one of the three that answers *does this fit* — see the font note
-below for why the picture cannot.
+`render_diagram` answers *does this fit* for the drawing it hands back, so a
+fix cycle is one call rather than two. Reach for `check_diagram` when you want
+the findings without the markup, or before spending a `render_png` on a
+diagram you have not checked — see the font note below for why the picture
+cannot answer it for you.
 
 ## Eight resources
 

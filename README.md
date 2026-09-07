@@ -502,7 +502,9 @@ else will keep.
 
 `@pensketch/mcp` puts all of this behind three tools — `check_diagram`,
 `render_diagram`, `render_png` — and serves the reference, the schema and
-five worked examples as resources:
+five worked examples as resources. `render_diagram` returns the markup and
+the layout findings for it together, so an agent fixing a diagram spends one
+call a round rather than two:
 
 ```sh
 claude mcp add pensketch -- npx -y @pensketch/mcp@0.7.0
