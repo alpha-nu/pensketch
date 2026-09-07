@@ -89,15 +89,19 @@ export default defineConfig({
       // include, an unimported module is simply absent from the report and
       // the thresholds below pass vacuously.
       include: ['packages/*/src/**'],
-      // `stdio.ts` starts talking on stdin the moment it is imported, so it
-      // cannot be covered by importing it. It is a transport entry of a few
-      // lines, verified by spawning the built server and completing a real
-      // round trip instead.
+      // `stdio.ts` starts talking on stdin the moment it is imported, and
+      // `serve-http.ts` binds a port, so neither can be covered by importing
+      // it. Both are transport entries of a few lines, and both are verified
+      // by spawning the built server and completing a real round trip
+      // instead - `npm run stdio` and `npm run http`. Excluded because they
+      // cannot be imported, not because they are untested: an exclusion
+      // without a spawn behind it is a hole.
       exclude: [
         'examples/**',
         'tools/**',
         '**/dist/**',
         'packages/mcp/src/stdio.ts',
+        'packages/mcp/src/serve-http.ts',
       ],
       // Per-package thresholds, so a well-covered package cannot mask a
       // poorly covered one. Globs match paths relative to the repo root.

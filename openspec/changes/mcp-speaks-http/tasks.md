@@ -20,16 +20,30 @@ is not served over HTTP, group 3 is dropped whole and this change is groups
       no event loop to unblock and no geometry budget to invent. The entry
       is written against the web-standard `fetch` shape with a `node:http`
       bridge, which is the packaging every other target also starts from.
-- [ ] 1.1 `packages/mcp/src/http.ts`: the transport and nothing else, over
+- [x] 1.1 `packages/mcp/src/http.ts`: the transport and nothing else, over
       `createMcpHandler(() => createServer())`. No tool, resource or geometry
       knowledge enters this file, the rule `stdio.ts` already holds
-- [ ] 1.2 The `node:http` bridge, if group 1.0 asks for one. Hop-by-hop
-      headers are the framing trap: a prototype that forwarded them still
-      served correctly, so a test asserts the response carries no
-      `connection`, `transfer-encoding` or `keep-alive` rather than trusting
-      an eye
-- [ ] 1.3 `pensketch-mcp-http` bin entry, `files` and `exports` updated
-- [ ] 1.4 A test that drives the handler through `fetch` without a socket,
+
+      One exception, and it is about the transport rather than a tool:
+      `raster: false`. A source test holds the rest.
+- [x] 1.2 The `node:http` bridge, if group 1.0 asks for one
+
+      **Not hand-rolled.** The SDK ships `toNodeHandler` in
+      `@modelcontextprotocol/node`, and the docs name it as the way a Node
+      framework wraps a handler. It owns the conversion, so the hop-by-hop
+      trap this task anticipated is the adapter's problem and not ours.
+
+      What the adapter also ships is the half nobody had planned for:
+      `localhostHostValidation` and `localhostOriginValidation`. A browser
+      sends a cross-origin request to `127.0.0.1` for any page the user has
+      open, so an unguarded local endpoint is reachable by every site they
+      visit. That is asserted over a real socket, because it is a security
+      property rather than plumbing.
+
+      Cost: one transitive dependency, `@hono/node-server`. `hono` itself is
+      an optional peer and is not installed.
+- [x] 1.3 `pensketch-mcp-http` bin entry, `files` and `exports` updated
+- [x] 1.4 A test that drives the handler through `fetch` without a socket,
       the way `index.ts` is testable without a process
 
 ## 2. Cost bounds that predict cost — DROPPED by 1.0
