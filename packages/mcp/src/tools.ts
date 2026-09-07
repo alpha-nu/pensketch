@@ -125,6 +125,19 @@ const line = (f: {
   `${f.severity} ${f.rule} at (${f.at.join(', ')}): ${f.message}${f.estimated ? ' [estimated]' : ''}`;
 
 /**
+ * The findings as one block of text, counted. Shared, because `check_diagram`
+ * and `render_diagram` now both report them and two spellings of the same
+ * answer is how a caller learns to trust one tool over the other.
+ */
+const report = (findings: Parameters<typeof line>[0][]) => {
+  const errors = findings.filter((f) => f.severity === 'error').length;
+  const warnings = findings.length - errors;
+  return findings.length
+    ? `${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}\n${findings.map(line).join('\n')}`
+    : 'No findings.';
+};
+
+/**
  * Wraps whatever `draw`, `check` or the rasterizer threw as tool output. Core
  * throws messages written to be read by whoever has to fix the diagram, and
  * they are worth more to a caller than a stack trace they cannot see.
@@ -149,7 +162,7 @@ export function registerTools(server: McpServer): void {
       // on each because the default reads as false when absent (T-111,
       // owner-ruled 2026-08-26).
       annotations: { readOnlyHint: true },
-      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding, and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. Run this before rendering, and again after moving anything.`,
+      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding, and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. \`render_diagram\` reports these same findings for the drawing it just made, so reach for this one when you want findings without markup, or before spending a \`render_png\` on a diagram you have not checked.`,
       inputSchema: z.strictObject(
         {
           diagram,
@@ -183,17 +196,8 @@ export function registerTools(server: McpServer): void {
           ...(extrude === undefined ? {} : { extrude }),
           ...(depth === undefined ? {} : { depth }),
         });
-        const errors = findings.filter((f) => f.severity === 'error').length;
-        const warnings = findings.length - errors;
         return {
-          content: [
-            {
-              type: 'text' as const,
-              text: findings.length
-                ? `${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}\n${findings.map(line).join('\n')}`
-                : 'No findings.',
-            },
-          ],
+          content: [{ type: 'text' as const, text: report(findings) }],
         };
       } catch (error) {
         return failed(error);
@@ -206,7 +210,7 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to SVG',
       annotations: { readOnlyHint: true },
-      description: `Returns SVG markup for a diagram. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face.`,
+      description: `Returns SVG markup for a diagram, and beside it the layout findings for the drawing it just made: overlapping boxes, text too wide for its box, a node out of frame. The markup is first and the findings second, so one call both draws and checks. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face.`,
       inputSchema: z.strictObject(
         {
           diagram,
@@ -260,19 +264,30 @@ export function registerTools(server: McpServer): void {
       animate,
     }) => {
       try {
+        const svg = svgFor(d, box, {
+          seed,
+          label,
+          hops,
+          extrude,
+          depth,
+          animate,
+        });
+        // The findings for the drawing just made, not for a neighbouring one:
+        // the same viewBox, the same extrude and the same depth, which are
+        // the three arguments that move what every rule measures. `hops` is
+        // absent because `check` refuses it and it changes no finding.
+        //
+        // Second, never first. The markup stays `content[0]` exactly as it
+        // was, so a caller already reading that index is untouched by this.
+        const findings = check(d as Parameters<typeof check>[0], {
+          viewBox: box,
+          ...(extrude === undefined ? {} : { extrude }),
+          ...(depth === undefined ? {} : { depth }),
+        });
         return {
           content: [
-            {
-              type: 'text' as const,
-              text: svgFor(d, box, {
-                seed,
-                label,
-                hops,
-                extrude,
-                depth,
-                animate,
-              }),
-            },
+            { type: 'text' as const, text: svg },
+            { type: 'text' as const, text: report(findings) },
           ],
         };
       } catch (error) {
