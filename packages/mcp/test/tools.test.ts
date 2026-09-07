@@ -178,6 +178,10 @@ describe('render_diagram', () => {
     });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('unknown node "ghost"');
+    // One block, not two. There is no drawing to report findings for, so a
+    // caller reading `content[1]` unconditionally finds it absent rather than
+    // finding a report about a picture that does not exist.
+    expect(result.content).toHaveLength(1);
   });
 
   // What comes back has to work with nothing else supplied, because the caller

@@ -20,6 +20,12 @@ bytes.
 rendering. It serves the caller who wants findings without markup, and the
 caller about to spend a multi-second raster.
 
+A refusal SHALL stay one block. `render_diagram` returns two blocks when it
+draws and one, carrying `isError`, when it cannot: there is no drawing to
+report findings for. A caller reading the second block unconditionally SHALL
+find it absent on a throw, which is the same shape every tool here has always
+had for an error.
+
 #### Scenario: Checking a diagram with a defect
 - **WHEN** `check_diagram` is called with a diagram whose nodes overlap
 - **THEN** it returns the finding and a non-zero error count
@@ -27,6 +33,10 @@ caller about to spend a multi-second raster.
 #### Scenario: One call, both answers
 - **WHEN** `render_diagram` is called with a diagram whose label overflows its box
 - **THEN** it returns the markup and the `text-overflow` finding together, and the caller needs no second call to learn of it
+
+#### Scenario: A diagram that cannot be drawn
+- **WHEN** `render_diagram` is called with a diagram `draw` refuses
+- **THEN** it returns one block carrying the renderer's message and `isError`, not a second block reporting findings for a drawing that does not exist
 
 #### Scenario: A clean diagram says so
 - **WHEN** `render_diagram` is called with a diagram that has no findings
