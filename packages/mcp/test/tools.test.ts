@@ -280,6 +280,77 @@ describe('render_diagram', () => {
     expect(raised).toContain('error out-of-bounds at (300, 40)');
   });
 
+  // `check` is not a superset of `draw`. `pen.label` takes a string or an
+  // array; `check` calls `.reduce` on it. So a diagram that renders can throw
+  // in the checker, and before this had its own `try` the caller lost 2.5 KB
+  // of correct markup to a raw TypeError naming no node.
+  it('keeps the markup when the check of it cannot run', async () => {
+    const bare = {
+      nodes: [{ id: 'a', x: 40, y: 40, w: 160, h: 46, lines: 'hi' }],
+    };
+    const result = await callTool('render_diagram', {
+      diagram: bare,
+      viewBox: VIEW_BOX,
+      seed: 7,
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toHaveLength(2);
+    expect(result.content[0]?.text).toBe(svgFor(bare, VIEW_BOX, { seed: 7 }));
+    expect(result.content[1]?.text).toContain('the check of it could not run');
+  });
+
+  // Findings are quadratic in overlapping nodes. Uncapped, 40 nodes a pixel
+  // apart returned 1,249 of them - 122 KB, some 30,000 tokens - from a change
+  // whose entire measured saving is 284 tokens across every diagram this
+  // repository ships. The count stays true; only the listing is bounded.
+  it('counts every finding and lists at most fifty', async () => {
+    const nodes = Array.from({ length: 40 }, (_, i) => ({
+      id: `n${i}`,
+      x: 40 + i,
+      y: 40 + i,
+      w: 160,
+      h: 46,
+      lines: [`node ${i}`],
+    }));
+    const result = await callTool('render_diagram', {
+      diagram: { nodes },
+      viewBox: [0, 0, 900, 600],
+    });
+    const text = result.content[1]?.text ?? '';
+    const [head, ...lines] = text.split('\n');
+
+    // The header is the true total, and the listing is not.
+    const total = Number(head?.match(/^(\d+) error/)?.[1]);
+    expect(total).toBeGreaterThan(50);
+    expect(lines).toHaveLength(51);
+    expect(lines[lines.length - 1]).toMatch(
+      /^\.\.\. and \d+ more, not listed\./,
+    );
+    expect(text.length).toBeLessThan(8000);
+  });
+
+  it('lists them all when there are fewer than the cap', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: {
+        nodes: [
+          {
+            id: 'a',
+            x: 40,
+            y: 40,
+            w: 100,
+            h: 46,
+            lines: ['a very long label'],
+          },
+        ],
+      },
+      viewBox: VIEW_BOX,
+    });
+    const text = result.content[1]?.text ?? '';
+    expect(text).toContain('text-overflow');
+    expect(text).not.toContain('not listed');
+  });
+
   it('escapes an accessible name rather than breaking the document', async () => {
     const result = await callTool('render_diagram', {
       diagram: FLOW,
@@ -404,10 +475,19 @@ describe('the tool descriptions', () => {
   // and a description that has gone false is worse than none: it buys a turn
   // nobody needed. Pinned here beside the traps, for the same reason.
   it('no longer sends the caller through check_diagram to render', () => {
-    const check = (
-      toolsOf(createServer()) as Record<string, { description?: string }>
-    ).check_diagram?.description;
-    expect(check).not.toContain('Run this before rendering');
+    const check =
+      (toolsOf(createServer()) as Record<string, { description?: string }>)
+        .check_diagram?.description ?? '';
+    // Pinning the one struck sentence would pass any re-wording of the same
+    // instruction, which is what this test exists to stop. So the property:
+    // nowhere does the description put this tool in front of a render.
+    for (const sentence of check.split(/(?<=\.)\s+/))
+      expect(
+        /\brun\b|\bcall\b|\bfirst\b/i.test(sentence) &&
+          /\brender(ing|_diagram)?\b/i.test(sentence) &&
+          /\bbefore\b|\bfirst\b|\bthen\b/i.test(sentence) &&
+          !/render_png/.test(sentence),
+      ).toBe(false);
     expect(check).toContain('render_diagram');
   });
 

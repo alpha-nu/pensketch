@@ -125,16 +125,70 @@ const line = (f: {
   `${f.severity} ${f.rule} at (${f.at.join(', ')}): ${f.message}${f.estimated ? ' [estimated]' : ''}`;
 
 /**
+ * How many findings are spelled out before the rest are counted instead.
+ *
+ * Findings are quadratic in overlapping nodes: 40 nodes laid one pixel apart
+ * produce 1,249 of them, 122 KB, some 30,000 tokens - in a tool whose whole
+ * reason for reporting findings at all is to save an agent a few hundred.
+ * A diagram in that state has one defect, not 1,249, and the first lines say
+ * what it is.
+ *
+ * 50 is past anything a caller is actually repairing by a wide margin: every
+ * diagram this repository ships reports nought, and the worst turn of the
+ * measured scenario reported six. It is not a judgement about which findings
+ * matter - the count above the list is always the true total, and nothing is
+ * silently dropped.
+ */
+const MAX_LINES = 50;
+
+/**
  * The findings as one block of text, counted. Shared, because `check_diagram`
  * and `render_diagram` now both report them and two spellings of the same
  * answer is how a caller learns to trust one tool over the other.
  */
 const report = (findings: Parameters<typeof line>[0][]) => {
+  if (!findings.length) return 'No findings.';
   const errors = findings.filter((f) => f.severity === 'error').length;
   const warnings = findings.length - errors;
-  return findings.length
-    ? `${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}\n${findings.map(line).join('\n')}`
-    : 'No findings.';
+  const head = `${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`;
+  const rest = findings.length - MAX_LINES;
+  return [
+    head,
+    ...findings.slice(0, MAX_LINES).map(line),
+    ...(rest > 0
+      ? [
+          `... and ${rest} more, not listed. A diagram reporting ${findings.length} findings has few causes and many symptoms; fix what the lines above name and check again.`,
+        ]
+      : []),
+  ].join('\n');
+};
+
+/**
+ * The findings for a drawing already made, as text, or a note that they could
+ * not be taken.
+ *
+ * `check` refuses inputs `draw` accepts - a bare string where it wants an
+ * array of lines is the known one - so it can fail on a diagram that rendered
+ * perfectly well. When it does, the caller keeps the markup and is told the
+ * report is missing rather than being handed an error in place of a picture.
+ */
+const reportOf = (
+  diagram: unknown,
+  viewBox: [number, number, number, number],
+  extrude?: boolean,
+  depth?: number,
+): string => {
+  try {
+    return report(
+      check(diagram as Parameters<typeof check>[0], {
+        viewBox,
+        ...(extrude === undefined ? {} : { extrude }),
+        ...(depth === undefined ? {} : { depth }),
+      }),
+    );
+  } catch (error) {
+    return `The drawing was made; the check of it could not run: ${error instanceof Error ? error.message : String(error)}`;
+  }
 };
 
 /**
@@ -279,15 +333,17 @@ export function registerTools(server: McpServer): void {
         //
         // Second, never first. The markup stays `content[0]` exactly as it
         // was, so a caller already reading that index is untouched by this.
-        const findings = check(d as Parameters<typeof check>[0], {
-          viewBox: box,
-          ...(extrude === undefined ? {} : { extrude }),
-          ...(depth === undefined ? {} : { depth }),
-        });
+        //
+        // Its own `try`, and this is the whole reason for it: `check` is not
+        // a superset of `draw`. It accepts less - `lines: 'a string'` draws
+        // and does not check - so a shared `try` would turn a diagram that
+        // rendered into an error and throw away 2.5 KB of correct markup for
+        // a report nobody asked for. Ink you already have is never lost to a
+        // second opinion about it.
         return {
           content: [
             { type: 'text' as const, text: svg },
-            { type: 'text' as const, text: report(findings) },
+            { type: 'text' as const, text: reportOf(d, box, extrude, depth) },
           ],
         };
       } catch (error) {
