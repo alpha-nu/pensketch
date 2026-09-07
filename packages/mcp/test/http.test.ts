@@ -275,8 +275,17 @@ describe('the listener', () => {
 });
 
 describe('the body cap', () => {
+  // Resolve with what the server actually said, and fail on anything else.
+  // This helper used to report *any* socket error as a 413, on the reasoning
+  // that a refusal cuts the socket while the client is still writing. It does
+  // - but so does every other failure, and the assertion could no longer tell
+  // them apart: the declared-length guard was deleted outright and this test
+  // still passed. `status` is kept so an error arriving *after* the status
+  // line, which is the destroy that follows a refusal, is the harmless thing
+  // it is rather than a failure.
   const post = (port: number, headers: Record<string, string>, body: string) =>
-    new Promise<number>((resolve) => {
+    new Promise<number>((resolve, reject) => {
+      let status: number | undefined;
       const req = request(
         {
           host: '127.0.0.1',
@@ -292,14 +301,80 @@ describe('the body cap', () => {
         },
         (res) => {
           res.resume();
-          resolve(res.statusCode ?? 0);
+          status = res.statusCode ?? 0;
+          resolve(status);
         },
       );
-      // A refusal cuts the socket while the client is still writing, so the
-      // client's own view of it is EPIPE rather than a status line. Both are
-      // the same event; report it as one.
-      req.on('error', () => resolve(413));
+      req.on('error', (error) =>
+        status === undefined ? reject(error) : resolve(status),
+      );
       req.end(body);
+    });
+
+  // A declared length is refused on the header alone, before a byte of body is
+  // read - which is the whole point of the cap, the tools' own item refusal
+  // being downstream of parsing. So this sends the header and one token byte,
+  // never the megabytes it claims: the server answers before the body it is
+  // refusing could arrive, so the status line is read rather than raced
+  // against the socket being cut.
+  const declared = (port: number, length: number) =>
+    new Promise<number>((resolve, reject) => {
+      let status: number | undefined;
+      const req = request(
+        {
+          host: '127.0.0.1',
+          port,
+          method: 'POST',
+          path: '/',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json, text/event-stream',
+            'mcp-protocol-version': VERSION,
+            'content-length': String(length),
+          },
+        },
+        (res) => {
+          res.resume();
+          status = res.statusCode ?? 0;
+          resolve(status);
+        },
+      );
+      req.on('error', (error) =>
+        status === undefined ? reject(error) : resolve(status),
+      );
+      req.write('{');
+    });
+
+  // Chunked declares nothing, so the only bound is what has been read so far.
+  // That arm cuts the connection and says nothing at all - writing a status
+  // after the adapter has begun its own response throws ERR_HTTP_HEADERS_SENT
+  // out of a promise nothing awaits - so the refusal here is "destroyed, and
+  // no status". Asserted as that rather than as a 413, which is precisely what
+  // it is not.
+  const chunked = (port: number) =>
+    new Promise<number | 'destroyed'>((resolve) => {
+      let status: number | undefined;
+      const req = request(
+        {
+          host: '127.0.0.1',
+          port,
+          method: 'POST',
+          path: '/',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json, text/event-stream',
+            'transfer-encoding': 'chunked',
+          },
+        },
+        (res) => {
+          res.resume();
+          status = res.statusCode ?? 0;
+          resolve(status);
+        },
+      );
+      req.on('error', () => resolve(status ?? 'destroyed'));
+      for (let i = 0; i < 4; i++) req.write('x'.repeat(512 * 1024));
+      req.end();
     });
 
   // Downstream of this the tools refuse a 501st node - but that refusal comes
@@ -309,41 +384,12 @@ describe('the body cap', () => {
     const { server, close } = await serve({ port: 0, host: '127.0.0.1' });
     const address = server.address();
     const port = typeof address === 'object' && address ? address.port : 0;
-    const big = JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'tools/list',
-      params: { pad: 'x'.repeat(2 * 1024 * 1024) },
-    });
 
     try {
-      expect(await post(port, {}, big)).toBe(413);
-
-      // And the half a declared length cannot cover: a chunked body declares
-      // nothing, so the only bound is what has actually been read so far.
-      const chunked = await new Promise<number>((resolve) => {
-        const req = request(
-          {
-            host: '127.0.0.1',
-            port,
-            method: 'POST',
-            path: '/',
-            headers: {
-              'content-type': 'application/json',
-              accept: 'application/json, text/event-stream',
-              'transfer-encoding': 'chunked',
-            },
-          },
-          (res) => {
-            res.resume();
-            resolve(res.statusCode ?? 0);
-          },
-        );
-        req.on('error', () => resolve(413));
-        for (let i = 0; i < 4; i++) req.write('x'.repeat(512 * 1024));
-        req.end();
-      });
-      expect(chunked).toBe(413);
+      // Declared: a status line, read off the wire.
+      expect(await declared(port, 2 * 1024 * 1024)).toBe(413);
+      // Undeclared: the connection goes, and nothing is said.
+      expect(await chunked(port)).toBe('destroyed');
       // And a body that fits still goes through, so the cap is a cap and not
       // a wall.
       expect(
