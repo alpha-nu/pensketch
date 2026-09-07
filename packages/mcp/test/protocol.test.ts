@@ -235,7 +235,7 @@ describe('the bound on how much a diagram may carry', () => {
   // memory. Longer than the 2416 ms raster this server's HTTP transport
   // declines to serve, reached by a request that decision was meant to have
   // made safe.
-  it.each(['nodes', 'edges', 'braces', 'notes'])(
+  it.each(['nodes', 'braces', 'notes'])(
     'refuses more than five hundred %s, naming the fix',
     async (field) => {
       const said = await refusal('check_diagram', {
@@ -247,6 +247,35 @@ describe('the bound on how much a diagram may carry', () => {
       expect(said).toContain('Split the drawing');
     },
   );
+
+  // Edges get their own, tighter number, and this is the assertion that says
+  // so rather than letting one constant drift into standing for two costs.
+  // 500 nodes is 67 ms; 500 bowed edges is minutes, because a curve is
+  // sampled into many chords before each crossing test.
+  it('bounds edges far lower, on their own measured cost', async () => {
+    const said = await refusal('check_diagram', {
+      diagram: { edges: Array.from({ length: 51 }, () => ({})) },
+      viewBox: BOX,
+    });
+
+    expect(said).toContain('at most 50 edges');
+    expect(said).toContain('593 ms');
+
+    // And the cheap arrays are not dragged down with it.
+    const fifty = await called('check_diagram', {
+      diagram: {
+        nodes: Array.from({ length: 51 }, (_, i) => ({
+          id: `n${i}`,
+          x: i * 4,
+          y: 0,
+          w: 3,
+          h: 3,
+        })),
+      },
+      viewBox: [0, 0, 400, 100],
+    });
+    expect(fifty.isError).toBeFalsy();
+  });
 
   it('serves five hundred, so the bound is where it says it is', async () => {
     const result = await called('check_diagram', {
