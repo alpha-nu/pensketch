@@ -53,6 +53,11 @@ after the fact is a lever nobody knows landed.
 - [x] 4.2 Record turns, tool calls, check rounds, findings and tokens in the
       same table, and state whether the agent read the schema, since the
       baseline did not and said so
+
+      Ticked once and wrongly: the schema statement was missing and the token
+      table quoted figures `BASELINE.md` contradicts. Both fixed, and the
+      corpus measurement now carries its own script so the next reader can
+      re-run it rather than trust it.
 - [x] 4.3 Report the comparison. A lever that did not move its number is
       reported as not having moved it
 

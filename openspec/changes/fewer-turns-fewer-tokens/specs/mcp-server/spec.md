@@ -51,8 +51,12 @@ had for an error.
 ### Requirement: The tool descriptions ask for the cheap spelling
 The `diagram` argument description SHALL ask for compact JSON, and SHALL be
 honest that it is a request rather than a constraint: the model chooses how it
-spells its own output. Measured across ten shipped figures, the difference is
-4,832 tokens pretty-printed against 2,454 minified.
+spells its own output. Across the 15 diagrams this repository ships the
+difference is 14,804 tokens at `JSON.stringify(d, null, 2)` against 7,466
+minified, 49.6%. That ceiling is measured against a machine's pretty-printer:
+the one agent whose output was measured was already within 0.4% of minified,
+so the floor is nearly nothing. Any figure this description or its
+documentation quotes SHALL say which of the two it is.
 
 #### Scenario: A description that does not overclaim
 - **WHEN** the `diagram` description is read

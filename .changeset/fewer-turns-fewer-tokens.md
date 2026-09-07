@@ -27,8 +27,16 @@ renders byte for byte what it rendered. Minor rather than patch because the
 type widened and a tool returns something it did not return before, not
 because a caller who changes nothing sees anything move.
 
-Measured on one scenario, three attempts: 4 turns to 3, and 745 tokens per
-attempt to 350. Half of that is compact JSON, which the `diagram` description
-now asks for and cannot enforce; the rest is the default. The honest half of
-the headline is in the change's own `RESULTS.md` - the levers made each pass
+Measured: 4 turns to 3 on one scenario, and 3.8% off the JSON of the 15
+diagrams this repository ships. The `diagram` description also asks for
+compact JSON, worth up to 49.6% against a machine's pretty-printer and as
+little as 0.4% against an agent already writing compactly - it can only ask,
+and the change's own `RESULTS.md` says so rather than banking it. The rest of
+that file is the part that does not flatter: the levers made each pass
 cheaper and removed one pass, and did not make a wrong first attempt right.
+
+One limit worth knowing before you rely on the new findings. `check_diagram`
+does not carry the renderer's structural refusals: a diagram with an edge
+`label` and no `lx`/`ly` reports "No findings." and is then refused by
+`render_diagram`. Findings ride with a successful render, so they say nothing
+about one that throws.
