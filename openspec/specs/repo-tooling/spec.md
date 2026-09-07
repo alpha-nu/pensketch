@@ -98,9 +98,11 @@ font dominate it and a user fetching it through `npx` waits for every byte.
 The splitting rule above follows the budgets and SHALL therefore apply to the
 budgeted entries only. `@pensketch/mcp` has no budget for a chunk to hide a
 re-export from, and the rule cost it real bytes: with four entries each
-inlining its own copy of the SDK the tarball packed at 556 KB, and as shared
-chunks at **165 KB** — less than the 270 KB it packed with two entries, since
-the duplication predated the fourth. Where an entry carries no budget, a
+inlining its own copy of the SDK the tarball packed at 566 KB, and as shared
+chunks at **162 KB** — less than the 270 KB it packed with two entries, since
+the duplication predated the fourth. Those are measurements taken on
+2026-09-07 and no gate holds them, this package carrying no byte budget by the
+rule above, so a figure quoted from them SHALL carry that date. Where an entry carries no budget, a
 shared chunk measures nothing wrongly and the download is what it saves.
 
 A budget SHALL be raised deliberately and in advance of the work that needs

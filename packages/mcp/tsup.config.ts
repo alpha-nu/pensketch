@@ -24,9 +24,10 @@ export default defineConfig({
   // entries, where a shared chunk would make a budget measure a re-export
   // rather than the code it stands for; this package has no budget. What it
   // has is a tarball an `npx` user waits for, and four entries each inlining
-  // their own copy of the SDK packed it at 556 KB against 165 KB as shared
+  // their own copy of the SDK packed it at 566 KB against 162 KB as shared
   // chunks - less than the 270 KB two entries packed at, because the
-  // duplication predated the fourth. Both measured with `shims` on.
+  // duplication predated the fourth. Measured 2026-09-07 with `shims` on,
+  // which costs 1 KB of the 162 and is what a working `require` is worth.
   shims: true,
   splitting: true,
   define: { __MCP_VERSION__: JSON.stringify(version) },
