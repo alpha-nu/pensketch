@@ -1353,6 +1353,49 @@ describe('draw() node phase', () => {
     }
   });
 
+  // `shape` is optional, and three separate places read it: the shape table
+  // here, the hatch clip, and `depthOf` when an extruded node is asked for an
+  // anchor. A default that landed in two of the three would still pass a
+  // plain box, so this diagram is built to make all three answer.
+  //
+  // Bytes rather than path counts, because a hatch cut to the wrong outline
+  // and an anchor taken off the wrong depth both keep the count.
+  it('draws an omitted shape as the box a named one draws, byte for byte', () => {
+    const both = (shape?: 'box' | 'pill') => {
+      const named = shape === undefined ? {} : { shape };
+      const svg = makeSvg();
+      draw(
+        svg,
+        {
+          nodes: [
+            {
+              id: 'n',
+              ...named,
+              x: 0,
+              y: 0,
+              w: 60,
+              h: 40,
+              hatch: true,
+              lines: ['label'],
+            },
+            // Under `3 * ARC_MIN_CHORD / pi` in its larger dimension, which
+            // is the one size where a pill carries no face and a box does.
+            // `depthOf` therefore answers differently for the two, and the
+            // edge below lands on the anchor that answer moves.
+            { id: 'tiny', ...named, x: 140, y: 20, w: 10, h: 8 },
+          ],
+          edges: [{ from: ['n', 'r'], to: ['tiny', 'l'] }],
+        },
+        { extrude: true, depth: 14 },
+      );
+      return serialize(svg);
+    };
+
+    expect(both()).toBe(both('box'));
+    // And the default does not swallow a shape that was actually named.
+    expect(both()).not.toBe(both('pill'));
+  });
+
   const hatchInk = (svg: SVGSVGElement): Point[] =>
     pathsOf(svg)
       .filter((path) => num(path, 'stroke-width') === HATCH_W)
