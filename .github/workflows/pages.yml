@@ -2,10 +2,9 @@ name: Pages
 
 # Publishes `docs/showcase/` to GitHub Pages.
 #
-# It deploys what is committed rather than regenerating here. The page is a
-# generated artefact held to a fresh generation by CI's tree-clean assertion,
-# so building it again in this workflow would prove nothing the other job has
-# not already proved.
+# It deploys what is committed, and nothing regenerates it. The page is
+# hand-maintained and independent of tools/build-showcase.mjs, so the
+# committed file is the artefact rather than a copy of one.
 #
 # That reasoning only holds if CI's verdict actually gates this, and the first
 # draft of this file claimed it did while triggering on `push` - a sibling of

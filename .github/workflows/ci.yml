@@ -169,15 +169,15 @@ jobs:
       # goldens, this compares reference/renderer.html against them. Without
       # it the goldens are only pinned to the port, and a parity failure can be
       # made to pass by regenerating the thing it measures. The schema is
-      # derived from the types, so this is what stops the two drifting. And the
-      # showcase is a published page claiming to show what this repository
-      # draws, which is only true while a fresh generation matches it.
+      # derived from the types, so this is what stops the two drifting.
+      #
+      # docs/showcase/ is deliberately not here: it is a hand-maintained page,
+      # independent of tools/build-showcase.mjs, and is allowed to drift.
       - name: Generated files still match their sources
         run: |
           npm run goldens
           npm run schema
           npm run resources
-          npm run showcase
           npm run pin
           git status --porcelain
           test -z "$(git status --porcelain)"
