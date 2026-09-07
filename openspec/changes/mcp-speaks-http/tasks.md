@@ -82,13 +82,42 @@ in `proposal.md` and stays true; it is simply not this change's problem.*
 
 ## 4. Serving and documentation
 
-- [ ] 4.1 gzip for text responses; **not** for `render_png` (measured 1.3x,
-      paid on the loop). A test holds the exclusion, because "compress
-      everything" is the obvious wrong default
-- [ ] 4.2 README and `pensketch://spec`: how to run it, what it does not do
+- [x] 4.1 gzip for text responses; **not** for `render_png`
+
+      **Not implemented, and the reason is not laziness.** The exclusion this
+      task was written to enforce is moot: `render_png` is not served here at
+      all, so everything on this wire is text and there is nothing to exclude.
+
+      What is left is whether the transport should compress. It should not.
+      The entry binds loopback and tells an operator to put a proxy in front,
+      because it has no authentication - and every such proxy compresses
+      already. In-process gzip would duplicate that for the recommended
+      deployment, spend CPU on the very event loop the SVG-only decision
+      exists to protect, and grow the "transport and nothing else" file a
+      branch for SSE, which must not be buffered. Priced against the one
+      deployment it helps - a bare port on a routable address, which this
+      change advises against - it is not worth its own bug surface.
+
+      Stated in the spec, so an operator reads it as a decision rather than
+      finding a gap.
+- [x] 4.2 README and `pensketch://spec`: how to run it, what it does not do
       (no auth), and the throughput ceiling a deployment inherits
-- [ ] 4.3 Byte budgets in `tools/check-size.mjs` for the new entry
-- [ ] 4.4 A changeset
+
+      Both READMEs carry it. **`pensketch://spec` does not, deliberately.**
+      That resource is `docs/agents.md`, the data-model reference a caller
+      reads before writing a node; it names no tool anywhere and says nothing
+      about rasterizing, so a deployment section there would be off-topic
+      prose every agent pays for on a read the proposal already calls
+      expensive. A caller learns which tools exist from `tools/list`, which is
+      accurate per transport by construction.
+- [x] 4.3 Byte budgets in `tools/check-size.mjs` for the new entry
+
+      **Superseded by the live spec, which forbids it.** `@pensketch/mcp`
+      SHALL NOT carry a byte budget - it is spawned, never bundled into a
+      page - and the HTTP entry is no different. What the spec does require is
+      the packed tarball, which the gate reports and which this change moved
+      from 270 KB to 152 KB. The delta amends the splitting rule instead.
+- [x] 4.4 A changeset
 
 ## 5. Group boundary
 

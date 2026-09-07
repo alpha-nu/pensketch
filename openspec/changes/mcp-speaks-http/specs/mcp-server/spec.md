@@ -22,6 +22,26 @@ same category as it gaining a stdin.
 - **WHEN** the HTTP entry is read
 - **THEN** it names no tool, no resource and no geometry, exactly as `stdio.ts` names none
 
+### Requirement: The HTTP transport is served, not deployed
+The HTTP entry SHALL bind loopback by default and SHALL NOT compress its own
+responses. It carries no authentication of any kind, so a default that bound
+a routable address would publish an unauthenticated endpoint by accident, and
+the proxy that a deployment therefore has to put in front of it is the thing
+that already compresses.
+
+It SHALL guard against DNS rebinding on every request. A browser sends a
+cross-origin request to `127.0.0.1` on behalf of whatever page the user has
+open, so a local endpoint without Host and Origin validation is reachable by
+every site that user visits.
+
+#### Scenario: A page the user has open tries the local endpoint
+- **WHEN** a request arrives carrying an Origin the server does not serve
+- **THEN** it is refused with 403 before any tool runs
+
+#### Scenario: Compression belongs to whatever is in front
+- **WHEN** an operator wants responses compressed
+- **THEN** the proxy they already need for authentication does it, rather than the transport spending the event loop on it
+
 ### Requirement: The HTTP entry does not serve the rasterizer
 `render_png` SHALL NOT be reachable over HTTP. The rasterizer is synchronous
 WebAssembly and holds the event loop for the whole of a raster - 2416 ms

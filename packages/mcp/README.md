@@ -34,6 +34,46 @@ version manager, and the symptom is a server that never starts with nothing
 useful in the log. If that happens, give the absolute path to `node` as the
 command.
 
+## Or serve it over HTTP
+
+```sh
+npx -y @pensketch/mcp@0.7.0 pensketch-mcp-http 3000
+```
+
+For a client that reaches a server over the network rather than spawning one.
+The handler is also importable, as the web-standard `fetch` shape a Worker,
+Bun or Deno deployment exports directly:
+
+```js
+import { createHandler } from '@pensketch/mcp/http';
+
+export default createHandler();
+```
+
+Read this part before you deploy it.
+
+- **`render_png` is not served over HTTP.** The rasterizer is synchronous
+  WebAssembly and holds the event loop for the whole of a raster — 2.4 s
+  measured on a 1760 × 1000 frame at 2×. Under stdio each client owns a
+  process and that is its own business; in a process serving many clients it
+  is everybody else's latency. It is absent from the tool list rather than
+  present and refusing, because a tool description an agent cannot act on is
+  tokens it paid for. Use stdio when you want pictures.
+- **There is no authentication.** None. It binds `127.0.0.1` by default for
+  that reason, and anything else needs a proxy in front deciding who may
+  reach it. That proxy is also what compresses the responses; the transport
+  does not.
+- **Host and Origin are validated on every request.** A browser will send a
+  cross-origin request to `127.0.0.1` on behalf of any page the user has open,
+  so an unguarded local endpoint is reachable by every site they visit.
+- **The ceiling is one process.** Measured over loopback, HTTP costs a flat
+  ~1.5 ms of protocol overhead on top of a call: `check_diagram` 0.4 ms → 1.6
+  ms, a small `render_diagram` 0.6 ms → 2.3 ms. Drawing is CPU on the same
+  loop, so throughput is what one core gives you. Run more processes.
+
+Both transports serve identical results: the same factory backs them, and no
+tool can observe which one carried its call.
+
 ## Three tools
 
 | tool | what it does |

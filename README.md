@@ -510,6 +510,14 @@ call a round rather than two:
 claude mcp add pensketch -- npx -y @pensketch/mcp@0.7.0
 ```
 
+It also speaks HTTP, for a client that reaches a server rather than spawning
+one — `pensketch-mcp-http`, or `createHandler()` from `@pensketch/mcp/http` as
+the web-standard `fetch` shape. SVG only there: the rasterizer is synchronous
+WebAssembly that holds the event loop for seconds, which is one client's own
+business under stdio and everybody's in a process serving many. See the
+[server's README](packages/mcp/README.md) before deploying it — there is no
+authentication, and it binds loopback for that reason.
+
 `render_png` matters more than it sounds: an agent handed
 `<path d="M40 90 C41.2 88.7…">` is reading a few thousand numbers, not looking
 at a picture. Its text is drawn in a stand-in face, so it is authoritative
