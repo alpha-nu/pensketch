@@ -444,6 +444,14 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 | `edge-overlap` | two edges draw as one line: the whole way, or along a run of 40px out of a shared anchor | warning |
 | `text-collision` | two pieces of text — a node label, a group title, an edge or brace label, a note — have overlapping boxes | warning |
 
+The three are not a ladder you can climb halfway. **A clean `check` is not a
+promise that `draw` will accept the diagram**: they answer different
+questions, and the first list above is the one `check` has no rule for. A
+diagram with an edge label and no `lx`/`ly` reports "No findings." and is then
+refused by the renderer. `render_diagram` returns findings beside its markup,
+so a clean report there *does* mean it drew — but a refusal returns the
+message alone, with no findings at all.
+
 `out-of-bounds` measures the line that gets drawn rather than the straight run
 between the anchors: a loop and a bow are sampled, so a curve that leaves the
 frame is caught where it leaves rather than passing on two anchors that are
