@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
-// Rewrites the version a reader is told to install, from the version the
-// package actually carries.
+// Rewrites the version a reader is told to install - and the one the MCP
+// registry is told to list - from the version the package actually carries.
 //
 // The pin itself is deliberate — `npx` without one fetches whatever is latest
 // when a client happens to start, which is a strange way to decide what your
@@ -28,6 +28,45 @@ const { version } = JSON.parse(read('packages/mcp/package.json'));
 // "which is what `0.1.0` shipped" must not be rewritten into a lie.
 const PIN = /@pensketch\/mcp@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g;
 
+// `server.json` is what `mcp-publisher` sends to the MCP registry, and it
+// names a version twice: once for the server entry and once for the npm
+// package it points at. Both have to be the version actually on npm, or the
+// registry lists a release nobody can install.
+//
+// That is a third and fourth home for a number that already has two, which is
+// exactly the drift this file was written for. So it is derived here rather
+// than maintained, and CI's tree-clean assertion is what notices.
+const SERVER_JSON = 'packages/mcp/server.json';
+
+const fail = (message) => {
+  console.error(`FAIL pin-version: ${message}`);
+  process.exit(1);
+};
+
+const { mcpName } = JSON.parse(read('packages/mcp/package.json'));
+const server = JSON.parse(read(SERVER_JSON));
+
+// The registry verifies ownership by fetching the *published* package and
+// matching its `mcpName` against the server name. The two drifting apart is a
+// publish that fails at the registry with nothing here to explain it, so it is
+// asserted rather than assumed.
+if (!mcpName)
+  fail(
+    'packages/mcp/package.json has no `mcpName`. The MCP registry reads it off the published package to verify ownership, and publishing without it means cutting another release for one line.',
+  );
+if (server.name !== mcpName)
+  fail(
+    `${SERVER_JSON} is named "${server.name}" and packages/mcp/package.json declares mcpName "${mcpName}". The registry matches those two, so a publish with them apart is refused.`,
+  );
+
+const entry = (server.packages ?? []).find(
+  (p) => p.identifier === '@pensketch/mcp',
+);
+if (!entry)
+  fail(
+    `${SERVER_JSON} lists no npm package with identifier "@pensketch/mcp", so there is nothing for this tool to pin and nothing for a client to install.`,
+  );
+
 const FILES = ['README.md', 'packages/mcp/README.md'];
 
 let found = 0;
@@ -47,10 +86,19 @@ for (const file of FILES) {
 // A README that lost its pin would leave this silently doing nothing, which
 // is the failure this file exists to prevent, one level up.
 if (!found) {
-  console.error(
-    `FAIL pin-version: no \`@pensketch/mcp@<version>\` found in ${FILES.join(' or ')}. The install instructions are pinned on purpose; if that changed, this tool and the reasoning above need to change with it.`,
+  fail(
+    `no \`@pensketch/mcp@<version>\` found in ${FILES.join(' or ')}. The install instructions are pinned on purpose; if that changed, this tool and the reasoning above need to change with it.`,
   );
-  process.exit(1);
+}
+
+if (server.version !== version || entry.version !== version) {
+  server.version = version;
+  entry.version = version;
+  writeFileSync(
+    new URL(SERVER_JSON, root),
+    `${JSON.stringify(server, null, 2)}\n`,
+  );
+  changed.push(SERVER_JSON);
 }
 
 console.log(

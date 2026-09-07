@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.alpha-nu/pensketch",
+  "title": "pensketch",
+  "description": "An MCP server for pensketch: check, render and rasterise hand-sketched diagrams.",
+  "version": "0.7.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@pensketch/mcp",
+      "version": "0.7.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

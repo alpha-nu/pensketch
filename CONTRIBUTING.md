@@ -71,11 +71,15 @@ root unless told otherwise.
   repository ships: every HTML example, the React example, and the README
   hero. Errors fail; warnings are printed. The project that writes the rules
   is the first thing held to them.
-- `npm run pin` - rewrites the version the READMEs tell a reader to install,
-  from the version `@pensketch/mcp` carries. `git diff` must be clean
-  afterwards. The pin is deliberate, because `npx` without one fetches
-  whatever is latest when a client happens to start; deriving it is what stops
-  the instructions pointing at a release you have already replaced. `npm run
+- `npm run pin` - rewrites every version this repository states to someone
+  installing the server, from the version `@pensketch/mcp` carries: the pin in
+  both READMEs, and the two in `packages/mcp/server.json`, which is what
+  `mcp-publisher` sends to the MCP registry. It also asserts that manifest's
+  server name matches the `mcpName` in the package, the pair the registry
+  checks to verify ownership. `git diff` must be clean afterwards. The pin is
+  deliberate, because `npx` without one fetches whatever is latest when a
+  client happens to start; deriving it is what stops the instructions pointing
+  at a release you have already replaced. `npm run
   bump` runs it straight after `changeset version`, so the correction lands in
   the same pull request as the bump.
 

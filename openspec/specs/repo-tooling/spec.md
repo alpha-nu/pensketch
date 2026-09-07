@@ -281,17 +281,33 @@ visible change misfiled as a patch.
 - **THEN** the release is misclassified and the change requires a minor instead
 
 ### Requirement: The documented install version is derived, not typed
-The version the READMEs instruct a reader to install SHALL be generated from
-the version `@pensketch/mcp` carries, by a `tools/` generator, and SHALL be
-regenerated as part of the release's own versioning command so that the
-correction lands in the same pull request as the bump that invalidated it. The
-generator SHALL fail rather than succeed silently when it finds no pin to
-rewrite, and SHALL rewrite only an install pin — a version named in prose as
-history SHALL be left alone.
+Every version this repository states to someone installing the server SHALL be
+generated from the version `@pensketch/mcp` carries, by a `tools/` generator,
+and SHALL be regenerated as part of the release's own versioning command so
+that the correction lands in the same pull request as the bump that
+invalidated it. That covers the pin in the READMEs and the two versions in the
+registry manifest `mcp-publisher` sends — the server entry and the npm package
+it points at — because a registry listing a release nobody can install fails
+the same way a README does. The generator SHALL fail rather than succeed
+silently when it finds no pin to rewrite, and SHALL rewrite only an install
+pin — a version named in prose as history SHALL be left alone.
+
+The registry manifest's server name and the `mcpName` in the published
+manifest SHALL be asserted equal by that generator. The registry matches the
+two to verify ownership, so a publish with them apart is refused there, with
+nothing in this repository to explain why.
 
 Pinning SHALL remain: an unpinned `npx` invocation resolves to whatever is
 latest at the moment a client starts, which makes the behaviour of a caller's
 tools depend on when they happened to launch.
+
+#### Scenario: The registry is not told a version that was never published
+- **WHEN** `@pensketch/mcp` is versioned
+- **THEN** the registry manifest carries the new version in both places it states one, because the same generator writes them
+
+#### Scenario: An ownership claim that would be refused
+- **WHEN** the registry manifest's server name and the package's `mcpName` differ
+- **THEN** the generator fails naming both, rather than leaving the refusal to happen at the registry
 
 #### Scenario: A release cannot ship instructions for the release before it
 - **WHEN** a version bump changes what `@pensketch/mcp` publishes as
