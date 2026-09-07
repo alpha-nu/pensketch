@@ -10,15 +10,23 @@ const { version } = JSON.parse(
 );
 
 export default defineConfig({
-  // The factory and the transport are separate entries so that a second
-  // transport stays additive: `stdio.ts` is a few lines over `index.ts`.
-  entry: ['src/index.ts', 'src/stdio.ts'],
+  // The factory and the transports are separate entries so that a second
+  // transport stays additive: `stdio.ts` and `http.ts` are each a few lines
+  // over `index.ts`, and `serve-http.ts` is the bin over `http.ts`.
+  entry: ['src/index.ts', 'src/stdio.ts', 'src/http.ts', 'src/serve-http.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   minify: true,
   sourcemap: true,
   clean: true,
   target: 'es2020',
-  splitting: false,
+  // On here and off everywhere else. The rule is written for the budgeted
+  // entries, where a shared chunk would make a budget measure a re-export
+  // rather than the code it stands for; this package has no budget. What it
+  // has is a tarball an `npx` user waits for, and four entries each inlining
+  // their own copy of the SDK packed it at 535 KB against 152 KB as shared
+  // chunks - less than the 270 KB two entries packed at, because the
+  // duplication predated the fourth.
+  splitting: true,
   define: { __MCP_VERSION__: JSON.stringify(version) },
 });

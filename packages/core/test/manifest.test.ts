@@ -36,11 +36,19 @@ describe('the server package', () => {
   // The shape, not the ranges: a release rewrites the core range, and
   // asserting it literally makes every release fail its own tests.
   //
-  // Five, and each is a decision worth failing a test to revisit: the SDK
-  // speaks the protocol, core does the drawing, the animation package writes
-  // the stylesheet an animated render carries, the rasterizer turns an SVG
-  // into something a client can display, and zod is what the SDK wants a tool
-  // schema written in. A sixth arriving quietly is what this asserts against.
+  // Six, and each is a decision worth failing a test to revisit: the SDK
+  // speaks the protocol, its node adapter bridges an `IncomingMessage` to the
+  // web-standard `Request` the handler takes, core does the drawing, the
+  // animation package writes the stylesheet an animated render carries, the
+  // rasterizer turns an SVG into something a client can display, and zod is
+  // what the SDK wants a tool schema written in. A seventh arriving quietly
+  // is what this asserts against.
+  //
+  // The adapter is the one that could have been hand-rolled, and the reason
+  // it is not is that the conversion has a security half: it ships the Host
+  // and Origin guards that stop any page a user has open from reaching a
+  // local endpoint. Its own weight is one transitive dependency,
+  // `@hono/node-server`; `hono` itself is an optional peer and is absent.
   //
   // The animation package is a plain dependency here and a peer nowhere,
   // which is the carve-out this package has and the rendering packages do
@@ -50,8 +58,9 @@ describe('the server package', () => {
   // zod is declared even though the SDK would supply it: a package that
   // imports something should say so rather than reach through a dependency's
   // tree for it.
-  it('depends on the SDK, core, the motion, the rasterizer and zod, and nothing else', () => {
+  it('depends on the SDK, its node adapter, core, the motion, the rasterizer and zod, and nothing else', () => {
     expect(Object.keys(mcp.dependencies ?? {}).sort()).toEqual([
+      '@modelcontextprotocol/node',
       '@modelcontextprotocol/server',
       '@pensketch/animation',
       '@pensketch/core',
@@ -87,6 +96,9 @@ describe('the server package', () => {
   // under the normalised value. Writing what npm would write leaves the
   // published manifest identical and the publish log quiet.
   it('is runnable by name', () => {
-    expect(mcp.bin).toEqual({ 'pensketch-mcp': 'dist/stdio.js' });
+    expect(mcp.bin).toEqual({
+      'pensketch-mcp': 'dist/stdio.js',
+      'pensketch-mcp-http': 'dist/serve-http.js',
+    });
   });
 });
