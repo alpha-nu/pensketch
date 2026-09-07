@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { renderToString } from '../packages/core/dist/server.js';
 import { shippedDiagrams } from './shipped-diagrams.mjs';
-import { FACE, MONO, P, SERIF } from './tokens.mjs';
+import { DARK, FACE, FACE_LICENCE, MONO, P, SERIF } from './tokens.mjs';
 
 // One page showing every diagram this repository ships, drawn by the shipped
 // renderer from the shipped data. Generated rather than written, so it cannot
@@ -34,59 +34,101 @@ const ORDER = [
   [
     'hero',
     'The one on the front page',
-    'Five nodes, a group behind them, a brace, one bowed arrow and one hatched box. Most of the data model, at the size most diagrams actually are.',
+    'The diagram the README opens with, at the size most diagrams actually are.',
   ],
   [
     'pipeline',
     'A CI pipeline',
-    'Two groups, all three drawn shapes, and the diagram-wide extrusion turned on - so every box is a slab lit from the top left. The dotted arrow is the failure path.',
+    'What the extrusion is for: a flat drawing and a stack of slabs are the same data and one option apart.',
   ],
   [
     'lifecycle',
     'An order lifecycle',
-    'Six pills and a self-transition: the retry leaves one side of a node and returns to it, with the arrowhead landing where it left.',
+    'A state machine where the interesting state is the one that loops back to itself.',
   ],
   [
     'atm',
     'A cash machine',
-    'Ten arrows through seven nodes, two of them bowed apart - a transition and its reverse, which would otherwise draw as one line twice.',
+    'A transition and its reverse between the same pair of nodes, which is the case a straight line cannot draw twice.',
   ],
   [
     'incident',
     'An incident, mid-flight',
-    'The React example, at the stage where the most is visible. The diagram is computed from application state; the renderer is told nothing about why any of it is shaded.',
+    'The React example. The diagram is computed from application state, so the picture changes as the incident does and the renderer is told nothing about why.',
   ],
   [
     'showcase',
     'Everything at once',
-    'Twenty nodes, four groups, both kinds of brace, hatching, accents, five orthogonal runs and a loop - and not one `raw` callback. That is the point of it: no escape hatch was needed.',
+    'Built to reach for as much of the data model as one picture can hold, and to need no `raw` callback doing it. The escape hatch exists; this did not want it.',
   ],
   [
     'fig-overview',
     'Photosynthesis, in one line',
-    'The first of five figures from the animation example, which explains photosynthesis and is drawn by the library it is demonstrating. Every arrow here takes corners.',
+    'The first of five figures from the animation example, which explains photosynthesis and is drawn by the library it is demonstrating.',
   ],
   [
     'fig-zoom',
     'Down to the chloroplast',
-    'A leaf, a cell, an organelle. One group bounds the whole descent and the accent marks where the machinery finally is.',
+    'A leaf, then a cell, then the organelle, then the two halves of the machinery inside it.',
   ],
   [
     'fig-light',
     'The light reactions',
-    'The most crowded figure on this page: twelve nodes, nineteen pieces of text and three accents inside a single group. The checker reports nothing on it.',
+    'The busiest figure here. A membrane along the top, and everything below it hanging off what crosses that membrane.',
   ],
   [
     'fig-calvin',
     'The Calvin cycle',
-    'Seven boxes and seven arrows, four of them routed through corners so the cycle closes without a line crossing the middle of it.',
+    'A cycle, so the last arrow has to return to the first node without drawing through the middle of the picture.',
   ],
   [
     'fig-loop',
     'Why it is one process',
-    'Two boxes and an arrow each way, both given the same bow. A bow is measured against the direction of travel, so one number puts the pair on opposite sides and they stay two readable lines.',
+    'The smallest figure here, and the one carrying the whole argument of the piece.',
   ],
 ];
+
+/**
+ * What a diagram actually uses, counted rather than described.
+ *
+ * Every factual claim about a figure is derived here. The sentences above say
+ * why a figure is on the page and nothing a reader could check against the
+ * data, because the sentences are the one part of this page nothing gates -
+ * and the first two drafts of them were wrong. The first invented what five
+ * figures were about. The second, written after that was caught, still said
+ * three accents were "inside a single group" when two of them are outside it,
+ * counted a group as both a node and a group, and called one accent several.
+ *
+ * A caption cannot go stale if it makes no claim, and a count cannot go stale
+ * if it is computed on the way past.
+ */
+const featuresOf = ({ diagram, options }) => {
+  const nodes = diagram.nodes ?? [];
+  const edges = diagram.edges ?? [];
+  const braces = diagram.braces ?? [];
+  const drawn = nodes.filter((n) => n.shape !== 'group');
+  const kinds = [...new Set(drawn.map((n) => n.shape ?? 'box'))].sort();
+  const braceKinds = [...new Set(braces.map((b) => b.kind ?? 'curly'))].sort();
+  const count = (n, one, many = `${one}s`) =>
+    n ? `${n} ${n === 1 ? one : many}` : '';
+
+  return [
+    kinds.join(' + '),
+    count(nodes.length - drawn.length, 'group'),
+    braceKinds.length
+      ? `${braceKinds.join(' + ')} brace${braces.length === 1 ? '' : 's'}`
+      : '',
+    // Adjectives, so they do not take a plural: "2 hatched", not "2 hatcheds".
+    count(drawn.filter((n) => n.hatch).length, 'hatched', 'hatched'),
+    count(drawn.filter((n) => n.accent).length, 'accent'),
+    count(edges.filter((e) => e.via?.length).length, 'orthogonal run'),
+    count(edges.filter((e) => e.bow).length, 'bowed', 'bowed'),
+    count(edges.filter((e) => e.from[0] === e.to[0]).length, 'self-transition'),
+    count(edges.filter((e) => e.dotted).length, 'dotted', 'dotted'),
+    count((diagram.notes ?? []).length, 'note'),
+    options?.extrude ? 'extruded' : '',
+  ].filter(Boolean);
+};
 
 const attr = (text) =>
   String(text)
@@ -95,6 +137,31 @@ const attr = (text) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
+/**
+ * The same drawing, with the digits nobody can see taken off.
+ *
+ * `renderToString` prints coordinates at full IEEE-754 precision -
+ * `27.579534765519202` - and 23,499 of this page's 26,680 numbers carry
+ * twelve decimal places or more. They carry no information: the pen's own
+ * jitter amplitude is 2.6 px, so everything below 0.01 px is far under the
+ * noise floor of the thing being drawn.
+ *
+ * It is worth 145 KB gzipped, 58% of the page. This repository budgets its
+ * core entry at 5,440 gzipped bytes and has re-argued that number over 21 of
+ * them; shipping 145 KB of float noise on a published page is the same
+ * question, and nothing in this change had asked it.
+ *
+ * Scoped to the two attributes that carry long decimals - `d` and
+ * `stroke-width` - rather than run over every number in the document, because
+ * a label reading "3.14159" is text and not a coordinate.
+ */
+const trim = (svg) =>
+  svg.replace(
+    /(\b(?:d|stroke-width)=")([^"]*)"/g,
+    (_, name, value) =>
+      `${name}${value.replace(/\d+\.\d{3,}/g, (n) => String(Math.round(Number(n) * 100) / 100))}"`,
+  );
+
 /** The file a diagram was loaded from, off the name the loader built. */
 const sourceOf = (name) =>
   String(name)
@@ -102,7 +169,51 @@ const sourceOf = (name) =>
     .trim();
 
 const shipped = await shippedDiagrams();
-const byKey = new Map(shipped.filter((s) => s.key).map((s) => [s.key, s]));
+const keyed = shipped.filter((s) => s.key);
+const byKey = new Map(keyed.map((s) => [s.key, s]));
+
+// A `Map` keeps the last writer, so two entries sharing a key collapse into
+// one and a diagram disappears from a page headed "every diagram it ships" -
+// no error, no diff, nothing. One copy-pasted `<svg id="...">` between two
+// example pages is all it takes, because that id *is* the key.
+if (byKey.size !== keyed.length) {
+  // `!seen.add(k)` would be a neat one-liner and is always false, because
+  // `Set.add` returns the set. The first draft of this line named no key at
+  // all, which is a refusal that does not name the fix.
+  const seen = new Set();
+  const twice = new Set();
+  for (const { key } of keyed) {
+    if (seen.has(key)) twice.add(key);
+    seen.add(key);
+  }
+  throw new Error(
+    `two shipped diagrams share the key ${[...twice].map((k) => `"${k}"`).join(', ')}, so one would be dropped silently. The key is the element id the example page draws into; give them different ids.`,
+  );
+}
+
+// `shippedDiagrams()` refuses a missing viewBox, which a three-number one is
+// not: `"0 0 880".split(...).map(Number)` is a truthy array of three, and it
+// reaches the page as `height="undefined"` with the generator exiting 0.
+for (const s of keyed)
+  if (s.viewBox.length !== 4 || !s.viewBox.every(Number.isFinite))
+    throw new Error(
+      `"${s.key}" has viewBox [${s.viewBox}], which is not four numbers. A short one publishes width="undefined" rather than failing here.`,
+    );
+
+// The options are read by name below, so one this page has not been taught
+// about is dropped rather than applied - and a dropped option is a figure
+// that differs from the example page in a way only a comparison would show.
+// That is the failure the wrapper's own docblock describes; an allowlist
+// reintroduces it for every option added after today, unless something
+// notices.
+const KNOWN = new Set(['seed', 'extrude', 'depth', 'hops', 'label', 'order']);
+for (const s of keyed) {
+  const unknown = Object.keys(s.options ?? {}).filter((k) => !KNOWN.has(k));
+  if (unknown.length)
+    throw new Error(
+      `"${s.key}" is drawn with ${unknown.map((k) => `"${k}"`).join(', ')}, which this generator does not pass on. Add it to svgFor and to KNOWN, or the page draws a picture the example does not.`,
+    );
+}
 
 // Both directions, because a tripwire that only fires one way is half a
 // tripwire: a name here that no longer exists, and a diagram that exists and
@@ -149,9 +260,9 @@ if (orphans.length)
  * figures do not animate. `label` goes on the wrapper as the accessible name,
  * which is where it belongs and not in the drawing.
  */
-const svgFor = ({ diagram, viewBox, options }, fallbackLabel) => {
+const svgFor = ({ diagram, viewBox, options }, name) => {
   const [minX, minY, width, height] = viewBox;
-  const { seed, extrude, depth, hops, label } = options ?? {};
+  const { seed, extrude, depth, hops } = options ?? {};
   const inner = renderToString(diagram, {
     ...(seed === undefined ? {} : { seed }),
     ...(extrude === undefined ? {} : { extrude }),
@@ -162,9 +273,13 @@ const svgFor = ({ diagram, viewBox, options }, fallbackLabel) => {
   // and this page's title for the rest. A figure with no accessible name is
   // an image a screen reader announces as nothing at all, and "the data
   // already holds it" was true of under half of them.
-  const aria = ` role="img" aria-label="${attr(label || fallbackLabel)}"`;
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}"${aria}>${inner}</svg>`;
+  // A `<title>` carrying the heading a sighted reader sees, rather than an
+  // `aria-label` carrying the data's own. Five of these diagrams have a
+  // `label` in their options and it is not the heading - "The whole trade, in
+  // one line" against "Photosynthesis, in one line" - so labelling from it
+  // gave two readers two names for one figure. `role="img"` prunes the
+  // subtree, so the title is the whole of what is announced.
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}" role="img"><title>${attr(name)}</title>${trim(inner)}</svg>`;
 };
 
 const figures = ORDER.map(([key, title, blurb], i) => {
@@ -178,7 +293,7 @@ const figures = ORDER.map(([key, title, blurb], i) => {
   <header>
     <p class="n">${String(i + 1).padStart(2, '0')}</p>
     <h2>${attr(title)}</h2>
-    <p class="blurb">${attr(blurb)}</p>
+    <p class="blurb measure">${attr(blurb)}</p>
   </header>
   <figure><div class="frame" style="--w:${w}">${svg}</div>
     <figcaption>
@@ -187,6 +302,9 @@ const figures = ORDER.map(([key, title, blurb], i) => {
       <span>${w} &times; ${h}</span>
       <span class="src">${attr(sourceOf(s.name))}</span>
     </figcaption>
+    <p class="uses">${featuresOf(s)
+      .map((f) => `<span>${attr(f)}</span>`)
+      .join('')}</p>
   </figure>
 </section>`;
 }).join('\n\n');
@@ -224,13 +342,13 @@ const page = `<!doctype html>
    surface rather than in a hole. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #15191F;
-    --rule: rgba(217, 223, 231, .18);
-    --ps-ink: #D9DFE7;
-    --ps-pen: #7FA9DB;
-    --ps-accent: #DB8570;
-    --ps-muted: #93A0AD;
-    --ps-wash: rgba(127, 169, 219, .07);
+    --paper: ${DARK.paper};
+    --rule: ${DARK.rule};
+    --ps-ink: ${DARK.ink};
+    --ps-pen: ${DARK.pen};
+    --ps-accent: ${DARK.accent};
+    --ps-muted: ${DARK.muted};
+    --ps-wash: ${DARK.wash};
   }
 }
 
@@ -263,7 +381,7 @@ header.top h1 {
   letter-spacing: .01em;
   text-wrap: balance;
 }
-header.top p { margin: 0; max-width: 46ch; color: var(--ps-muted); }
+header.top p { margin: 0; color: var(--ps-muted); }
 header.top .meta {
   margin-top: 24px;
   font: 400 13px/1.6 var(--mono);
@@ -283,13 +401,27 @@ header.top .meta {
   font: 400 clamp(21px, 3vw, 27px)/1.25 var(--serif);
   text-wrap: balance;
 }
-.fig .blurb { margin: 0; max-width: 58ch; color: var(--ps-muted); }
+.fig .blurb { margin: 0; color: var(--ps-muted); }
+
+/* One measure rule rather than one per region. Three of those, at three
+   specificities in source order, is what the descending-specificity lint
+   catches - and a warning left standing is how a gate stops being read. */
+.measure { max-width: 62ch; }
 
 figure { margin: 0; }
 
-/* Wide diagrams scroll inside their own frame, never the page. \`--w\` is the
-   drawing's own width, so a figure narrower than the column is not stretched
-   to fill it. */
+/* Wide diagrams scroll inside their own frame, never the page.
+
+   The floor is what makes that true. With \`width: 100%\` and a max alone the
+   svg can never exceed the frame, so the frame can never overflow, so
+   \`overflow-x\` never fires - measured false across 55 figure-by-width
+   combinations - and what actually happens is uniform downscaling. On a
+   390px phone the widest figure came out at 0.26x, putting its 13.5px
+   lettering on screen at 3.6px, which is a smear rather than a diagram.
+
+   0.68 is the smallest scale that keeps that lettering at 9px. Below it the
+   figure stops shrinking and the frame scrolls, which is the behaviour the
+   \`overflow-x\` was written for. */
 .frame {
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -299,6 +431,7 @@ svg text { font-family: "Architects Daughter", cursive; }
 .frame svg {
   display: block;
   width: 100%;
+  min-width: calc(var(--w) * 0.68px);
   max-width: calc(var(--w) * 1px);
   height: auto;
 }
@@ -314,10 +447,38 @@ figcaption {
 }
 figcaption .src { color: var(--ps-pen); }
 
+/* What the figure uses, counted from the data on the way past rather than
+   typed. Every factual claim about a figure lives here; the sentence above
+   it makes none. */
+.uses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+.uses span {
+  padding: 3px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font: 400 11.5px/1.4 var(--mono);
+  color: var(--ps-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 footer {
   padding-top: 48px;
   font: 400 13px/1.7 var(--mono);
   color: var(--ps-muted);
+}
+
+footer summary { cursor: pointer; margin-top: 8px; }
+footer pre {
+  margin: 12px 0 0;
+  padding: 16px;
+  border: 1px solid var(--rule);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font: 400 12px/1.6 var(--mono);
 }
 
 </style>
@@ -326,23 +487,35 @@ footer {
 <div class="wrap">
 
 <header class="top">
-  <h1>Every diagram pensketch ships</h1>
-  <p>Drawn by the library itself, from the same data its tests measure and its
-  MCP server serves to agents. Nothing on this page was placed by hand except
-  the sentences.</p>
+  <h1>The diagrams pensketch ships</h1>
+  <p class="measure">Drawn by the library itself, from the same data its tests
+  measure and its MCP server serves to agents. Every count on this page is read
+  off that data; only the sentences are typed.</p>
   <p class="meta">
-    ${figures.split('<section class="fig"').length - 1} figures &middot;
+    ${ORDER.length} of ${shipped.length} &middot;
     generated by <a href="https://github.com/alpha-nu/pensketch/blob/main/tools/build-showcase.mjs">tools/build-showcase.mjs</a> &middot;
     <a href="https://github.com/alpha-nu/pensketch">the repository</a>
   </p>
+  <p class="meta">The other ${shipped.length - ORDER.length} are further reveal
+  stages of the incident diagram below, drawn from the same module at different
+  points in the story.</p>
 </header>
 
 ${figures}
 
 <footer>
-  <p>This page is regenerated from the repository and CI fails if it drifts, so
+  <p class="measure">This page is regenerated from the repository and CI fails if it drifts, so
   a figure here is a figure that still draws. Coordinates are given, never
   computed &mdash; pensketch performs no layout and never measures text.</p>
+
+  <p class="measure">Figures set in Architects Daughter by Kimberly Geswein, under the SIL Open
+  Font License 1.1. The face is embedded in this page, so its licence travels
+  with it rather than being linked to.</p>
+
+  <details>
+    <summary>SIL Open Font License 1.1</summary>
+    <pre>${attr(FACE_LICENCE)}</pre>
+  </details>
 </footer>
 
 </div>
