@@ -82,5 +82,10 @@ Group 1 is blocked on all four owner calls in `proposal.md`.
 
 ## 5. Group boundary
 
-- [ ] 5.1 `/swat` over the whole change
-- [ ] 5.2 Every Truthful finding remediated
+- [x] 5.1 `/swat` over the whole change
+- [x] 5.2 Every Truthful finding remediated
+
+      T-38 to T-47. The one worth remembering is T-38: the captions were
+      fabricated, corrected, and fabricated again. The fix was not to check
+      them harder but to stop writing sentences that can be wrong - every
+      fact on the page is computed now, and the prose makes no claim.
