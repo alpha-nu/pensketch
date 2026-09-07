@@ -224,6 +224,47 @@ const refusal = async (name: string, args: Record<string, unknown>) => {
 };
 
 const NODE = { id: 'a', shape: 'box', x: 10, y: 10, w: 100, h: 40 };
+
+// The bound has to be asserted here rather than against a handler, because it
+// is the SDK that validates the input schema - a handler called directly is
+// handed whatever it is given.
+describe('the bound on how much a diagram may carry', () => {
+  // `check` compares every pair, so both the time and the findings grow with
+  // the square, and both are spent before anything returns: 2,000 overlapping
+  // nodes hold 2.9 million findings and take 1.4 s, and 8,000 runs out of
+  // memory. Longer than the 2416 ms raster this server's HTTP transport
+  // declines to serve, reached by a request that decision was meant to have
+  // made safe.
+  it.each(['nodes', 'edges', 'braces', 'notes'])(
+    'refuses more than five hundred %s, naming the fix',
+    async (field) => {
+      const said = await refusal('check_diagram', {
+        diagram: { [field]: Array.from({ length: 501 }, () => ({})) },
+        viewBox: BOX,
+      });
+
+      expect(said).toContain(`at most 500 ${field}`);
+      expect(said).toContain('Split the drawing');
+    },
+  );
+
+  it('serves five hundred, so the bound is where it says it is', async () => {
+    const result = await called('check_diagram', {
+      diagram: {
+        nodes: Array.from({ length: 500 }, (_, i) => ({
+          id: `n${i}`,
+          x: (i % 25) * 30,
+          y: Math.floor(i / 25) * 30,
+          w: 20,
+          h: 20,
+        })),
+      },
+      viewBox: [0, 0, 800, 700],
+    });
+
+    expect(result.isError).toBeFalsy();
+  });
+});
 const BOX = [0, 0, 260, 100] as [number, number, number, number];
 
 // The defect the whole capability was written for, sized for this frame. Flat,

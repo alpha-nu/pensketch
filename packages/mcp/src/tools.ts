@@ -53,13 +53,51 @@ const refuses = (subject: string, noun: string, takes: string) => ({
 // of the list is that a new top-level field is refused until it is added, and
 // a test holds it to the schema's own top level so that is a failure rather
 // than a surprise.
+/**
+ * The most of any one thing a diagram may carry.
+ *
+ * Not a style rule - a bound on work. Several of `check`'s rules compare every
+ * pair, so both the time and the findings grow with the square, and both are
+ * spent before anything can be returned. Measured on a worst case where every
+ * node overlaps every other:
+ *
+ * | nodes | draw | check | findings held in memory |
+ * |---|---|---|---|
+ * | 200 | 15 ms | 20 ms | 29,184 |
+ * | 500 | 34 ms | 84 ms | 182,400 |
+ * | 1000 | 64 ms | 314 ms | 729,600 |
+ * | 2000 | 127 ms | 1299 ms | 2,918,400 |
+ * | 8000 | - | - | out of memory |
+ *
+ * 500 is where that stays a request rather than an outage: 118 ms, twenty
+ * times under the 2416 ms raster this transport declines to serve for exactly
+ * this reason. It is also twenty-five times the largest diagram this
+ * repository ships, which is 20 nodes.
+ *
+ * The cap on the findings *listing* does not help here. It shortens what is
+ * printed; the array is built in full before anything is printed at all.
+ *
+ * Applied on both transports, deliberately. Nobody hand-writes 500 nodes, and
+ * a bound that held only where an attacker could reach it would be a bound
+ * this repository never ran against itself.
+ */
+const MAX_ITEMS = 500;
+
+const many = (what: string) =>
+  z
+    .array(z.unknown())
+    .max(MAX_ITEMS, {
+      error: `A diagram takes at most ${MAX_ITEMS} ${what}. Several rules compare every pair, so the work grows with the square: 500 is 118 ms and 2000 is 1.4 s. Split the drawing, or draw fewer things.`,
+    })
+    .optional();
+
 const diagram = z
   .strictObject(
     {
-      nodes: z.array(z.unknown()).optional(),
-      edges: z.array(z.unknown()).optional(),
-      braces: z.array(z.unknown()).optional(),
-      notes: z.array(z.unknown()).optional(),
+      nodes: many('nodes'),
+      edges: many('edges'),
+      braces: many('braces'),
+      notes: many('notes'),
     },
     refuses(
       'A diagram',
