@@ -20,6 +20,10 @@ bytes.
 rendering. It serves the caller who wants findings without markup, and the
 caller about to spend a multi-second raster.
 
+#### Scenario: Checking a diagram with a defect
+- **WHEN** `check_diagram` is called with a diagram whose nodes overlap
+- **THEN** it returns the finding and a non-zero error count
+
 #### Scenario: One call, both answers
 - **WHEN** `render_diagram` is called with a diagram whose label overflows its box
 - **THEN** it returns the markup and the `text-overflow` finding together, and the caller needs no second call to learn of it

@@ -15,24 +15,24 @@ after the fact is a lever nobody knows landed.
 
       **Decided 2026-09-06: yes.** A second content block, a minor bump, and the
       live spec's "SHALL return SVG text" is amended by this change's delta.
-- [ ] 1.1 `render_diagram` runs `check` and returns findings as a second
+- [x] 1.1 `render_diagram` runs `check` and returns findings as a second
       content block. Core still owns every rule; the tool stays a thin layer
-- [ ] 1.2 Findings are reported in the geometry actually rendered, `extrude`
+- [x] 1.2 Findings are reported in the geometry actually rendered, `extrude`
       and `depth` included, or they describe a drawing nobody made
-- [ ] 1.3 `check_diagram`'s description loses "Run this before rendering",
+- [x] 1.3 `check_diagram`'s description loses "Run this before rendering",
       which will be false. The test pinning `TRAPS` phrases is the guard that
       a description does not rot; extend it rather than working around it
-- [ ] 1.4 `render_png` is left alone. It is the expensive tool, and a
+- [x] 1.4 `render_png` is left alone. It is the expensive tool, and a
       pre-render `check_diagram` is exactly right in front of a 2.4 s raster
 
 ## 2. Fewer tokens per node
 
-- [ ] 2.1 `shape` becomes optional in the core node type, defaulting to
+- [x] 2.1 `shape` becomes optional in the core node type, defaulting to
       `box`. Additive: no existing diagram changes meaning
-- [ ] 2.2 Regenerate the published JSON schema; `shape` leaves `required`
-- [ ] 2.3 The `diagram` description asks for compact JSON, and says plainly
+- [x] 2.2 Regenerate the published JSON schema; `shape` leaves `required`
+- [x] 2.3 The `diagram` description asks for compact JSON, and says plainly
       that it is a request the model may ignore
-- [ ] 2.4 A test that a node without `shape` draws the box a node with
+- [x] 2.4 A test that a node without `shape` draws the box a node with
       `shape: "box"` draws, byte for byte
 
 ## 3. The mandatory read
@@ -49,11 +49,11 @@ after the fact is a lever nobody knows landed.
 
 ## 4. Re-run and compare
 
-- [ ] 4.1 Re-run `BASELINE.md`'s scenario verbatim against the changed server
-- [ ] 4.2 Record turns, tool calls, check rounds, findings and tokens in the
+- [x] 4.1 Re-run `BASELINE.md`'s scenario verbatim against the changed server
+- [x] 4.2 Record turns, tool calls, check rounds, findings and tokens in the
       same table, and state whether the agent read the schema, since the
       baseline did not and said so
-- [ ] 4.3 Report the comparison. A lever that did not move its number is
+- [x] 4.3 Report the comparison. A lever that did not move its number is
       reported as not having moved it
 
 ## 5. Group boundary
