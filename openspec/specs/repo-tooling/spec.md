@@ -228,7 +228,10 @@ request: the changesets action is pinned by commit, renames every input in its
 next major, and Actions only warns about an input a workflow declares that the
 action does not — so a bad upgrade of that pin does nothing and exits zero. For
 `@pensketch/mcp`, which renders nothing of its own, the byte-identity clause
-SHALL be read as applying to the SVG its `render_diagram` tool returns.
+SHALL be read as applying to everything a tool returns, not to the markup
+alone: `render_diagram` returns findings beside its SVG, and a release that
+changed what those findings say while leaving the markup identical would be a
+visible change misfiled as a patch.
 
 #### Scenario: A dispatch cannot be ambiguous about what it is for
 - **WHEN** the publishing workflow is dispatched while a changeset is still pending
