@@ -15,41 +15,26 @@ filesystem and no stored state. The server process gaining a listener is the
 same category as it gaining a stdin.
 
 #### Scenario: The same call over either transport
-- **WHEN** any tool is called with identical arguments over stdio and over HTTP
+- **WHEN** a tool both transports serve is called with identical arguments over stdio and over HTTP
 - **THEN** the results are byte-identical, because nothing outside the arguments is read
 
 #### Scenario: A transport file that knows nothing
 - **WHEN** the HTTP entry is read
 - **THEN** it names no tool, no resource and no geometry, exactly as `stdio.ts` names none
 
-### Requirement: An expensive call does not block a cheap one
-Where one process serves many clients, rasterization SHALL NOT hold the event
-loop against unrelated requests. Concurrent `render_png` calls SHALL overlap
-rather than serialize.
+### Requirement: The HTTP entry does not serve the rasterizer
+`render_png` SHALL NOT be reachable over HTTP. The rasterizer is synchronous
+WebAssembly and holds the event loop for the whole of a raster - 2416 ms
+measured on a 1760 x 1000 frame at 2x - so one client's picture is every other
+client's latency in a process that serves more than one.
 
-This is a hosting requirement and not a correctness one: under stdio each
-client owns a process and the blocking is its own. It is stated here because
-the HTTP transport is what makes it observable by a party that did not ask
-for it.
+Stdio is unaffected and stays the transport that rasterizes: there each client
+owns a process, and the blocking is its own.
 
-#### Scenario: Concurrency actually overlaps
-- **WHEN** N `render_png` calls are made concurrently against one HTTP server
-- **THEN** wall clock is materially below N times the single-call median, where today the measured ratio is 1.01x
+#### Scenario: A raster asked for over HTTP
+- **WHEN** `render_png` is called over the HTTP transport
+- **THEN** it is refused, naming stdio as the transport that serves it, rather than served slowly
 
-#### Scenario: A cheap call is not held hostage
-- **WHEN** `check_diagram` is called while a multi-second raster is in flight
-- **THEN** it returns in its own time rather than after the raster completes
-
-### Requirement: The cost bound predicts the cost
-A raster SHALL be refused on a budget that tracks what actually drives raster
-time, and SHALL carry a wall-clock ceiling. A bound on the longest side alone
-SHALL NOT be the only guard, because it does not predict cost: two requests of
-equal pixel count measured 288 ms and 2416 ms.
-
-#### Scenario: Equal pixels, unequal cost
-- **WHEN** two requests of near-equal pixel count differ 8x in render time
-- **THEN** the bound distinguishes them, rather than admitting both because neither exceeds a side length
-
-#### Scenario: A refusal names the fix
-- **WHEN** a request exceeds the budget
-- **THEN** the error says what to change, not only that a limit was passed
+#### Scenario: Stdio keeps every tool
+- **WHEN** the tools are listed over stdio
+- **THEN** all three are there, `render_png` included
