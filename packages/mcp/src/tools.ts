@@ -5,7 +5,7 @@ import { check } from '@pensketch/core/check';
 import { renderToString } from '@pensketch/core/server';
 import { z } from 'zod';
 
-import { EMBEDDED_FAMILY, MAX_SCALE, RASTER_THEME, renderPng } from './render';
+import { EMBEDDED_FAMILY, RASTER_THEME } from './raster-constants';
 
 // The three tools. Each is a thin layer over `@pensketch/core`: no rendering
 // logic, no rules, no geometry lives here. If a tool needs to know something
@@ -29,7 +29,7 @@ export const TRAPS = {
 // itself, since it cannot see what was drawn. zod names the key it rejected;
 // what it cannot know is what should have been written instead, so each
 // schema says that itself.
-const refuses = (subject: string, noun: string, takes: string) => ({
+export const refuses = (subject: string, noun: string, takes: string) => ({
   error: (issue: { code: string; keys?: PropertyKey[] }) => {
     if (issue.code !== 'unrecognized_keys') return undefined;
     const keys = issue.keys ?? [];
@@ -70,21 +70,18 @@ const refuses = (subject: string, noun: string, takes: string) => ({
  * | 8000 | - | - | out of memory |
  *
  * 500 is where that stays a request rather than an outage: 118 ms, twenty
- * times under the 2416 ms a `render_png` of a large frame already costs,
- * which is the longest wait this server asks anyone to take. It is also
- * twenty-five times the largest diagram this repository ships, which is 20
- * nodes.
+ * times under the 2416 ms raster this transport declines to serve for exactly
+ * this reason. It is also twenty-five times the largest diagram this
+ * repository ships, which is 20 nodes.
  *
  * The cap on the findings *listing* does not help here. It shortens what is
  * printed; the array is built in full before anything is printed at all.
  *
- * The bound is worth having even though every client owns its own process.
- * Nobody hand-writes 500 nodes, so what this catches is a generated diagram,
- * and an agent that gets an immediate refusal naming the cap can act on it -
- * where a call that simply takes a minute is a turn it cannot spend and
- * cannot explain.
+ * Applied on both transports, deliberately. Nobody hand-writes 500 nodes, and
+ * a bound that held only where an attacker could reach it would be a bound
+ * this repository never ran against itself.
  */
-const MAX_ITEMS = 500;
+export const MAX_ITEMS = 500;
 
 /**
  * And how many edges, which is a different number for a measured reason.
@@ -107,14 +104,15 @@ const MAX_ITEMS = 500;
  * on the strength of the cheap shape alone.
  *
  * 50 is where the *expensive* shape stays a request: 593 ms, four times under
- * the 2416 ms a large `render_png` already costs. It is three times the
- * largest diagram this repository ships, which carries 16 edges.
+ * the 2416 ms raster this project's HTTP transport declines to serve for
+ * exactly this reason. It is three times the largest diagram this repository
+ * ships, which carries 16 edges.
  *
  * Braces and notes stay at 500: measured at 200 they cost 39 ms and 4 ms.
  */
-const MAX_EDGES = 50;
+export const MAX_EDGES = 50;
 
-const many = (what: string, cap: number, evidence: string) =>
+export const many = (what: string, cap: number, evidence: string) =>
   z
     .array(z.unknown())
     .max(cap, {
@@ -122,7 +120,7 @@ const many = (what: string, cap: number, evidence: string) =>
     })
     .optional();
 
-const diagram = z
+export const diagram = z
   .strictObject(
     {
       nodes: many(
@@ -156,7 +154,7 @@ const diagram = z
     'A diagram: nodes, edges, braces and notes as plain data. Read the pensketch://schema resource for every field. Any other top-level key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry. Fields inside a node, an edge, a brace or a note are not checked here - pensketch://schema is what describes those. Write it compact - no indentation, no line breaks between fields - which costs about half the tokens of the same diagram pretty-printed. That is a request rather than a rule: nothing here refuses pretty JSON, and nothing can tell afterwards which you sent.',
   );
 
-const viewBox = z
+export const viewBox = z
   .tuple([z.number(), z.number(), z.number(), z.number()])
   .describe('[minX, minY, width, height], the four numbers the <svg> carries.');
 
@@ -174,14 +172,14 @@ const FACE_MIN = Math.ceil((3 * constants.ARC_MIN_CHORD * 100) / Math.PI) / 100;
 // because it moves what every rule measures. Both defaults are stated, and
 // `depth`'s is read off the package rather than typed here: a number a
 // description promises has to be the number the renderer uses.
-const extrude = z
+export const extrude = z
   .boolean()
   .optional()
   .describe(
     `Draw every node as a slab: its outline redrawn offset up and to the right and joined to it. A node's own \`extrude\` wins over this either way, so an extruded diagram can flatten one node and a flat one can raise one. A group never extrudes. Nor does a shape too small to carry a face: it draws flat, with nothing thrown, and its anchors stay where they were. A pill needs a larger dimension of ${FACE_MIN} px or more; a box and a diamond carry faces at any non-zero size. Default false.`,
   );
 
-const depth = z
+export const depth = z
   .number()
   .optional()
   .describe(
@@ -286,7 +284,7 @@ const reportOf = (
  * test can reach. The cost is an `Error: ` prefix on a message that already
  * says enough.
  */
-const failed = (error: unknown) => ({
+export const failed = (error: unknown) => ({
   isError: true,
   content: [{ type: 'text' as const, text: String(error) }],
 });
@@ -429,76 +427,6 @@ export function registerTools(server: McpServer): void {
           content: [
             { type: 'text' as const, text: svg },
             { type: 'text' as const, text: reportOf(d, box, extrude, depth) },
-          ],
-        };
-      } catch (error) {
-        return failed(error);
-      }
-    },
-  );
-
-  server.registerTool(
-    'render_png',
-    {
-      title: 'Render a diagram to a PNG you can look at',
-      annotations: { readOnlyHint: true },
-      description: `Rasterizes a diagram so it can be displayed. ${TRAPS.font} ${TRAPS.coordinates} Scale is capped at ${MAX_SCALE}, and an oversized request is refused rather than served.`,
-      // `animate` is absent here on purpose, and its absence is a refusal
-      // rather than an omission: a PNG is one frame, and the strict boundary
-      // this schema draws answers `animate: true` by name - `render_png has no
-      // argument "animate"` - where a declared-and-ignored field would hand
-      // back a still image as though the request had been honoured. A caller
-      // who cannot see the picture would have no way to tell the two apart.
-      inputSchema: z.strictObject(
-        {
-          diagram,
-          viewBox,
-          seed: z.number().int().optional(),
-          hops: z
-            .boolean()
-            .optional()
-            .describe(
-              "Draw every connector as going over the ones it crosses, breaking the line underneath where they meet. An edge's own `hop` wins over this either way. Default false.",
-            ),
-          extrude,
-          depth,
-          scale: z
-            .number()
-            .optional()
-            .describe(`1 to ${MAX_SCALE}. Default 2, for a legible image.`),
-        },
-        refuses(
-          'render_png',
-          'argument',
-          'a diagram, a viewBox, and an optional seed, hops, extrude, depth and scale',
-        ),
-      ),
-    },
-    async ({
-      diagram: d,
-      viewBox: box,
-      seed,
-      hops,
-      extrude,
-      depth,
-      scale = 2,
-    }) => {
-      try {
-        const png = await renderPng(
-          svgFor(d, box, { seed, hops, extrude, depth, forRaster: true }),
-          {
-            width: box[2],
-            height: box[3],
-            scale,
-          },
-        );
-        return {
-          content: [
-            {
-              type: 'image' as const,
-              data: Buffer.from(png).toString('base64'),
-              mimeType: 'image/png',
-            },
           ],
         };
       } catch (error) {

@@ -11,7 +11,7 @@
   },
   "type": "module",
   "bin": {
-    "pensketch-mcp": "dist/stdio.js"
+    "pensketch-mcp": "dist/cli.js"
   },
   "exports": {
     ".": {
@@ -22,6 +22,26 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./http": {
+      "import": {
+        "types": "./dist/http.d.ts",
+        "default": "./dist/http.js"
+      },
+      "require": {
+        "types": "./dist/http.d.cts",
+        "default": "./dist/http.cjs"
+      }
+    },
+    "./serve": {
+      "import": {
+        "types": "./dist/serve.d.ts",
+        "default": "./dist/serve.js"
+      },
+      "require": {
+        "types": "./dist/serve.d.cts",
+        "default": "./dist/serve.cjs"
       }
     },
     "./package.json": "./package.json"
@@ -54,6 +74,7 @@
     "agent"
   ],
   "dependencies": {
+    "@modelcontextprotocol/node": "^2.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "@pensketch/animation": "^0.1.0",
     "@pensketch/core": "^0.8.0",

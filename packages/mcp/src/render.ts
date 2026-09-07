@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { defaultTheme, type Theme } from '@pensketch/core';
+import type { Theme } from '@pensketch/core';
+
+import { EMBEDDED_FAMILY, MAX_SCALE, RASTER_THEME } from './raster-constants';
+
+// Re-exported from where they now live, so a caller that only wants a
+// constant does not pull the WebAssembly in behind it.
+export { EMBEDDED_FAMILY, MAX_SCALE, RASTER_THEME };
+
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 
 // Rasterization, kept away from the tools so that the tools stay a thin layer
@@ -25,37 +32,6 @@ const require = createRequire(import.meta.url);
 const FONT = new URL('../fonts/ArchitectsDaughter-Subset.ttf', import.meta.url);
 
 /** The name the embedded face answers to, written into the SVG we rasterize. */
-export const EMBEDDED_FAMILY = 'Architects Daughter';
-
-/**
- * The default palette with its `var()` wrappers taken off.
- *
- * Core writes a theme value into the markup verbatim, and its defaults are
- * `var(--ps-ink, #232B36)` and friends, which a browser resolves. This
- * rasterizer supports custom properties nowhere - not in a presentation
- * attribute, not in a `style` declaration - and it does not fall back to the
- * fallback either. An unparseable paint takes the property's initial value,
- * and those differ: `stroke` initially draws nothing, `fill` initially draws
- * black. So every line vanished and every group wash became a solid black
- * slab, while the labels kept drawing, in black, close enough to the ink to
- * look deliberate. The image was of a structure it never contained.
- *
- * Derived from `defaultTheme` rather than transcribed, so a palette change
- * reaches the PNG without anyone remembering this file exists. Adding a role
- * to `Theme` fails to compile here, which is the correct way to find out.
- */
-const literal = (value: string): string =>
-  value.startsWith('var(')
-    ? value.slice(value.indexOf(',') + 1, -1).trim()
-    : value;
-
-export const RASTER_THEME: Theme = Object.freeze({
-  ink: literal(defaultTheme.ink),
-  pen: literal(defaultTheme.pen),
-  accent: literal(defaultTheme.accent),
-  muted: literal(defaultTheme.muted),
-  wash: literal(defaultTheme.wash),
-});
 
 /**
  * The sheet the drawing sits on. Transparent would match `render_diagram`,
@@ -66,9 +42,6 @@ export const RASTER_THEME: Theme = Object.freeze({
  * five percent blue and needs something to sit on.
  */
 export const PAPER = '#FCFAF5';
-
-/** The largest scale a caller may ask for. Above this, the answer is no. */
-export const MAX_SCALE = 4;
 
 /** Refused above this many pixels on either side, whatever the scale. */
 export const MAX_PIXELS = 4096;

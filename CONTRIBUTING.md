@@ -45,6 +45,19 @@ root unless told otherwise.
   `shippedDiagrams()` returns that the page does not place. Adding an example
   therefore stops the build until someone decides where it goes, which is the
   only way a generated page stays curated.
+- `npm run http` - spawns the built HTTP server the way a deployment spawns
+  it and completes a real round trip over a socket: initialize, list the
+  tools, call one. The suite drives the same handler through `fetch` with no
+  socket at all; this proves the file `bin` names starts under a bare `node`,
+  that the shared chunks code splitting produces resolve at runtime, that
+  nothing reaches stdout, and that `render_png` is absent from the list an
+  HTTP client is sent.
+- `npm run edge` - bundles `@pensketch/mcp/http` for a runtime with no Node
+  built-ins and fails on any that reach the graph, then lists the handler's
+  tools so a bundle that is clean by doing nothing cannot pass. This has caught
+  two breaks, neither visible in the source: an entry that held the listener
+  beside the handler, and a rasterizer moved behind `await import()`, which
+  reads as lazy and is not - a bundler follows it and resolves what it finds.
 - `npm run exports` - loads every published entry point, as ESM and as CJS,
   and asserts each exposes exactly its documented surface. Nothing else in the
   project loads `dist/`, so this is the only thing that would notice an

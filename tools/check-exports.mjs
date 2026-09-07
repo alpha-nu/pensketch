@@ -68,9 +68,24 @@ const ENTRIES = [
     // false, and nothing here to notice - this file is the only thing in the
     // repository that loads `dist/`, by its own comment above, and it was not
     // asked about the one package whose entry points are also a `bin`.
+    //
+    // `ToolOptions` is a type, erased before this can see it.
     name: '@pensketch/mcp',
     base: 'packages/mcp/dist/index',
     surface: ['createServer'],
+  },
+  {
+    // The edge entry. `serve` is deliberately not here: it lives in
+    // `./serve`, and the whole point of the split is that this graph reaches
+    // no Node built-in. `npm run edge` holds that; this holds the shape.
+    name: '@pensketch/mcp/http',
+    base: 'packages/mcp/dist/http',
+    surface: ['createGuardedHandler', 'createHandler', 'LOOPBACK'],
+  },
+  {
+    name: '@pensketch/mcp/serve',
+    base: 'packages/mcp/dist/serve',
+    surface: ['serve'],
   },
 ];
 
