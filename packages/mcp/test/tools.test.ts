@@ -232,6 +232,50 @@ describe('render_diagram', () => {
     expect(svg).not.toContain('pathLength');
   });
 
+  // The whole of lever 2: a fix cycle used to be `check_diagram` then
+  // `render_diagram`, two turns to learn one thing. The findings ride along
+  // now, and the markup stays where it always was.
+  it('returns the markup first and the findings for it second', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      seed: 7,
+    });
+
+    expect(result.content).toHaveLength(2);
+    expect(result.content[0]?.text).toBe(svgFor(FLOW, VIEW_BOX, { seed: 7 }));
+    expect(result.content[1]?.text).toBe('No findings.');
+  });
+
+  // And they are the findings for the drawing actually made. This pair is
+  // clean flat and clipped once extruded - a slab is measured over the box it
+  // sweeps - so a call that checked the flat diagram and rendered the raised
+  // one would report nothing and hand back two clipped nodes.
+  it('measures the geometry it rendered, extrude and depth included', async () => {
+    const pair = {
+      nodes: [
+        { id: 'a', x: 40, y: 40, w: 120, h: 46, lines: ['one'] },
+        { id: 'b', x: 300, y: 40, w: 120, h: 46, lines: ['two'] },
+      ],
+      edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+    };
+    const at = async (extra: Record<string, unknown>) =>
+      (
+        await callTool('render_diagram', {
+          diagram: pair,
+          viewBox: VIEW_BOX,
+          ...extra,
+        })
+      ).content[1]?.text ?? '';
+
+    expect(await at({})).toBe('No findings.');
+
+    const raised = await at({ extrude: true, depth: 60 });
+    expect(raised).toContain('2 errors, 0 warnings');
+    expect(raised).toContain('error out-of-bounds at (40, 40)');
+    expect(raised).toContain('error out-of-bounds at (300, 40)');
+  });
+
   it('escapes an accessible name rather than breaking the document', async () => {
     const result = await callTool('render_diagram', {
       diagram: FLOW,
@@ -349,6 +393,33 @@ describe('the tool descriptions', () => {
     expect(all).toContain(TRAPS.coordinates);
     expect(all).toContain(TRAPS.text);
     expect(all).toContain(TRAPS.font);
+  });
+
+  // `check_diagram` told the caller to run it before rendering. That stopped
+  // being true the moment `render_diagram` began reporting findings itself,
+  // and a description that has gone false is worse than none: it buys a turn
+  // nobody needed. Pinned here beside the traps, for the same reason.
+  it('no longer sends the caller through check_diagram to render', () => {
+    const check = (
+      toolsOf(createServer()) as Record<string, { description?: string }>
+    ).check_diagram?.description;
+    expect(check).not.toContain('Run this before rendering');
+    expect(check).toContain('render_diagram');
+  });
+
+  // The one lever nothing can enforce. `shape` defaults in the type, so an
+  // omitted one is free whatever the caller believes; compact JSON is only
+  // ever asked for, and the ask has to say so or a reader takes it for a
+  // rule the server checks.
+  it('asks for compact JSON and admits it cannot insist', () => {
+    const diagram = (
+      toolsOf(createServer()) as Record<
+        string,
+        { inputSchema?: { shape?: { diagram?: { description?: string } } } }
+      >
+    ).render_diagram?.inputSchema?.shape?.diagram?.description;
+    expect(diagram).toContain('compact');
+    expect(diagram).toContain('request rather than a rule');
   });
 
   it('tells the caller which tool owns questions of fit', () => {
