@@ -192,7 +192,7 @@ obstacle.
 | `id` | `string` | required | How edges name this node. Unique within the diagram. |
 | `x`, `y` | `number` | required | Top left corner of the node's box. |
 | `w`, `h` | `number` | required | Size of the box. |
-| `shape` | `'group' \| 'box' \| 'pill' \| 'diamond'` | required | `group` draws a wash, a border and a title behind everything else; the other three trace an outline around the box. |
+| `shape` | `'group' \| 'box' \| 'pill' \| 'diamond'` | `box`, required on `group` | `group` draws a wash, a border and a title behind everything else; the other three trace an outline around the box. Omitted, a node is a box: the common case, and the one an agent should not have to spell out. |
 | `lines` | `string[]` | required on `group`, otherwise unlabelled | Label lines, one `<text>` each. A group's title is drawn unconditionally, so the type demands `lines` there and leaves it optional on the drawn shapes. |
 | `size` | `number` | `13.5` | Label font size in px. Drawn shapes only; a group's title is always 14. |
 | `accent` | `boolean` | `false` | Stroke in `--ps-pen` rather than `--ps-ink`. Drawn shapes only. |

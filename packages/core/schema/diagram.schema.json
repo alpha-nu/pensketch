@@ -114,7 +114,7 @@
                 "pill",
                 "diamond"
               ],
-              "description": "Which outline to trace around the box."
+              "description": "Which outline to trace around the box. Default: `'box'`.\n\nOptional because a box is what most nodes are - 41 of the 49 nodes in this repository's own shipped figures - and every one of them spelled the field out. An agent writing a diagram pays for that in tokens it generates one at a time, so the common case is the one that should be free to write. An omitted `shape` and `shape: 'box'` produce the same bytes; nothing existing changes."
             },
             "lines": {
               "type": "array",
@@ -144,15 +144,14 @@
               "description": "Depth in px when this node extrudes, over the diagram's `depth` option and then `12`. The default is calibrated on a box, which reads as a slab at any scale; a pill wants a depth near a third of its height to read as a coin, and a diamond prefers staying flat - the per-shape record sits on `constants.DEPTH`. When extrusion is off for this node the field applies to nothing and is ignored.\n\nWhere it is read it has to be a positive finite number of px, or `draw` throws naming this node before it draws anything - `0`, a negative, `NaN` and `Infinity` alike. An inherited options depth is judged on the same terms and reported against the node that inherited it, and `check` reports both in the same words, as `undrawable-depth`, an error.\n\nThe number is judged for what it is, not for the box it lands in: a shape too small to carry a face has its depth validated and then draws flat anyway, so `12` on a 10 × 8 pill is accepted, changes no byte and moves no anchor, on the terms `extrude` above states."
             }
           },
+          "additionalProperties": false,
           "required": [
             "h",
             "id",
-            "shape",
             "w",
             "x",
             "y"
           ],
-          "additionalProperties": false,
           "description": "A drawn node, with an optional label centered in its box."
         }
       ],

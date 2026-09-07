@@ -165,7 +165,7 @@ export const magnitude = (
  */
 export function depthOf(n: DiagramNode, o: DepthPair): number {
   const up = extrudes(n, o);
-  if (!up || !carriesFace(up.shape, up.w, up.h)) return 0;
+  if (!up || !carriesFace(up.shape ?? 'box', up.w, up.h)) return 0;
   // A depth the pen refuses draws no faces, so the ink is the flat box and
   // the answer is zero. `draw` never reaches this - its validation throws
   // first - but `check` reports rather than throwing and goes on measuring,
@@ -462,7 +462,9 @@ export function draw(
   nodes
     .filter((n) => n.shape !== 'group')
     .forEach((n) => {
-      const shape = shapes.get(n.shape);
+      // An omitted shape is a box: the common case, and the one an agent
+      // should not have to spell out. A wrong one still names itself.
+      const shape = shapes.get(n.shape ?? 'box');
       if (!shape)
         throw new Error(
           `node "${n.id}" has unknown shape "${n.shape}"; expected group, box, pill or diamond`,
@@ -492,7 +494,7 @@ export function draw(
           n.w - HATCH_INSET * 2,
           n.h - HATCH_INSET * 2,
           theme.pen,
-          hatchClip(n.shape, n.x, n.y, n.w, n.h),
+          hatchClip(n.shape ?? 'box', n.x, n.y, n.w, n.h),
         );
       if (n.lines)
         p.label(n.x + n.w / 2, n.y + n.h / 2, n.lines, {
