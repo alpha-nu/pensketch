@@ -511,8 +511,8 @@ claude mcp add pensketch -- npx -y @pensketch/mcp@0.7.0
 ```
 
 It also speaks HTTP, for a client that reaches a server rather than spawning
-one — `pensketch-mcp-http`, or `createHandler()` from `@pensketch/mcp/http` as
-the web-standard `fetch` shape. SVG only there: the rasterizer is synchronous
+one — `npx @pensketch/mcp http 3000`, or `createGuardedHandler()` from
+`@pensketch/mcp/http` as the web-standard `fetch` shape. SVG only there: the rasterizer is synchronous
 WebAssembly that holds the event loop for seconds, which is one client's own
 business under stdio and everybody's in a process serving many. See the
 [server's README](packages/mcp/README.md) before deploying it — there is no

@@ -2,9 +2,12 @@
 '@pensketch/mcp': minor
 ---
 
-The server speaks HTTP. `pensketch-mcp-http` listens; `createHandler()` from
-`@pensketch/mcp/http` is the web-standard `fetch` shape a Worker, Bun or Deno
-deployment exports directly. Stdio is untouched, and the same factory backs
+The server speaks HTTP. `npx @pensketch/mcp http 3000` listens;
+`createGuardedHandler()` from `@pensketch/mcp/http` is the web-standard
+`fetch` shape a Worker, Bun or Deno deployment exports directly. A subcommand
+rather than a second bin, because `npx <package>` runs a package's only bin
+without being told its name — a second one makes the register line every
+existing config already holds ambiguous, and npm refuses it outright. Stdio is untouched, and the same factory backs
 both, so no tool can observe which transport carried its call.
 
 **SVG only over HTTP, and that is the whole design.** `render_png` is not
@@ -37,16 +40,24 @@ Transport cost is a rounding error next to that. Measured over loopback,
 warm: `check_diagram` 0.4 ms over stdio against 1.6 ms over HTTP, a small
 `render_diagram` 0.6 ms against 2.3 ms. A flat ~1.5 ms, whatever the payload.
 
-**A diagram is now capped at 500 nodes, edges, braces or notes, on both
-transports.** This narrows an existing contract, so it is the one thing here a
-stdio caller can notice: a diagram over 500 of anything worked before and is
-refused now. Several of the checker's rules compare every pair, so the time
-and the findings both grow with the square — 500 is 118 ms, 2,000 is 1.4 s and
-holds 2.9 million findings, and 8,000 runs out of memory. That is longer than
-the raster this transport declines to serve, reached from a socket, which made
-the SVG-only decision self-defeating until this bound existed. It is
-twenty-five times the largest diagram this repository ships. HTTP additionally
-caps a request body at 1 MB, because the refusal is downstream of parsing.
+**A diagram is now capped at 500 nodes, 50 edges, and 500 braces or notes, on
+both transports.** This narrows an existing contract, so it is the one thing
+here a stdio caller can notice: a diagram over those counts worked before and
+is refused now.
+
+The two numbers differ because the two costs do, and the first draft of this
+release got that wrong. Several of the checker's rules compare every pair, so
+the work grows with the square — but a curved edge is sampled into many chords
+before each crossing test, so edges cost far more per pair than nodes. 500
+overlapping nodes is 67 ms. 500 bowed edges is minutes. A cap of 500 on both,
+justified by the node measurement alone, still admitted a request that blocked
+the loop longer than the 2416 ms raster this transport declines to serve for
+exactly that reason. Measured on a hub with n spokes: 50 bowed edges is 593
+ms, 100 is 2.5 s, 200 is 9.8 s. Braces and notes are cheap — 200 cost 39 ms —
+and stay at 500.
+
+HTTP additionally caps a request body at 1 MB, because the item refusal is
+downstream of parsing.
 
 The tarball shrinks despite growing: 270 KB packed before, **165 KB** now.
 Four entries each inlining their own copy of the SDK packed at 556 KB, and as

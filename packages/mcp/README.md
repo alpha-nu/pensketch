@@ -37,8 +37,14 @@ command.
 ## Or serve it over HTTP
 
 ```sh
-npx -y @pensketch/mcp@0.7.0 pensketch-mcp-http 3000
+npx -y @pensketch/mcp@0.7.0 http 3000
 ```
+
+A subcommand rather than a second bin, deliberately: `npx <package>` runs a
+package's only bin without being told its name, which is what the register
+line above does, and a second bin makes that ambiguous — npm refuses it with
+`could not determine executable to run`. `ALLOWED_HOSTS` is how you bind
+anything but loopback.
 
 For a client that reaches a server over the network rather than spawning one.
 The handler is also importable, as the web-standard `fetch` shape a Worker,
@@ -77,13 +83,17 @@ Read this part before you deploy it.
 - **Host and Origin are validated on every request.** A browser will send a
   cross-origin request to `127.0.0.1` on behalf of any page the user has open,
   so an unguarded local endpoint is reachable by every site they visit.
-- **A diagram is capped at 500 of each thing, and a body at 1 MB.** Several of
-  the checker's rules compare every pair, so both the time and the findings
-  grow with the square: 500 nodes is 118 ms, 2,000 is 1.4 s and holds 2.9
-  million findings, and 8,000 runs out of memory. The cap is twenty times
-  under the raster this transport declines to serve for that same reason, and
-  twenty-five times the largest diagram this repository ships. It applies on
-  stdio too — a bound the project does not run against itself is not a bound.
+- **A diagram is capped at 500 nodes, 50 edges, and a body at 1 MB.** Several
+  of the checker's rules compare every pair, so the work grows with the
+  square — and the two numbers differ because the two costs do. 500
+  overlapping nodes is 67 ms; 500 *bowed* edges is minutes, because a curve is
+  sampled into many chords before each crossing test. Measured on a hub with
+  n spokes: 50 bowed edges is 593 ms, 100 is 2.5 s, 200 is 9.8 s. 50 keeps the
+  expensive shape four times under the 2416 ms raster this transport declines
+  to serve for the same reason, and is three times the largest diagram this
+  repository ships. Braces and notes are cheap — 200 of them cost 39 ms — and
+  stay at 500. The caps apply on stdio too; a bound the project does not run
+  against itself is not a bound.
 - **The ceiling is one process.** Measured over loopback, HTTP costs a flat
   ~1.5 ms of protocol overhead on top of a call: `check_diagram` 0.4 ms → 1.6
   ms, a small `render_diagram` 0.6 ms → 2.3 ms. Drawing is CPU on the same
