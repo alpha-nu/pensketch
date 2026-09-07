@@ -26,8 +26,9 @@ renders byte for byte what it rendered. Minor rather than patch because the
 type widened and a tool returns something it did not return before, not
 because a caller who changes nothing sees anything move.
 
-Measured: 4 turns to 3 on one scenario, and 3.8% off the JSON of the 15
-diagrams this repository ships. The `diagram` description also asks for
+Measured on 2026-09-06, over the 15 diagrams this repository shipped that
+day: 4 turns to 3 on one scenario, and 3.8% off their JSON. A share of a
+corpus moves when the corpus does, so it is dated rather than gated. The `diagram` description also asks for
 compact JSON, worth up to 49.6% against a machine's pretty-printer and as
 little as 0.4% against an agent already writing compactly - it can only ask,
 and the change's own `RESULTS.md` says so rather than banking it. The rest of

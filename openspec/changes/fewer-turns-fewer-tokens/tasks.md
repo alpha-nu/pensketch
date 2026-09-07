@@ -63,8 +63,12 @@ after the fact is a lever nobody knows landed.
 
 ## 5. Group boundary
 
-- [ ] 5.1 `/swat` over the whole change
-- [ ] 5.2 Every Truthful finding remediated
+- [x] 5.1 `/swat` over the whole change
+- [x] 5.2 Every Truthful finding remediated
+
+      T-01 to T-21. The blocker was T-11: `check` is not a superset of
+      `draw`, so a shared `try` turned a diagram that rendered into an error
+      and discarded its markup.
 - [x] 5.3 A changeset; core and mcp both move
 
       `.changeset/fewer-turns-fewer-tokens.md`, both at minor. At release,

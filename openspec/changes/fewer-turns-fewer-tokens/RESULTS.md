@@ -37,7 +37,10 @@ Per attempt, on the scenario diagram, from `BASELINE.md`:
 | minified, `shape` defaulted | 652 | **-6.9%** |
 
 And on the corpus, which unlike the scenario diagram is preserved and can be
-re-measured by anyone, all 15 diagrams `shippedDiagrams()` returns:
+re-measured by anyone, all 15 diagrams `shippedDiagrams()` returned on
+2026-09-06. Dated, not gated: `gpt-tokenizer` is not a dependency here and
+adding a diagram moves both percentages, so this is a measurement taken on a
+day rather than an invariant anything holds.
 
 | spelling | tokens | against the one above |
 |---|---|---|

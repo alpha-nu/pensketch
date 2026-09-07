@@ -51,9 +51,10 @@ had for an error.
 ### Requirement: The tool descriptions ask for the cheap spelling
 The `diagram` argument description SHALL ask for compact JSON, and SHALL be
 honest that it is a request rather than a constraint: the model chooses how it
-spells its own output. Across the 15 diagrams this repository ships the
-difference is 14,804 tokens at `JSON.stringify(d, null, 2)` against 7,466
-minified, 49.6%. That ceiling is measured against a machine's pretty-printer:
+spells its own output. Across the 15 diagrams this repository shipped on
+2026-09-06 the difference is 14,804 tokens at `JSON.stringify(d, null, 2)`
+against 7,466 minified, 49.6%. A figure over a corpus SHALL carry the date it
+was taken, because the corpus grows and no gate holds it. That ceiling is measured against a machine's pretty-printer:
 the one agent whose output was measured was already within 0.4% of minified,
 so the floor is nearly nothing. Any figure this description or its
 documentation quotes SHALL say which of the two it is.
