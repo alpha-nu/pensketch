@@ -464,6 +464,22 @@ describe('the guarded handler', () => {
   });
 });
 
+describe('a bind that fails', () => {
+  it('closes the handler it had already built', async () => {
+    const first = await serve({ port: 0, host: '127.0.0.1' });
+    const address = first.server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+
+    try {
+      await expect(serve({ port, host: '127.0.0.1' })).rejects.toThrow(
+        /EADDRINUSE/,
+      );
+    } finally {
+      await first.close();
+    }
+  });
+});
+
 describe('the transport file', () => {
   const src = (name: string) =>
     readFileSync(
@@ -471,27 +487,44 @@ describe('the transport file', () => {
       'utf8',
     );
 
-  // The rule `stdio.ts` already holds. `raster` is the one thing this file is
-  // allowed to know, and it is a fact about the transport rather than about a
-  // tool: a synchronous rasterizer in a process serving many clients.
-  it('names no tool, no resource and no geometry', () => {
-    const http = src('http.ts');
-    for (const forbidden of [
-      'check_diagram',
-      'render_diagram',
-      'render_png',
-      'viewBox',
-      'nodes',
-      'edges',
-      'seed',
-      'extrude',
-      'pensketch/core',
-    ])
-      expect(
-        http
-          .split('\n')
-          .filter((l) => !l.trim().startsWith('*'))
-          .join('\n'),
-      ).not.toContain(forbidden);
+  // The rule `stdio.ts` already holds, and the second attempt at asserting it.
+  //
+  // The first was a denylist of strings this file must not contain, which is
+  // theatre: a reviewer added a function to `http.ts` that reached into a
+  // node's `w`, `h` and `lines` and branched on `braces`, `hops` and `depth`
+  // - exactly the coupling the rule forbids - and every one of those words
+  // was missing from the list, so it stayed green.
+  //
+  // A denylist can only name what someone thought of. What the rule actually
+  // says is that this file knows the factory and the transport and nothing
+  // below them, and that is a statement about its imports.
+  it('imports the factory and the transport, and nothing under them', () => {
+    const imports = [...src('http.ts').matchAll(/from '([^']+)'/g)].map(
+      ([, from]) => from,
+    );
+
+    expect(imports.sort()).toEqual([
+      './index',
+      '@modelcontextprotocol/node',
+      '@modelcontextprotocol/server',
+      'node:http',
+    ]);
+    // `./index` is the factory. Anything reaching past it - the tools, the
+    // resources, core, the rasterizer - is the rule being broken.
+    for (const from of imports)
+      expect(from).not.toMatch(/tools|resources|render|@pensketch/);
+  });
+
+  // And the one thing it is allowed to know, named so that widening it is a
+  // decision rather than a drift.
+  it('knows exactly one thing about what it serves', () => {
+    const body = src('http.ts')
+      .split('\n')
+      .filter((l) => !/^\s*(\*|\/\/)/.test(l))
+      .join('\n');
+
+    expect(body).toContain('raster: false');
+    for (const name of ['check_diagram', 'render_diagram', 'render_png'])
+      expect(body).not.toContain(name);
   });
 });
