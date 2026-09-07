@@ -10,10 +10,9 @@ const { version } = JSON.parse(
 );
 
 export default defineConfig({
-  // The factory and the transports are separate entries so that a second
-  // transport stays additive: `stdio.ts` and `http.ts` are each a few lines
-  // over `index.ts`, and `serve-http.ts` is the bin over `http.ts`.
-  entry: ['src/index.ts', 'src/stdio.ts', 'src/http.ts', 'src/cli.ts'],
+  // The factory and the transport are separate entries, so everything worth
+  // testing is reachable without a process to talk to.
+  entry: ['src/index.ts', 'src/stdio.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   minify: true,
@@ -23,11 +22,22 @@ export default defineConfig({
   // On here and off everywhere else. The rule is written for the budgeted
   // entries, where a shared chunk would make a budget measure a re-export
   // rather than the code it stands for; this package has no budget. What it
-  // has is a tarball an `npx` user waits for, and four entries each inlining
-  // their own copy of the SDK packed it at 566 KB against 162 KB as shared
-  // chunks - less than the 270 KB two entries packed at, because the
-  // duplication predated the fourth. Measured 2026-09-07 with `shims` on,
-  // which costs 1 KB of the 162 and is what a working `require` is worth.
+  // has is a tarball an `npx` user waits for. Two entries each inlining their
+  // own copy of the SDK pack at 284 KB; as shared chunks, 152 KB. Measured
+  // 2026-09-07 on this exact configuration, and dated because the figure
+  // moves with the source rather than being held by a budget - this package
+  // is forbidden one.
+  //
+  // The saving is not a consequence of entry count, which is worth writing
+  // down because it was once credited to a transport that has since been
+  // removed: at four entries the same pair of measurements read 566 KB and
+  // 162 KB, so dropping two entries moved the split figure by 7 KB and the
+  // unsplit one by 278. The duplication is between the factory and the
+  // transport, and two entries is enough to have it.
+  //
+  // `shims` is what makes `require` of this package work at all - both
+  // published `require` conditions threw on load without it - and costs 1 KB
+  // of the 152.
   shims: true,
   splitting: true,
   define: { __MCP_VERSION__: JSON.stringify(version) },

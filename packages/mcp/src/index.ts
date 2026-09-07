@@ -1,9 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 
 import { registerResources } from './resources';
-import { registerTools, type ToolOptions } from './tools';
-
-export type { ToolOptions };
+import { registerTools } from './tools';
 
 /**
  * Builds the server, with no transport attached to it.
@@ -13,12 +11,12 @@ export type { ToolOptions };
  * resources can be exercised in a test without a process to talk to.
  *
  */
-export function createServer(options: ToolOptions = {}): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: 'pensketch',
     version: __MCP_VERSION__,
   });
-  registerTools(server, options);
+  registerTools(server);
   registerResources(server);
   return server;
 }

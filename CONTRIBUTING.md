@@ -45,13 +45,6 @@ root unless told otherwise.
   `shippedDiagrams()` returns that the page does not place. Adding an example
   therefore stops the build until someone decides where it goes, which is the
   only way a generated page stays curated.
-- `npm run http` - spawns the built HTTP server the way a deployment spawns
-  it and completes a real round trip over a socket: initialize, list the
-  tools, call one. The suite drives the same handler through `fetch` with no
-  socket at all; this proves the file `bin` names starts under a bare `node`,
-  that the shared chunks code splitting produces resolve at runtime, that
-  nothing reaches stdout, and that `render_png` is absent from the list an
-  HTTP client is sent.
 - `npm run exports` - loads every published entry point, as ESM and as CJS,
   and asserts each exposes exactly its documented surface. Nothing else in the
   project loads `dist/`, so this is the only thing that would notice an

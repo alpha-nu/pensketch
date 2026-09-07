@@ -80,13 +80,6 @@ jobs:
       - name: The server a client spawns answers over stdio
         run: npm run stdio
 
-      # And the same claim for the second transport, which additionally has to
-      # bind a port, resolve the shared chunks splitting produces, and keep
-      # stdout silent - a habit that must not cross over from the entry where
-      # stdout is a JSON-RPC stream.
-      - name: The server a deployment spawns answers over http
-        run: npm run http
-
       # Budgets are a published contract, so the numbers belong in the summary
       # rather than only in a log. The status is carried across the write so a
       # breach still fails the step.

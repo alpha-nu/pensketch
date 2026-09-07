@@ -68,16 +68,9 @@ const ENTRIES = [
     // false, and nothing here to notice - this file is the only thing in the
     // repository that loads `dist/`, by its own comment above, and it was not
     // asked about the one package whose entry points are also a `bin`.
-    //
-    // `ToolOptions` is a type, erased before this can see it.
     name: '@pensketch/mcp',
     base: 'packages/mcp/dist/index',
     surface: ['createServer'],
-  },
-  {
-    name: '@pensketch/mcp/http',
-    base: 'packages/mcp/dist/http',
-    surface: ['createGuardedHandler', 'createHandler', 'serve'],
   },
 ];
 

@@ -58,9 +58,8 @@ describe('the server package', () => {
   // zod is declared even though the SDK would supply it: a package that
   // imports something should say so rather than reach through a dependency's
   // tree for it.
-  it('depends on the SDK, its node adapter, core, the motion, the rasterizer and zod, and nothing else', () => {
+  it('depends on the SDK, core, the motion, the rasterizer and zod, and nothing else', () => {
     expect(Object.keys(mcp.dependencies ?? {}).sort()).toEqual([
-      '@modelcontextprotocol/node',
       '@modelcontextprotocol/server',
       '@pensketch/animation',
       '@pensketch/core',
@@ -96,13 +95,13 @@ describe('the server package', () => {
   // under the normalised value. Writing what npm would write leaves the
   // published manifest identical and the publish log quiet.
   // Exactly one, and the count is the assertion. `npx <package>` runs a
-  // package's only bin without being told its name, which is what the
-  // register line in every README and every existing client config does. A
-  // second bin makes that ambiguous and npm refuses it - `could not determine
-  // executable to run` - so a second transport had to arrive as a subcommand
-  // rather than as a bin. Nothing in a workspace exercises `npx`, so this is
-  // the only place that fact can be held.
+  // package's only bin without being told its name, which is what the register
+  // line in every README and every existing client config does. A second bin
+  // makes that ambiguous and npm refuses it outright - `could not determine
+  // executable to run`. That was found the expensive way, by packing a tarball
+  // when a second transport briefly shipped its own bin, and nothing in a
+  // workspace exercises `npx`, so this is the only place the fact can be held.
   it('is runnable by name, and there is only one name', () => {
-    expect(mcp.bin).toEqual({ 'pensketch-mcp': 'dist/cli.js' });
+    expect(mcp.bin).toEqual({ 'pensketch-mcp': 'dist/stdio.js' });
   });
 });

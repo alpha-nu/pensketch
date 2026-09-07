@@ -70,16 +70,19 @@ const refuses = (subject: string, noun: string, takes: string) => ({
  * | 8000 | - | - | out of memory |
  *
  * 500 is where that stays a request rather than an outage: 118 ms, twenty
- * times under the 2416 ms raster this transport declines to serve for exactly
- * this reason. It is also twenty-five times the largest diagram this
- * repository ships, which is 20 nodes.
+ * times under the 2416 ms a `render_png` of a large frame already costs,
+ * which is the longest wait this server asks anyone to take. It is also
+ * twenty-five times the largest diagram this repository ships, which is 20
+ * nodes.
  *
  * The cap on the findings *listing* does not help here. It shortens what is
  * printed; the array is built in full before anything is printed at all.
  *
- * Applied on both transports, deliberately. Nobody hand-writes 500 nodes, and
- * a bound that held only where an attacker could reach it would be a bound
- * this repository never ran against itself.
+ * The bound is worth having even though every client owns its own process.
+ * Nobody hand-writes 500 nodes, so what this catches is a generated diagram,
+ * and an agent that gets an immediate refusal naming the cap can act on it -
+ * where a call that simply takes a minute is a turn it cannot spend and
+ * cannot explain.
  */
 const MAX_ITEMS = 500;
 
@@ -104,9 +107,8 @@ const MAX_ITEMS = 500;
  * on the strength of the cheap shape alone.
  *
  * 50 is where the *expensive* shape stays a request: 593 ms, four times under
- * the 2416 ms raster this project's HTTP transport declines to serve for
- * exactly this reason. It is three times the largest diagram this repository
- * ships, which carries 16 edges.
+ * the 2416 ms a large `render_png` already costs. It is three times the
+ * largest diagram this repository ships, which carries 16 edges.
  *
  * Braces and notes stay at 500: measured at 200 they cost 39 ms and 4 ms.
  */
@@ -289,30 +291,7 @@ const failed = (error: unknown) => ({
   content: [{ type: 'text' as const, text: String(error) }],
 });
 
-/** What a server may do, beyond the two tools every server has. */
-export interface ToolOptions {
-  /**
-   * Whether to register `render_png`. Default: `true`.
-   *
-   * The one tool a transport can have an opinion about, and only because of
-   * how it is implemented rather than what it does: the rasterizer is
-   * synchronous WebAssembly and holds the event loop for the whole of a
-   * raster - 2416 ms measured on a 1760 x 1000 frame at 2x. Under stdio each
-   * client owns a process and that is its own business. In a process serving
-   * many clients it is everyone else's latency, so a transport that serves
-   * many callers declines it here rather than serving it slowly.
-   *
-   * Not registered is better than registered-and-refusing: an agent pays for
-   * every tool description it is sent, and a tool it cannot call is a
-   * description it paid for and a turn it may spend discovering that.
-   */
-  raster?: boolean;
-}
-
-export function registerTools(
-  server: McpServer,
-  { raster = true }: ToolOptions = {},
-): void {
+export function registerTools(server: McpServer): void {
   server.registerTool(
     'check_diagram',
     {
@@ -457,8 +436,6 @@ export function registerTools(
       }
     },
   );
-
-  if (!raster) return;
 
   server.registerTool(
     'render_png',

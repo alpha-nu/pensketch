@@ -34,76 +34,24 @@ version manager, and the symptom is a server that never starts with nothing
 useful in the log. If that happens, give the absolute path to `node` as the
 command.
 
-## Or serve it over HTTP
+## Limits
 
-```sh
-npx -y @pensketch/mcp@0.7.0 http 3000
-```
-
-A subcommand rather than a second bin, deliberately: `npx <package>` runs a
-package's only bin without being told its name, which is what the register
-line above does, and a second bin makes that ambiguous — npm refuses it with
-`could not determine executable to run`. `ALLOWED_HOSTS` is how you bind
-anything but loopback.
-
-For a client that reaches a server over the network rather than spawning one.
-The handler is also importable, as the web-standard `fetch` shape a Worker,
-Bun or Deno deployment exports directly:
-
-```js
-import { createGuardedHandler } from '@pensketch/mcp/http';
-
-export default createGuardedHandler({ allowedHosts: ['mcp.example.com'] });
-```
-
-`createHandler()` is the same thing without the Host and Origin checks, for a
-deployment already behind something that does them. Reach for it deliberately:
-those checks are what stop every page the user has open from reaching the
-endpoint.
-
-Read this part before you deploy it.
-
-- **`render_png` is not served over HTTP.** The rasterizer is synchronous
-  WebAssembly and holds the event loop for the whole of a raster — 2.4 s
-  measured on a 1760 × 1000 frame at 2×. Under stdio each client owns a
-  process and that is its own business; in a process serving many clients it
-  is everybody else's latency. It is absent from the tool list rather than
-  present and refusing, because a tool description an agent cannot act on is
-  tokens it paid for. Use stdio when you want pictures.
-- **There is no authentication.** None. It binds `127.0.0.1` by default for
-  that reason, and anything else needs a proxy in front deciding who may
-  reach it. That proxy is also what compresses the responses; the transport
-  does not.
-- **Binding anything but loopback needs `allowedHosts`,** and `serve()` throws
-  without it rather than binding. The rebinding guard would otherwise refuse
-  every request for naming a host nobody configured. Whichever name reaches
-  *this* server is the one to list: most proxies preserve the client's `Host`
-  — Caddy's `reverse_proxy` and Traefik do — while nginx's default
-  `proxy_set_header Host $proxy_host` rewrites it to the upstream.
-- **Host and Origin are validated on every request.** A browser will send a
-  cross-origin request to `127.0.0.1` on behalf of any page the user has open,
-  so an unguarded local endpoint is reachable by every site they visit.
-- **A diagram is capped at 500 nodes, 50 edges, and a body at 1 MB.** Several
-  of the checker's rules compare every pair, so the work grows with the
-  square — and the two numbers differ because the two costs do. 500
-  overlapping nodes is 67 ms; 500 *bowed* edges is minutes, because a curve is
-  sampled into many chords before each crossing test. Measured on a hub with
-  n spokes: 50 bowed edges is 593 ms, 100 is 2.5 s, 200 is 9.8 s. 50 keeps the
-  expensive shape four times under the 2416 ms raster this transport declines
-  to serve for the same reason, and is three times the largest diagram this
-  repository ships. Braces and notes are cheap — 200 of them cost 39 ms — and
-  stay at 500. The caps apply on stdio too; a bound the project does not run
-  against itself is not a bound.
-- **The ceiling is one process.** Measured over loopback, HTTP costs a flat
-  ~1.5 ms of protocol overhead on top of a call: `check_diagram` 0.4 ms → 1.6
-  ms, a small `render_diagram` 0.6 ms → 2.3 ms. Drawing is CPU on the same
-  loop, and a capped diagram still costs up to ~120 ms of it, so throughput is
-  what one core gives you. Run more processes.
+- **A diagram is capped at 500 nodes, 50 edges, and 500 braces or notes.**
+  Several of the checker's rules compare every pair, so the work grows with the
+  square — and the two numbers differ because the two costs do. 500 overlapping
+  nodes is 67 ms; 500 *bowed* edges is minutes, because a curve is sampled into
+  many chords before each crossing test. Measured on a hub with n spokes: 50
+  bowed edges is 593 ms, 100 is 2.5 s, 200 is 9.8 s. Braces and notes are cheap
+  — 200 of them cost 39 ms — and stay at 500. Nobody hand-writes 500 nodes, so
+  what a cap catches is a generated diagram, and an immediate refusal naming
+  the number is something an agent can act on where a call that takes a minute
+  is not.
+- **`render_png` is slow, by a lot.** The rasterizer is synchronous WebAssembly
+  and holds the event loop for the whole of a raster — 2.4 s measured on a
+  1760 × 1000 frame at 2×. Call `check_diagram` first; it is 1.6 ms.
 - **There is no rate limiting**, here or in any MCP server surveyed, or in the
-  protocol. Whatever fronts this owns it.
-
-Both transports serve identical results: the same factory backs them, and no
-tool can observe which one carried its call.
+  protocol. Under stdio each client owns its own process, so this is one
+  client's own business.
 
 ## Three tools
 
