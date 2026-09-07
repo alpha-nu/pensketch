@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ARC_MIN_CHORD, BRACE_DEPTH, BRACE_R } from '../src/constants';
 import type { DiagramBrace, Point } from '../src/index';
 import { pen } from '../src/pen';
-import { arcPoints, bracePoints, carriesFace } from '../src/sample';
+import { arcPoints, bracePoints, carriesFace, hatchClip } from '../src/sample';
 import { makeSvg, pathsOf } from './helpers';
 
 // The span design.md D5 recorded its prototype against, and the numbers it
@@ -125,6 +125,41 @@ describe('bracePoints()', () => {
 // sweep a box behind. Stated here because it is the shared one: a second copy
 // of it in the checker is the copy that drifts, and nothing but a test says
 // so until the day the two disagree.
+// `shape` is optional on a node, and `draw` defaults it to `'box'` at three
+// call sites. Two of those three - into `carriesFace` and into `hatchClip` -
+// are required by the signatures and change no byte today, because both
+// functions single out `'pill'` and `'diamond'` and treat every other string
+// alike. That is the property the byte-identity of an omitted shape actually
+// rests on, and it is not visible from either call site, so it is pinned
+// here: the day one of them grows an `=== 'box'` branch this fails, and the
+// two defaults stop being belt and start being load-bearing.
+describe('the shapes neither primitive singles out', () => {
+  const w = 60;
+  const h = 40;
+
+  it('answers for a box exactly as it does for any other unnamed shape', () => {
+    for (const other of ['rhombus', 'group', 'BOX', '']) {
+      expect(carriesFace(other, w, h)).toBe(carriesFace('box', w, h));
+      expect(hatchClip(other, 0, 0, w, h)).toEqual(
+        hatchClip('box', 0, 0, w, h),
+      );
+    }
+  });
+
+  it('does single out the two it is supposed to', () => {
+    expect(hatchClip('pill', 0, 0, w, h)).not.toEqual(
+      hatchClip('box', 0, 0, w, h),
+    );
+    expect(hatchClip('diamond', 0, 0, w, h)).not.toEqual(
+      hatchClip('box', 0, 0, w, h),
+    );
+    // A pill under the chord bound is the one size where `carriesFace` parts
+    // company with the box answer.
+    expect(carriesFace('pill', 10, 8)).toBe(false);
+    expect(carriesFace('box', 10, 8)).toBe(true);
+  });
+});
+
 describe('carriesFace()', () => {
   it('refuses an outline that encloses no area, on every shape', () => {
     for (const shape of ['box', 'pill', 'diamond']) {

@@ -1353,13 +1353,19 @@ describe('draw() node phase', () => {
     }
   });
 
-  // `shape` is optional, and three separate places read it: the shape table
-  // here, the hatch clip, and `depthOf` when an extruded node is asked for an
-  // anchor. A default that landed in two of the three would still pass a
-  // plain box, so this diagram is built to make all three answer.
+  // `shape` is optional, and three places read it: the shape table here, the
+  // hatch clip, and `depthOf` when an extruded node is asked for an anchor.
   //
-  // Bytes rather than path counts, because a hatch cut to the wrong outline
-  // and an anchor taken off the wrong depth both keep the count.
+  // Only the first is load-bearing, and saying otherwise was this test's
+  // first mistake. Delete the defaults feeding `carriesFace` and `hatchClip`
+  // and every suite still passes: both single out `'pill'` and `'diamond'`
+  // and treat `undefined` exactly as they treat `'box'`. Those two `??` are
+  // required by the signatures and inert in behaviour, and the property they
+  // lean on is pinned in `sample.test.ts` rather than pretended to here.
+  //
+  // So this covers the one site that moves bytes, at the sizes and settings
+  // where it moves the most of them. Bytes rather than path counts, because a
+  // hatch cut to the wrong outline keeps the count.
   it('draws an omitted shape as the box a named one draws, byte for byte', () => {
     const both = (shape?: 'box' | 'pill') => {
       const named = shape === undefined ? {} : { shape };
