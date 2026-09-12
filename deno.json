@@ -1,5 +1,7 @@
 {
   "deploy": {
+    "org": "alpha-nu",
+    "app": "pensketch",
     "runtime": {
       "type": "dynamic",
       "entrypoint": "./deploy/main.ts"
