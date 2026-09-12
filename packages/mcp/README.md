@@ -8,7 +8,7 @@ the data without seeing the result.
 ## Register it
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.8.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.9.0
 ```
 
 Or, for a client configured by file:
@@ -18,7 +18,7 @@ Or, for a client configured by file:
   "mcpServers": {
     "pensketch": {
       "command": "npx",
-      "args": ["-y", "@pensketch/mcp@0.8.0"]
+      "args": ["-y", "@pensketch/mcp@0.9.0"]
     }
   }
 }
@@ -37,7 +37,7 @@ command.
 ## Or serve it over HTTP
 
 ```sh
-npx -y @pensketch/mcp@0.8.0 http 3000
+npx -y @pensketch/mcp@0.9.0 http 3000
 ```
 
 A subcommand rather than a second bin, deliberately: `npx <package>` runs a
