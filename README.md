@@ -26,7 +26,7 @@ reference, the schema and five worked examples served as resources, so the agent
 reads the data model instead of guessing at it:
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.8.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.9.0
 ```
 
 That is the one to reach for first if an agent is drawing. `check_diagram`
@@ -507,7 +507,7 @@ the layout findings for it together, so an agent fixing a diagram spends one
 call a round rather than two:
 
 ```sh
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.8.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.9.0
 ```
 
 It also speaks HTTP, for a client that reaches a server rather than spawning
