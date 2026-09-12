@@ -76,14 +76,23 @@ header.top {
    as documentation. */
 .lede { max-width: 76ch; }
 
-/* The shortcut for the reader who needs no show: muted, mono, and a jump
-   to the closing slide. Smooth only for readers who have not asked
-   otherwise - a fragment jump under mandatory snap lands on the slide
-   either way. */
+/* The shortcut for the reader who needs no show: a disclosure that hands
+   over the commands where they stand, instead of a jump that makes them
+   leave the cover. A native <details>, so it costs no script and the
+   keyboard and the screen reader get it for free. */
 .skip { margin: 18px 0 0; font: 400 13px/1.6 var(--mono); }
-.skip a { color: var(--ps-muted); }
-@media (prefers-reduced-motion: no-preference) {
-  html { scroll-behavior: smooth; }
+.skip summary { cursor: pointer; color: var(--ps-muted); }
+/* max-content up to the column, so the commands sit whole on one line
+   where there is room and scroll inside the block where there is not. */
+.skip pre {
+  margin: 12px 0 0;
+  padding: 16px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow-x: auto;
+  width: max-content;
+  max-width: 100%;
+  font: 400 13px/1.9 var(--mono);
 }
 
 /* The closing slide: the ask, made after the show has argued it. Same
@@ -95,9 +104,11 @@ header.top {
   border: 1px solid var(--rule);
   border-radius: 2px;
   overflow-x: auto;
+  width: max-content;
+  max-width: 100%;
   font: 400 14.5px/2 var(--mono);
 }
-#install .comment { color: var(--ps-muted); }
+code .comment { color: var(--ps-muted); }
 
 /* An invitation rather than an instruction: three nested chevrons at the
    foot of the first slide, a trail fading upward, the pulse travelling the
@@ -300,7 +311,14 @@ footer pre {
   library that ships them. No mockups, no screenshots: every figure is drawn
   live, from the same data the tests measure and the MCP server hands to
   agents. Scroll, and the pen gets to work.</p>
-  <p class="skip"><a href="#install">Already sold? Skip to the install line.</a></p>
+  <details class="skip">
+    <summary>Show me the install line</summary>
+    <pre><code><span class="comment"># the full server for a coding agent: check, render, and a PNG it can look at</span>
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.9.0
+
+<span class="comment"># zero install, hosted: checks and SVG, no PNG</span>
+claude mcp add --transport http pensketch https://pensketch.alpha-nu.deno.net</code></pre>
+  </details>
   <div class="scroll-cue" aria-hidden="true"><span></span><span></span><span></span></div>
 </header>
 
