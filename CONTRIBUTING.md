@@ -163,6 +163,39 @@ which is invisible until someone watches the video, so each one is warned
 about by name. That one is a warning and not a failure: the gap is cosmetic,
 and `--system-font` may well cover it.
 
+## Deploying the HTTP server
+
+`deploy/main.ts` is the Deno Deploy entrypoint. It imports the **published**
+package rather than the workspace, so what runs there is what an npm consumer
+gets, and its version is a pin that `npm run pin` maintains — the same gate
+that holds the install line in both READMEs.
+
+One-time, interactively, to create the app and authenticate (the token lands in
+the system keyring):
+
+```sh
+npx deno deploy create --app=pensketch --entrypoint=deploy/main.ts
+```
+
+Then, after each release:
+
+```sh
+npm run deploy
+```
+
+By hand rather than on push. The deployed bytes change only when the pinned
+version does, so a deploy per commit would republish identical output for every
+change to this repository, and the one event that matters — a release — is
+already a manual dispatch.
+
+`deno` is a devDependency, so there is nothing to install globally; `deno
+deploy` is part of the runtime rather than a separate tool. Deno Deploy Classic
+and its `deployctl` were shut down on 2026-07-20 and are not what this uses.
+
+Set `ALLOWED_HOSTS` in the app's environment to the hostname it answers on.
+Leaving it at the default means the rebinding guard answers 403 to every
+request, which reads as a broken server rather than a misconfigured one.
+
 ## Releasing
 
 Two workflows, both `workflow_dispatch`, and each refuses the other's job:

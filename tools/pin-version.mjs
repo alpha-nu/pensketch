@@ -67,7 +67,11 @@ if (!entry)
     `${SERVER_JSON} lists no npm package with identifier "@pensketch/mcp", so there is nothing for this tool to pin and nothing for a client to install.`,
   );
 
-const FILES = ['README.md', 'packages/mcp/README.md'];
+// `deploy/main.ts` is here for the same reason the READMEs are: it names a
+// published version, and a version written by hand is a fact with a
+// release-long life. It imports `npm:@pensketch/mcp@<version>/http`, which the
+// pin below matches without disturbing the specifier around it.
+const FILES = ['README.md', 'packages/mcp/README.md', 'deploy/main.ts'];
 
 let found = 0;
 const changed = [];

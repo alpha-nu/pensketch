@@ -2,3 +2,10 @@
 node_modules/
 dist/
 coverage/
+
+# Deno's lockfile, a byproduct of `npm run deploy`. Not tracked: the only
+# thing this repository asks Deno to resolve is `deploy/main.ts`, whose one
+# import is pinned to a published version by `npm run pin` and asserted by CI.
+# The rest of what lands in here belongs to `deno deploy` itself, which is
+# versioned by the `deno` devDependency.
+deno.lock

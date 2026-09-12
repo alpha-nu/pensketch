@@ -27,6 +27,7 @@
     "stdio": "node tools/check-stdio.mjs",
     "http": "node tools/check-http.mjs",
     "edge": "node tools/check-edge.mjs",
+    "deploy": "deno deploy --app=pensketch --prod",
     "bump": "changeset version && npm run pin"
   },
   "devDependencies": {
@@ -38,6 +39,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitest/coverage-v8": "^4.1.10",
     "ajv": "^8.20.0",
+    "deno": "^2.9.6",
     "esbuild": "0.27.7",
     "jsdom": "^27.0.1",
     "playwright-core": "^1.62.1",
