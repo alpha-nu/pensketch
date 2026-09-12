@@ -1,6 +1,6 @@
 {
   "name": "@pensketch/mcp",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "mcpName": "io.github.alpha-nu/pensketch",
   "description": "An MCP server for pensketch: check, render and rasterise hand-sketched diagrams.",
   "license": "MIT",

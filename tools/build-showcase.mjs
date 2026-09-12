@@ -322,7 +322,7 @@ const figures = ORDER.map(([key, title, blurb], i) => {
 // in-page drift waiting to happen. The npx pin inside it is one of
 // `npm run pin`'s targets.
 const INSTALL = `<pre><code><span class="comment"># the full server for a coding agent: check, render, and a PNG it can look at</span>
-claude mcp add pensketch -- npx -y @pensketch/mcp@0.9.0
+claude mcp add pensketch -- npx -y @pensketch/mcp@0.10.0
 
 <span class="comment"># zero install, hosted: checks and SVG, no PNG</span>
 claude mcp add --transport http pensketch https://pensketch.alpha-nu.deno.net</code></pre>`;
