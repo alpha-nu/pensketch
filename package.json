@@ -27,6 +27,7 @@
     "stdio": "node tools/check-stdio.mjs",
     "http": "node tools/check-http.mjs",
     "edge": "node tools/check-edge.mjs",
+    "predeploy": "node tools/check-deploy.mjs",
     "deploy": "deno deploy --app=pensketch --prod",
     "bump": "changeset version && npm run pin"
   },

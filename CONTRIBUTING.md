@@ -192,9 +192,19 @@ already a manual dispatch.
 deploy` is part of the runtime rather than a separate tool. Deno Deploy Classic
 and its `deployctl` were shut down on 2026-07-20 and are not what this uses.
 
-Set `ALLOWED_HOSTS` in the app's environment to the hostname it answers on.
-Leaving it at the default means the rebinding guard answers 403 to every
-request, which reads as a broken server rather than a misconfigured one.
+Set `ALLOWED_HOSTS` in the app's environment variables — in the Deno Deploy
+console, under the app's settings, applied to the Production context — to the
+hostname it answers on. Leaving it at the default means the rebinding guard
+answers 403 to every request, which reads as a broken server rather than a
+misconfigured one.
+
+`npm run deploy` refuses before uploading anything if the version pinned in
+`deploy/main.ts` is not on npm, or is on npm without a `./http` export. That
+is not hypothetical: the pin is derived from the manifest, which carries the
+*last released* version, so between adding the HTTP transport and releasing it
+the pin is correct by its own rule and names a tarball that cannot serve. The
+failure without this check is a module resolution error in a build log, on a
+hostname that then serves nothing.
 
 ## Releasing
 
