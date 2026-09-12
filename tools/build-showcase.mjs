@@ -395,28 +395,41 @@ header.top {
    as documentation. */
 .lede { max-width: 76ch; }
 
-/* An invitation rather than an instruction: one muted chevron at the foot
-   of the first slide, drifting the way the page wants the reader to go and
-   breathing while it does. Decorative, so it is hidden from readers who
-   cannot see it, and still under reduced motion rather than gone - the
-   direction is the information, the throb is only the emphasis. */
+/* An invitation rather than an instruction: three nested chevrons at the
+   foot of the first slide, a trail fading upward, the pulse travelling the
+   way the page wants the reader to go. Each link carries its own weight in
+   --cue-k - the keyframes read it, so one set of frames drives all three
+   at three intensities, and the stagger is only a delay. Decorative, so it
+   is hidden from readers who cannot see it, and still under reduced motion
+   rather than gone - the direction is the information, the pulse is only
+   the emphasis. */
 .scroll-cue {
   position: absolute;
-  bottom: 34px;
+  bottom: 28px;
   left: 50%;
-  width: 16px;
-  height: 16px;
-  border-right: 2px solid var(--ps-muted);
-  border-bottom: 2px solid var(--ps-muted);
-  transform: translate(-50%, 0) rotate(45deg);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.scroll-cue span {
+  width: 18px;
+  height: 18px;
+  border-right: 3px solid var(--ps-muted);
+  border-bottom: 3px solid var(--ps-muted);
+  transform: rotate(45deg);
   animation: cue 2.6s ease-in-out infinite;
 }
+.scroll-cue span + span { margin-top: -12px; }
+.scroll-cue span:nth-child(1) { --cue-k: 0.4; }
+.scroll-cue span:nth-child(2) { --cue-k: 0.65; animation-delay: 0.18s; }
+.scroll-cue span:nth-child(3) { --cue-k: 1; animation-delay: 0.36s; }
 @keyframes cue {
-  0%, 100% { transform: translate(-50%, 0) rotate(45deg); opacity: 0.25; }
-  50% { transform: translate(-50%, 8px) rotate(45deg); opacity: 0.7; }
+  0%, 100% { opacity: calc(0.12 * var(--cue-k, 1)); transform: translateY(0) rotate(45deg); }
+  50% { opacity: calc(0.72 * var(--cue-k, 1)); transform: translateY(5px) rotate(45deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .scroll-cue { animation: none; opacity: 0.4; }
+  .scroll-cue span { animation: none; opacity: calc(0.5 * var(--cue-k, 1)); }
 }
 header.top h1 {
   margin: 0 0 12px;
@@ -583,7 +596,7 @@ footer pre {
   library that ships them. No mockups, no screenshots: every figure is drawn
   live, from the same data the tests measure and the MCP server hands to
   agents. Scroll, and the pen gets to work.</p>
-  <div class="scroll-cue" aria-hidden="true"></div>
+  <div class="scroll-cue" aria-hidden="true"><span></span><span></span><span></span></div>
 </header>
 
 ${figures}
