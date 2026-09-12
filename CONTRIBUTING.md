@@ -177,26 +177,29 @@ npm run deploy:create
 ```
 
 An interactive wizard: organization, app name, source *local*, no framework
-preset, runtime mode *dynamic*. It needs a real terminal — both this and
-`npm run deploy` read interactive input, for the wizard and for the browser
-login respectively, and the token then lands in the system keyring.
+preset, runtime mode *dynamic*. Run it from a real terminal — the browser
+login puts a token in the system keyring, and the wizard prompts for the
+rest. `node_modules` is excluded from the upload by default.
 
 The entrypoint is not chosen there. `deno.json` declares it under
 `deploy.runtime`, and source configuration takes precedence over the
 dashboard, so it cannot drift from the repository.
 
-Both scripts are bare commands with no flags, and that is forced rather than
-chosen. On Deno 2.9.6 every flag passed to `deno deploy` arrives twice:
+Both scripts invoke `jsr:@deno/deploy` directly rather than through the
+`deno deploy` subcommand, and that is forced rather than chosen. On Deno
+2.9.6 the subcommand forwards everything after `deploy` twice, so any
+trailing token breaks it — a flag is refused as occurring twice, and even
+the bare wizard dies after its last prompt, because the duplicated `create`
+is consumed as the `[root-path]` positional:
 
-    deno deploy --app pensketch
-    ✗ Option "--app" can only occur once, but was found several times
+    deno deploy create
+    ✗ No such file or directory (os error 2): readdir 'create'
 
-The same for `--app=pensketch`, `--prod`, `--org`, and `--dry-run` on the
-`create` subcommand, measured against both the npm shim and a standalone
-binary, inside this repository and in an empty directory. 2.9.6 is the newest
-release. Bare subcommands are unaffected, so the interactive paths work and
-only non-interactive use — CI — is blocked. The app can also be created in the
-console if you prefer a form to a wizard.
+Only the zero-argument `deno deploy` parses. Invoked directly, the same CLI
+receives its arguments once and all of them work — including the documented
+non-interactive mode (`DENO_DEPLOY_TOKEN` plus `--json --non-interactive`),
+so CI is not blocked, only the shim is. The version is pinned in the script
+because `deno.lock`, which would otherwise pin it, is not tracked.
 
 After each release:
 
@@ -209,9 +212,10 @@ version does, so a deploy per commit would republish identical output for every
 change to this repository, and the one event that matters — a release — is
 already a manual dispatch.
 
-`deno` is a devDependency, so there is nothing to install globally; `deno
-deploy` is part of the runtime rather than a separate tool. Deno Deploy Classic
-and its `deployctl` were shut down on 2026-07-20 and are not what this uses.
+`deno` is a devDependency, so there is nothing to install globally; the
+deploy CLI is fetched from JSR at the version the scripts pin. Deno Deploy
+Classic and its `deployctl` were shut down on 2026-07-20 and are not what
+this uses.
 
 Set `ALLOWED_HOSTS` in the app's environment variables — in the Deno Deploy
 console, under the app's settings, applied to the Production context — to the

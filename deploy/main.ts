@@ -11,8 +11,10 @@ import { createGuardedHandler } from 'npm:@pensketch/mcp@0.9.0/http';
 // drop the version to track latest - a deployment whose behaviour depends on
 // when it happened to build is the thing that gate exists to prevent.
 //
-// `render_png` is absent here and cannot be added: the rasterizer loads its
-// WebAssembly off a filesystem this runtime does not have. Stdio is the
+// `render_png` is absent here and cannot be added: `/http` is the one entry
+// held to bundle for any worker runtime, and the rasterizer's graph pulls
+// Node built-ins, which `npm run edge` refuses. Deno Deploy itself has a
+// filesystem; the entry cannot assume one and stay portable. Stdio is the
 // transport that draws pictures.
 
 /**
