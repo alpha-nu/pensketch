@@ -83,7 +83,7 @@ if (!problems) {
     .map((t) => t.name)
     .sort();
 
-  const expected = ['check_diagram', 'render_diagram'];
+  const expected = ['check_diagram', 'get_schema', 'render_diagram'];
   if (tools.join() !== expected.join())
     fail(
       `the edge handler lists ${JSON.stringify(tools)}, expected ${JSON.stringify(expected)}. \`render_png\` being present would mean the rasterizer is reachable from this entry after all.`,

@@ -311,6 +311,17 @@ rather than its price.
 
 ## Errors you will hit, and what they mean
 
+Before any of these can happen, the whole diagram is validated against the
+schema this package publishes — the `pensketch://schema` resource, or the
+`get_schema` tool where resources cannot be read. A diagram that misses it
+is refused with every defect named at once, each as a path and a fix:
+`nodes[0] has no field "text" - words go in "lines", an array of strings`,
+`edges[0].from must be array - an edge end is ["nodeId", "side"], like
+["a", "r"]`, `edges[0].from[1] must be one of "t", "b", "l", "r"`. The same
+validator stands in front of `check_diagram`, `render_diagram` and
+`render_png`, so a diagram one accepts is a diagram all three do. The table
+below is what remains: the defects a well-shaped diagram can still carry.
+
 | message | cause |
 |---|---|
 | `edge N names unknown node "x" in from; known ids are …` | typo in `from`/`to`; the message lists the real ids |

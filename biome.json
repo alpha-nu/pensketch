@@ -9,6 +9,7 @@
       "!**/dist",
       "!packages/core/schema",
       "!packages/mcp/src/resources.generated.ts",
+      "!packages/mcp/src/validate.generated.ts",
       "!**/coverage",
       "!**/node_modules",
       "!package-lock.json"

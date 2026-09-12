@@ -13,6 +13,7 @@ import {
   TRAPS,
   viewBox,
 } from './tools';
+import { refuseDiagram } from './validate';
 
 // `render_png`, alone in its own file because of what it drags behind it.
 //
@@ -73,6 +74,8 @@ export function registerRasterTool(server: McpServer): void {
       depth,
       scale = 2,
     }) => {
+      const refusal = refuseDiagram(d);
+      if (refusal) return failed(refusal);
       try {
         const png = await renderPng(
           svgFor(d, box, { seed, hops, extrude, depth, forRaster: true }),

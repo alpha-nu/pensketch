@@ -88,6 +88,7 @@ describe('a client talking to the server', () => {
     }[];
     expect(tools.map((t) => t.name).sort()).toEqual([
       'check_diagram',
+      'get_schema',
       'render_diagram',
       'render_png',
     ]);
@@ -102,9 +103,12 @@ describe('a client talking to the server', () => {
       // about to refuse, and the caller learns about it from an error rather
       // than from the contract it was handed.
       expect(tool.inputSchema?.additionalProperties).toBe(false);
-      expect(tool.inputSchema?.properties?.diagram?.additionalProperties).toBe(
-        false,
-      );
+      // `get_schema` takes no diagram - it is the document the others
+      // validate against - so the strict-diagram half applies to the rest.
+      if (tool.name !== 'get_schema')
+        expect(
+          tool.inputSchema?.properties?.diagram?.additionalProperties,
+        ).toBe(false);
     }
   });
 
@@ -589,7 +593,11 @@ describe('the tool boundary refuses what it cannot carry', () => {
   // which is precisely how the next change adds `braces`.
   it('declares the same top-level fields the published schema does', async () => {
     const { tools, schema } = await published();
-    for (const tool of tools) {
+    // Counted before looped: a filter alone would pass vacuously if every
+    // drawing tool lost its diagram at once.
+    const drawing = tools.filter((t) => t.inputSchema?.properties?.diagram);
+    expect(drawing).toHaveLength(3);
+    for (const tool of drawing) {
       expect(
         Object.keys(tool.inputSchema?.properties?.diagram?.properties ?? {}),
       ).toEqual(Object.keys(schema.properties));
@@ -633,7 +641,9 @@ describe('the tool boundary refuses what it cannot carry', () => {
       expect(
         shapes.flatMap((shape) => Object.keys(shape.properties ?? {})),
       ).toContain(field);
-      for (const tool of tools)
+      const drawing = tools.filter((t) => t.inputSchema?.properties?.diagram);
+      expect(drawing).toHaveLength(3);
+      for (const tool of drawing)
         expect(
           Object.keys(tool.inputSchema?.properties ?? {}),
           `${tool.name} does not take ${field}`,
@@ -677,19 +687,20 @@ describe('the tool boundary refuses what it cannot carry', () => {
     expect(await carries(promised - 0.01)).toBe(false);
   });
 
-  // The boundary is strict at this level and no deeper, and that is a choice
-  // rather than an oversight: the fields inside a member are described by
-  // pensketch://schema, and restating twenty of them here would be the second
-  // source of truth this file was careful not to create. Written down as a
-  // test so that changing it is a decision someone makes on purpose.
-  it('leaves the fields inside a member to the published schema', async () => {
+  // The boundary used to be strict at the top level and no deeper, and the
+  // depths cost a real caller two full renders of empty boxes with no signal
+  // why (docs/pensketch-feedback.md). They are held now by the published
+  // schema itself, precompiled - still not a second source of truth, which
+  // was the reason the depths were left open in the first place.
+  it('refuses the fields inside a member by the schema it publishes', async () => {
     const result = await called('render_diagram', {
       diagram: { nodes: [{ ...NODE, line: ['a typo for lines'] }] },
       viewBox: BOX,
     });
-    expect(result.isError).toBeFalsy();
-    // Accepted, drawn, and the label the caller meant is simply absent.
-    expect(result.content?.[0]?.text).not.toContain('a typo for lines');
+    expect(result.isError).toBe(true);
+    const text = result.content?.[0]?.text ?? '';
+    expect(text).toContain('nodes[0] has no field "line"');
+    expect(text).toContain('pensketch://schema');
   });
 
   // The other half of the claim, and the one worth more: nothing that was
@@ -712,5 +723,95 @@ describe('the tool boundary refuses what it cannot carry', () => {
     });
     expect(result.isError).toBeFalsy();
     expect(result.content?.[0]?.text).toBe(svgFor(diagram, BOX, { seed: 7 }));
+  });
+});
+
+// Every case here is a guess a real caller made against the live server and
+// paid for with an opaque TypeError (docs/pensketch-feedback.md). The
+// refusals are the schema's, so each assertion is also a claim that the
+// validator and the published document have not parted company.
+describe('the refusal a guessed diagram gets', () => {
+  const across = async (name: string, diagram: unknown) => {
+    const result = await called(name, { diagram, viewBox: BOX });
+    expect(result.isError).toBe(true);
+    return result.content?.[0]?.text ?? '';
+  };
+
+  // The single most natural guess there is: plain string endpoints, the
+  // shape every other graph library takes. It used to crash as `undefined is
+  // not iterable`.
+  it('names the edge-end tuple when an end is a bare string', async () => {
+    const text = await across('render_diagram', {
+      nodes: [NODE],
+      edges: [{ from: 'a', to: 'b' }],
+    });
+    expect(text).toContain('edges[0].from must be array');
+    expect(text).toContain('["nodeId", "side"], like ["a", "r"]');
+  });
+
+  // Anchor guesses burned five calls in the recorded session: `right`, `e`,
+  // `1` and two object forms. The enum line answers all of them at once.
+  it('lists the four sides when an anchor is not one of them', async () => {
+    const text = await across('render_diagram', {
+      nodes: [NODE],
+      edges: [{ from: ['a', 'right'], to: ['a', 'e'] }],
+    });
+    expect(text).toContain('edges[0].from[1] must be one of');
+    expect(text).toContain('"t", "b", "l", "r"');
+  });
+
+  // The most expensive silent ignore on record: `text` where `lines` goes,
+  // two full renders of seven empty boxes, nothing said. The refusal now
+  // carries the field the caller meant.
+  it('points text and label at lines', async () => {
+    const text = await across('render_diagram', {
+      nodes: [{ ...NODE, text: 'hello' }],
+    });
+    expect(text).toContain('nodes[0] has no field "text"');
+    expect(text).toContain('words go in "lines"');
+  });
+
+  // Three defects, one refusal. Found one call at a time, each was a round
+  // trip the user sat through.
+  it('reports every defect at once rather than the first', async () => {
+    const text = await across('render_diagram', {
+      nodes: [{ ...NODE, text: 'hello' }],
+      edges: [{ from: 'a', to: 'b' }],
+      notes: [{ x: 1, y: 1, text: 'also wrong' }],
+    });
+    expect(text).toContain('nodes[0] has no field "text"');
+    expect(text).toContain('edges[0].from must be array');
+    expect(text).toContain('notes[0] has no field "text"');
+  });
+
+  // The checker accepting what the renderer refuses is false confidence -
+  // `check_diagram` once blessed raw coordinate pairs with "0 errors" and
+  // `render_diagram` rejected the identical bytes. One validator in front of
+  // both is what makes a clean check a guarantee again.
+  it('gives check_diagram and render_diagram the same refusal', async () => {
+    const pairs = {
+      nodes: [NODE],
+      edges: [{ from: [210, 67], to: [80, 67] }],
+    };
+    const checked = await across('check_diagram', pairs);
+    const rendered = await across('render_diagram', pairs);
+    expect(checked).toBe(rendered);
+    expect(checked).toContain('edges[0].from[0] must be string');
+  });
+
+  // The document behind every refusal, reachable as a tool because many
+  // clients cannot read MCP resources at all - the root finding of the
+  // feedback this suite encodes.
+  it('serves the schema itself through get_schema, verbatim', async () => {
+    const { send } = await connected();
+    const read = await send('resources/read', {
+      uri: 'pensketch://schema',
+    });
+    const resource = ((read.result?.contents ?? []) as { text: string }[])[0]
+      ?.text;
+    const result = await called('get_schema', {});
+    expect(result.isError).toBeFalsy();
+    expect(result.content?.[0]?.text).toBe(resource);
+    expect(resource).toBeTruthy();
   });
 });

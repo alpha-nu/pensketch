@@ -102,6 +102,12 @@ export default defineConfig({
         '**/dist/**',
         'packages/mcp/src/stdio.ts',
         'packages/mcp/src/cli.ts',
+        // Ajv's standalone output: thousands of generated branches, of which
+        // any one diagram exercises a handful. What holds it is not a test
+        // but the same regeneration-and-tree-clean assertion as the schema
+        // it is compiled from; the hand-written face over it, validate.ts,
+        // is covered normally.
+        'packages/mcp/src/validate.generated.ts',
       ],
       // Per-package thresholds, so a well-covered package cannot mask a
       // poorly covered one. Globs match paths relative to the repo root.

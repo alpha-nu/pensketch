@@ -21,9 +21,10 @@
 
 ## Install
 
-**For a coding agent**, the MCP server is the whole of it — three tools and the
+**For a coding agent**, the MCP server is the whole of it — four tools and the
 reference, the schema and five worked examples served as resources, so the agent
-reads the data model instead of guessing at it:
+reads the data model instead of guessing at it — and a guess is refused field
+by field against that schema rather than drawn wrong or crashed on:
 
 ```sh
 claude mcp add pensketch -- npx -y @pensketch/mcp@0.9.0
@@ -500,8 +501,9 @@ else will keep.
 
 ### For an agent: the MCP server
 
-`@pensketch/mcp` puts all of this behind three tools — `check_diagram`,
-`render_diagram`, `render_png` — and serves the reference, the schema and
+`@pensketch/mcp` puts all of this behind four tools — `check_diagram`,
+`render_diagram`, `render_png`, and `get_schema` for the clients that cannot
+read MCP resources — and serves the reference, the schema and
 five worked examples as resources. `render_diagram` returns the markup and
 the layout findings for it together, so an agent fixing a diagram spends one
 call a round rather than two:

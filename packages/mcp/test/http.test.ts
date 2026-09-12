@@ -97,12 +97,13 @@ const opened = async () => {
 };
 
 describe('the http handler', () => {
-  it('serves check_diagram and render_diagram, and not render_png', async () => {
+  it('serves everything but render_png', async () => {
     const fetch = await opened();
     const { body } = await rpc(fetch, 'tools/list');
 
     expect((body.result?.tools ?? []).map((t) => t.name).sort()).toEqual([
       'check_diagram',
+      'get_schema',
       'render_diagram',
     ]);
   });
@@ -115,7 +116,7 @@ describe('the http handler', () => {
   // `baseServer` cannot reach `render.ts`, so nothing that imports it can
   // reach `node:fs` or the WebAssembly either. A boolean would have left that
   // import in the graph of both.
-  it('leaves all three tools on stdio', () => {
+  it('leaves every tool on stdio', () => {
     const all = createServer();
     const svgOnly = baseServer();
     const names = (s: ReturnType<typeof createServer>) =>
@@ -126,10 +127,15 @@ describe('the http handler', () => {
 
     expect(names(all)).toEqual([
       'check_diagram',
+      'get_schema',
       'render_diagram',
       'render_png',
     ]);
-    expect(names(svgOnly)).toEqual(['check_diagram', 'render_diagram']);
+    expect(names(svgOnly)).toEqual([
+      'check_diagram',
+      'get_schema',
+      'render_diagram',
+    ]);
   });
 
   // The requirement the delta states plainly: nothing outside the arguments
@@ -604,7 +610,12 @@ describe('the transport file', () => {
       .join('\n');
 
     expect(body).not.toContain('raster');
-    for (const name of ['check_diagram', 'render_diagram', 'render_png'])
+    for (const name of [
+      'check_diagram',
+      'get_schema',
+      'render_diagram',
+      'render_png',
+    ])
       expect(body).not.toContain(name);
   });
 });

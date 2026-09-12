@@ -89,7 +89,7 @@ try {
   const names = (tools.result?.tools ?? []).map((t) => t.name).sort();
   check(
     'tools/list',
-    names.join() === 'check_diagram,render_diagram,render_png',
+    names.join() === 'check_diagram,get_schema,render_diagram,render_png',
     names.join(', '),
   );
 

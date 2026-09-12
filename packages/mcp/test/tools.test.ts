@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createServer } from '../src/index';
 import { MAX_SCALE, rasterize, renderPng } from '../src/render';
-import { svgFor, TRAPS } from '../src/tools';
+import { reportOf, svgFor, TRAPS } from '../src/tools';
 
 const FLOW = {
   nodes: [
@@ -54,9 +54,10 @@ const callTool = async (name: string, args: unknown) => {
 };
 
 describe('the tool surface', () => {
-  it('registers exactly the three documented tools', () => {
+  it('registers exactly the four documented tools', () => {
     expect(Object.keys(toolsOf(createServer())).sort()).toEqual([
       'check_diagram',
+      'get_schema',
       'render_diagram',
       'render_png',
     ]);
@@ -281,23 +282,25 @@ describe('render_diagram', () => {
   });
 
   // `check` is not a superset of `draw`. `pen.label` takes a string or an
-  // array; `check` calls `.reduce` on it. So a diagram that renders can throw
-  // in the checker, and before this had its own `try` the caller lost 2.5 KB
-  // of correct markup to a raw TypeError naming no node.
+  // array; `check` calls `.reduce` on it. The schema gate now refuses that
+  // gap's known case at the boundary - the first assertion - so the guard
+  // that keeps markup when only the check throws is driven directly: it is
+  // there for the divergences the schema cannot see, and a guard whose only
+  // test was the case that no longer reaches it would be untested the day it
+  // matters.
   it('keeps the markup when the check of it cannot run', async () => {
     const bare = {
       nodes: [{ id: 'a', x: 40, y: 40, w: 160, h: 46, lines: 'hi' }],
     };
-    const result = await callTool('render_diagram', {
+    const refused = await callTool('render_diagram', {
       diagram: bare,
       viewBox: VIEW_BOX,
       seed: 7,
     });
+    expect(refused.isError).toBe(true);
+    expect(refused.content[0]?.text).toContain('nodes[0].lines must be array');
 
-    expect(result.isError).toBeFalsy();
-    expect(result.content).toHaveLength(2);
-    expect(result.content[0]?.text).toBe(svgFor(bare, VIEW_BOX, { seed: 7 }));
-    expect(result.content[1]?.text).toContain('the check of it could not run');
+    expect(reportOf(bare, VIEW_BOX)).toContain('the check of it could not run');
   });
 
   // Findings are quadratic in overlapping nodes. Uncapped, 40 nodes a pixel

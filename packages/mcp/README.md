@@ -111,13 +111,22 @@ Read this part before you deploy it.
 Both transports serve identical results: the same factory backs them, and no
 tool can observe which one carried its call.
 
-## Three tools
+## Four tools
 
 | tool | what it does |
 |---|---|
 | `check_diagram` | Reports overlapping boxes, a label a connector or a brace will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names. Draws nothing. |
 | `render_diagram` | Returns SVG markup, and beside it the layout findings for the drawing it just made. The markup is first and the findings second, so one call both draws and checks. Deterministic: same diagram, same seed, same bytes. |
 | `render_png` | Rasterises it, so it can actually be looked at. |
+| `get_schema` | Returns the JSON Schema for a diagram — the same document as the `pensketch://schema` resource, as a tool, because many clients cannot read MCP resources at all. |
+
+Every diagram is validated against that schema before anything draws. An
+unknown field at any depth, an edge end that is not a `["nodeId", "side"]`
+tuple, an anchor letter that is not one of `t b l r` — each is refused by
+name with every defect in one reply, instead of drawing an empty box or
+surfacing as a `TypeError`. A clean `check_diagram` and a refused
+`render_diagram` of the same bytes cannot happen: one validator stands in
+front of both.
 
 `render_diagram` answers *does this fit* for the drawing it hands back, so a
 fix cycle is one call rather than two. Reach for `check_diagram` when you want

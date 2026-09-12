@@ -115,9 +115,9 @@ if (!init.result) fail(`initialize was refused: ${JSON.stringify(init)}`);
 
 const listed = await rpc('tools/list');
 const names = (listed.result?.tools ?? []).map((t) => t.name).sort();
-if (names.join() !== 'check_diagram,render_diagram')
+if (names.join() !== 'check_diagram,get_schema,render_diagram')
   fail(
-    `expected check_diagram and render_diagram, got ${names.join() || '(none)'}`,
+    `expected check_diagram, get_schema and render_diagram, got ${names.join() || '(none)'}`,
   );
 
 const drawn = await rpc('tools/call', {

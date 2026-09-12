@@ -6,11 +6,15 @@ import { renderToString } from '@pensketch/core/server';
 import { z } from 'zod';
 
 import { EMBEDDED_FAMILY, RASTER_THEME } from './raster-constants';
+import { SCHEMA } from './resources.generated';
+import { refuseDiagram } from './validate';
 
-// The three tools. Each is a thin layer over `@pensketch/core`: no rendering
+// The tools. Each is a thin layer over `@pensketch/core`: no rendering
 // logic, no rules, no geometry lives here. If a tool needs to know something
 // about diagrams, that knowledge belongs in core where the browser can reach
-// it too.
+// it too. The one exception is the schema validation in front of the two
+// drawing tools, which is core's published contract rather than new
+// knowledge: `validate.ts` says why it stands there.
 
 // The traps a caller cannot discover by reading a type. They are repeated in
 // tool descriptions because a description is the only documentation an agent
@@ -38,18 +42,17 @@ export const refuses = (subject: string, noun: string, takes: string) => ({
   },
 });
 
-// The top-level shape only. Every field of a node, an edge, a brace or a
-// note is described by the JSON Schema this server publishes as `pensketch://schema`,
-// which is generated from the TypeScript types - so restating it here would
-// be a second source of truth for a shape that already has one, and the two
-// would drift the first time a field moved.
+// The top-level shape only, here. Every field of a node, an edge, a brace or
+// a note is described by the JSON Schema this server publishes as
+// `pensketch://schema`, which is generated from the TypeScript types - so
+// restating it in zod would be a second source of truth for a shape that
+// already has one, and the two would drift the first time a field moved.
+// The depths are held instead by `refuseDiagram` in each handler, which is
+// that same schema precompiled - one source of truth, read twice.
 //
 // `strictObject`, so a key this does not name is refused by name rather than
 // stripped: the schema published alongside it forbids one, and a caller who
-// cannot see the picture cannot see a piece of it go missing either. That
-// holds at this level and no deeper - a node carrying `line` for `lines` is
-// still accepted here and still draws an unlabelled box, because the fields
-// inside a member are the schema's business rather than this list's. The cost
+// cannot see the picture cannot see a piece of it go missing either. The cost
 // of the list is that a new top-level field is refused until it is added, and
 // a test holds it to the schema's own top level so that is a failure rather
 // than a surprise.
@@ -151,7 +154,7 @@ export const diagram = z
     ),
   )
   .describe(
-    'A diagram: nodes, edges, braces and notes as plain data. Read the pensketch://schema resource for every field. Any other top-level key is refused by name rather than ignored, `raw` included: it holds functions that JSON cannot carry. Fields inside a node, an edge, a brace or a note are not checked here - pensketch://schema is what describes those. Write it compact - no indentation, no line breaks between fields - which costs about half the tokens of the same diagram pretty-printed. That is a request rather than a rule: nothing here refuses pretty JSON, and nothing can tell afterwards which you sent.',
+    'A diagram: nodes, edges, braces and notes as plain data. Read the pensketch://schema resource - or call the get_schema tool, the same document - for every field. The whole diagram is validated against that schema before anything draws: an unknown field at any depth is refused by name rather than ignored, `raw` included - it holds functions that JSON cannot carry - and every defect is reported in one refusal. A minimal diagram: {"nodes":[{"id":"a","x":40,"y":40,"w":160,"h":50,"lines":["start"]},{"id":"b","x":300,"y":40,"w":160,"h":50,"lines":["done"]}],"edges":[{"from":["a","r"],"to":["b","l"]}]} - node text is `lines`, an array of strings, and an edge end is ["nodeId", "side"] with sides "t", "b", "l", "r". Write it compact - no indentation, no line breaks between fields - which costs about half the tokens of the same diagram pretty-printed. That is a request rather than a rule: nothing here refuses pretty JSON, and nothing can tell afterwards which you sent.',
   );
 
 export const viewBox = z
@@ -251,11 +254,14 @@ const report = (findings: Parameters<typeof line>[0][]) => {
  * not be taken.
  *
  * `check` refuses inputs `draw` accepts - a bare string where it wants an
- * array of lines is the known one - so it can fail on a diagram that rendered
- * perfectly well. When it does, the caller keeps the markup and is told the
- * report is missing rather than being handed an error in place of a picture.
+ * array of lines was the known one - so it can fail on a diagram that
+ * rendered perfectly well. The schema validation in front of both tools now
+ * catches every divergence it can see, including that one, so this guard is
+ * for the ones it cannot: whatever the next gap between the two turns out to
+ * be. When it fires, the caller keeps the markup and is told the report is
+ * missing rather than being handed an error in place of a picture.
  */
-const reportOf = (
+export const reportOf = (
   diagram: unknown,
   viewBox: [number, number, number, number],
   extrude?: boolean,
@@ -299,7 +305,7 @@ export function registerTools(server: McpServer): void {
       // on each because the default reads as false when absent (T-111,
       // owner-ruled 2026-08-26).
       annotations: { readOnlyHint: true },
-      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding - though where a hop breaks the very line a \`label-collision\` names, the finding stands and the sentence naming that edge does not - and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. \`render_diagram\` reports these same findings for the drawing it just made, so reach for this one when you want findings without markup, or before spending a \`render_png\` on a diagram you have not checked.`,
+      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding - though where a hop breaks the very line a \`label-collision\` names, the finding stands and the sentence naming that edge does not - and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. \`render_diagram\` reports these same findings for the drawing it just made, so reach for this one when you want findings without markup, or before spending a \`render_png\` - stdio transport only; over HTTP there is no raster - on a diagram you have not checked.`,
       inputSchema: z.strictObject(
         {
           diagram,
@@ -323,6 +329,8 @@ export function registerTools(server: McpServer): void {
       ),
     },
     async ({ diagram: d, viewBox: box, extrude, depth }) => {
+      const refusal = refuseDiagram(d);
+      if (refusal) return failed(refusal);
       try {
         // Key by key rather than an object literal carrying undefineds:
         // `CheckOptions` keeps an absent field apart from one present and
@@ -347,7 +355,7 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to SVG',
       annotations: { readOnlyHint: true },
-      description: `Returns SVG markup for a diagram, and beside it the layout findings for the drawing it just made: overlapping boxes, text too wide for its box, a node out of frame. The markup is first and the findings second, so one call both draws and checks. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face.`,
+      description: `Returns SVG markup for a diagram, and beside it the layout findings for the drawing it just made: overlapping boxes, text too wide for its box, a node out of frame. The markup is first and the findings second, so one call both draws and checks. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face. It is returned, not displayed: many clients render none of it, so save it to a file, embed it in a page, or hand it onward rather than assuming the reader has seen the picture.`,
       inputSchema: z.strictObject(
         {
           diagram,
@@ -400,6 +408,8 @@ export function registerTools(server: McpServer): void {
       label,
       animate,
     }) => {
+      const refusal = refuseDiagram(d);
+      if (refusal) return failed(refusal);
       try {
         const svg = svgFor(d, box, {
           seed,
@@ -417,12 +427,13 @@ export function registerTools(server: McpServer): void {
         // Second, never first. The markup stays `content[0]` exactly as it
         // was, so a caller already reading that index is untouched by this.
         //
-        // Its own `try`, and this is the whole reason for it: `check` is not
-        // a superset of `draw`. It accepts less - `lines: 'a string'` draws
-        // and does not check - so a shared `try` would turn a diagram that
-        // rendered into an error and throw away 2.5 KB of correct markup for
-        // a report nobody asked for. Ink you already have is never lost to a
-        // second opinion about it.
+        // Its own `try`, inside `reportOf`, and this is the whole reason for
+        // it: `check` is not a superset of `draw`, so a shared `try` would
+        // turn a diagram that rendered into an error and throw away 2.5 KB
+        // of correct markup for a report nobody asked for. The schema gate
+        // above narrows the gap between the two but is not proof it is
+        // closed. Ink you already have is never lost to a second opinion
+        // about it.
         return {
           content: [
             { type: 'text' as const, text: svg },
@@ -433,6 +444,27 @@ export function registerTools(server: McpServer): void {
         return failed(error);
       }
     },
+  );
+
+  server.registerTool(
+    'get_schema',
+    {
+      title: 'The JSON Schema for a diagram',
+      annotations: { readOnlyHint: true },
+      // The whole reason this tool exists is a client that cannot read MCP
+      // resources - measured in docs/pensketch-feedback.md, where the schema
+      // being resource-only cost a caller eight crashing calls. Resources
+      // are optional in many clients; tools are universal. The content is
+      // the pensketch://schema resource verbatim, so there is still exactly
+      // one document.
+      description:
+        'Returns the JSON Schema for the diagram the drawing tools take: every field of a node, an edge, a brace and a note, with what each means. The same document as the pensketch://schema resource, as a tool, for clients that cannot read resources. Call it once per session at most - it changes only when the server version does, and every mismatch is also reported field by field when a diagram is refused.',
+      inputSchema: z.strictObject(
+        {},
+        refuses('get_schema', 'argument', 'no arguments'),
+      ),
+    },
+    async () => ({ content: [{ type: 'text' as const, text: SCHEMA }] }),
   );
 }
 
