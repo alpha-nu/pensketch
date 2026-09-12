@@ -170,14 +170,23 @@ package rather than the workspace, so what runs there is what an npm consumer
 gets, and its version is a pin that `npm run pin` maintains — the same gate
 that holds the install line in both READMEs.
 
-One-time, interactively, to create the app and authenticate (the token lands in
-the system keyring):
+Create the app once in the Deno Deploy console: **+ New App**, source *local*,
+no framework preset, runtime mode *dynamic*. The entrypoint is not set there —
+`deno.json` declares it under `deploy.runtime`, and source configuration takes
+precedence over the dashboard.
 
-```sh
-npx deno deploy create --app=pensketch --entrypoint=deploy/main.ts
-```
+The console rather than `deno deploy create`, because that subcommand cannot be
+invoked on Deno 2.9.6: the `deno deploy` wrapper passes its arguments twice, so
+every flagged form fails with `Option "--x" can only occur once, but was found
+several times`, and `create` itself with `Too many arguments: create`. Measured
+against both the npm shim and a standalone binary, with and without a `--`
+separator. 2.9.6 is the newest release, so there is nothing to upgrade to.
 
-Then, after each release:
+That same bug is why `npm run deploy` is bare `deno deploy` with no flags — the
+one form that parses. Everything it needs is in `deno.json` and the app's own
+settings.
+
+After each release:
 
 ```sh
 npm run deploy
