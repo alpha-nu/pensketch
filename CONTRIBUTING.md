@@ -198,6 +198,16 @@ module-not-found for a file the registry serves fine. With `deploy/` as the
 root there is no `package.json` above the entrypoint, so `npm:` can only
 mean npm.
 
+The script `cd`s into `deploy/` rather than passing the directory as the
+CLI's `[root-path]`, and that too was learned by failing: config discovery
+is anchored to the working directory, not the upload root. Scoping the
+upload by argument uploaded the right tree but sent the app's stored
+entrypoint — `./deploy/main.ts`, a path from before the move — because no
+config existed at the working directory to override it, and the build
+looked for a file the tar did not hold. Run from inside `deploy/`, the CLI
+finds `deno.json` and the upload root in the same place, which is the
+single-directory flow it is built around.
+
 Both scripts invoke `jsr:@deno/deploy` directly rather than through the
 `deno deploy` subcommand, and that is forced rather than chosen. On Deno
 2.9.6 the subcommand forwards everything after `deploy` twice, so any
