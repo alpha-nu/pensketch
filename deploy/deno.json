@@ -4,7 +4,7 @@
     "app": "pensketch",
     "runtime": {
       "type": "dynamic",
-      "entrypoint": "./deploy/main.ts"
+      "entrypoint": "./main.ts"
     }
   }
 }

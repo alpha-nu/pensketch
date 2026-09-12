@@ -181,9 +181,22 @@ preset, runtime mode *dynamic*. Run it from a real terminal — the browser
 login puts a token in the system keyring, and the wizard prompts for the
 rest. `node_modules` is excluded from the upload by default.
 
-The entrypoint is not chosen there. `deno.json` declares it under
-`deploy.runtime`, and source configuration takes precedence over the
-dashboard, so it cannot drift from the repository.
+The entrypoint is not chosen there. `deploy/deno.json` declares it under
+`deploy.runtime`, along with the `org` and `app` the directory deploys to —
+a `deploy` block that exists is parsed as a complete one, coordinates
+included — and source configuration takes precedence over the dashboard, so
+none of it can drift from the repository.
+
+What is uploaded is `deploy/` alone, and that is load-bearing rather than
+tidy. Uploading the repository root was tried and failed in a way worth
+remembering: the root `package.json` declares `packages/*` as npm
+workspaces, and Deno resolves an `npm:` specifier to a matching workspace
+member in preference to the registry. The entrypoint's import of the
+published package silently became an import of `packages/mcp/dist/http.js`
+— build output the upload correctly excluded — and the build died with a
+module-not-found for a file the registry serves fine. With `deploy/` as the
+root there is no `package.json` above the entrypoint, so `npm:` can only
+mean npm.
 
 Both scripts invoke `jsr:@deno/deploy` directly rather than through the
 `deno deploy` subcommand, and that is forced rather than chosen. On Deno
@@ -210,7 +223,10 @@ npm run deploy
 By hand rather than on push. The deployed bytes change only when the pinned
 version does, so a deploy per commit would republish identical output for every
 change to this repository, and the one event that matters — a release — is
-already a manual dispatch.
+already a manual dispatch. The script passes `--prod`, because without it a
+revision lands in a non-production context — one whose environment variables
+are not Production's, so `ALLOWED_HOSTS` would be missing and the entrypoint
+would refuse to boot, by its own design.
 
 `deno` is a devDependency, so there is nothing to install globally; the
 deploy CLI is fetched from JSR at the version the scripts pin. Deno Deploy

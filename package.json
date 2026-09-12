@@ -28,7 +28,7 @@
     "http": "node tools/check-http.mjs",
     "edge": "node tools/check-edge.mjs",
     "predeploy": "node tools/check-deploy.mjs",
-    "deploy": "deno run -A jsr:@deno/deploy@0.0.9904",
+    "deploy": "deno run -A jsr:@deno/deploy@0.0.9904 ./deploy --prod",
     "deploy:create": "deno run -A jsr:@deno/deploy@0.0.9904 create",
     "bump": "changeset version && npm run pin"
   },
