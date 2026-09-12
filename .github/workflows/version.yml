@@ -15,6 +15,9 @@ permissions:
   contents: write
   # Open and update the pull request.
   pull-requests: write
+  # Dispatch CI onto the version branch, whose own creation cannot trigger it
+  # - the last step says why.
+  actions: write
   # Deliberately no `id-token: write`. Nothing here publishes, so nothing here
   # should be able to mint the credential npm exchanges one for.
 
@@ -91,3 +94,18 @@ jobs:
             echo "every input and output name here against its action.yml at that ref."
             exit 1
           fi
+
+      # The pull request just opened gets no CI of its own: both the branch
+      # and the event that opened it were created with this workflow's
+      # GITHUB_TOKEN, and a run caused by that token is refused at startup -
+      # zero jobs, "failed because of a workflow file issue", nothing to read
+      # in a log that does not exist. Four of the five version branches to
+      # date failed exactly that way, and the one that ran was the one a
+      # human had triggered. `workflow_dispatch` is the documented exception
+      # to that recursion guard, so CI is dispatched onto the branch here;
+      # the run lands on the same commit the pull request points at, which
+      # is the commit its checks are read from.
+      - name: Run CI on the version branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref changeset-release/main
