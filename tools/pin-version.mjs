@@ -71,7 +71,18 @@ if (!entry)
 // published version, and a version written by hand is a fact with a
 // release-long life. It imports `npm:@pensketch/mcp@<version>/http`, which the
 // pin below matches without disturbing the specifier around it.
-const FILES = ['README.md', 'packages/mcp/README.md', 'deploy/main.ts'];
+//
+// The showcase carries the install line too, twice over: the page that is
+// served and the generator that can rewrite it. Both are pinned, or a
+// regeneration after a release would resurrect the version the page had
+// just been corrected away from.
+const FILES = [
+  'README.md',
+  'packages/mcp/README.md',
+  'deploy/main.ts',
+  'docs/showcase/index.html',
+  'tools/build-showcase.mjs',
+];
 
 let found = 0;
 const changed = [];

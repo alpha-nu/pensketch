@@ -86,7 +86,8 @@ root unless told otherwise.
   is the first thing held to them.
 - `npm run pin` - rewrites every version this repository states to someone
   installing the server, from the version `@pensketch/mcp` carries: the pin in
-  both READMEs, and the two in `packages/mcp/server.json`, which is what
+  both READMEs, the deploy entrypoint, the showcase's install slide and the
+  generator behind it, and the two in `packages/mcp/server.json`, which is what
   `mcp-publisher` sends to the MCP registry. It also asserts that manifest's
   server name matches the `mcpName` in the package, the pair the registry
   checks to verify ownership. `git diff` must be clean afterwards. The pin is
@@ -168,7 +169,7 @@ and `--system-font` may well cover it.
 `deploy/main.ts` is the Deno Deploy entrypoint. It imports the **published**
 package rather than the workspace, so what runs there is what an npm consumer
 gets, and its version is a pin that `npm run pin` maintains — the same gate
-that holds the install line in both READMEs.
+that holds every install line this repository states.
 
 Create the app once, from a terminal:
 
