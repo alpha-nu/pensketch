@@ -181,11 +181,21 @@ preset, runtime mode *dynamic*. Run it from a real terminal — the browser
 login puts a token in the system keyring, and the wizard prompts for the
 rest. `node_modules` is excluded from the upload by default.
 
-The entrypoint is not chosen there. `deploy/deno.json` declares it under
-`deploy.runtime`, along with the `org` and `app` the directory deploys to —
-a `deploy` block that exists is parsed as a complete one, coordinates
-included — and source configuration takes precedence over the dashboard, so
-none of it can drift from the repository.
+`deploy/deno.json` carries the `org` and `app` the directory deploys to — a
+`deploy` block that exists is parsed as a complete one, coordinates included
+— and a `runtime` block that documents what the console must hold.
+Documents, not decides: a CLI deploy makes exactly one call,
+`apps.initiateCliRevision`, carrying the org, the app, the production flag
+and a file manifest, and the build then runs with the app's *stored*
+configuration. The entrypoint is therefore set once in the console — the
+app's build configuration, entrypoint `./main.ts`, runtime mode dynamic —
+and the local `runtime` block only keeps the repository honest about it.
+This was learned the hard way: the stored entrypoint was seeded at create
+time from a config that has since moved, and two deploys failed against the
+stale value while the uploaded `deno.json` said the right thing, because
+nothing in the revision protocol carries it. The docs' claim that source
+configuration takes precedence over the dashboard is not true of CLI
+revisions; it was read out of the CLI's own source.
 
 What is uploaded is `deploy/` alone, and that is load-bearing rather than
 tidy. Uploading the repository root was tried and failed in a way worth
