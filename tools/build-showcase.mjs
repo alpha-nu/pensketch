@@ -303,7 +303,7 @@ const figures = ORDER.map(([key, title, blurb], i) => {
     <h2>${attr(title)}</h2>
     <p class="blurb measure">${attr(blurb)}</p>
   </header>
-  <figure><div class="frame" style="--w:${w}">${svg}</div>
+  <figure><div class="frame" style="--w:${w};--h:${h}">${svg}</div>
     <figcaption>
       <span>${nodes} node${nodes === 1 ? '' : 's'}</span>
       <span>${edges} edge${edges === 1 ? '' : 's'}</span>
@@ -376,12 +376,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.wrap { max-width: 62rem; margin: 0 auto; }
+/* Wide enough for a figure to be the slide it sits on; prose keeps its own
+   62ch measure regardless, so the column widening never stretches a
+   sentence. */
+.wrap { max-width: 96rem; margin: 0 auto; }
 
 header.top {
-  padding: 88px 0 40px;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   border-bottom: 1px solid var(--rule);
-  margin-bottom: 8px;
 }
 header.top h1 {
   margin: 0 0 12px;
@@ -396,8 +401,20 @@ header.top .meta {
   color: var(--ps-muted);
 }
 
-.fig { padding: 56px 0; border-bottom: 1px solid var(--rule); }
-.fig header { display: grid; gap: 6px; margin-bottom: 28px; }
+/* Each figure is a slide: viewport-high, its content centred, the diagram
+   as large as the slide can hold. min-height rather than height, so a
+   figure whose caption outgrows a small screen scrolls instead of
+   clipping. */
+.fig {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 26px;
+  padding: 48px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.fig header { display: grid; gap: 6px; }
 .fig .n {
   margin: 0;
   font: 400 12px/1 var(--mono);
@@ -436,11 +453,17 @@ figure { margin: 0; }
   padding-bottom: 4px;
 }
 svg text { font-family: "Architects Daughter", cursive; }
+/* As wide as the slide allows, but never taller than it: the width is the
+   lesser of the column and the width whose derived height is 72svh, so the
+   drawing scales up past its natural size - it is vector ink - and stops
+   exactly where it would push the caption off the slide. No max-height,
+   deliberately: on a replaced element that clamps the box and letterboxes
+   the ink inside it; deriving the width keeps box and ink the same size. */
 .frame svg {
   display: block;
-  width: 100%;
+  margin-inline: auto;
+  width: min(100%, calc(var(--w) / var(--h) * 72svh));
   min-width: calc(var(--w) * 0.68px);
-  max-width: calc(var(--w) * 1px);
   height: auto;
 }
 
@@ -457,6 +480,16 @@ svg text { font-family: "Architects Daughter", cursive; }
    rules already set \`animation: none\`, and pausing no animation is nothing,
    so the finished picture shows immediately either way. */
 .js .fig:not(.seen) .frame svg > * { animation-play-state: paused; }
+
+/* The deck. Only where the screen is wide enough to hold a figure whole:
+   on a phone a slide regularly outgrows its viewport, and a mandatory snap
+   over an area taller than the snapport is a scroll that fights the
+   reader. \`stop: always\` is what makes it a deck rather than a page with
+   magnetism - a long flick lands one slide on, not four. */
+@media (min-width: 900px) {
+  html { scroll-snap-type: y mandatory; }
+  header.top, .fig { scroll-snap-align: start; scroll-snap-stop: always; }
+}
 
 figcaption {
   display: flex;
