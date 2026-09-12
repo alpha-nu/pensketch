@@ -1,14 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import type { Theme } from '@pensketch/core';
+import { initWasm, Resvg } from '@resvg/resvg-wasm';
 
 import { EMBEDDED_FAMILY, MAX_SCALE, RASTER_THEME } from './raster-constants';
 
 // Re-exported from where they now live, so a caller that only wants a
 // constant does not pull the WebAssembly in behind it.
 export { EMBEDDED_FAMILY, MAX_SCALE, RASTER_THEME };
-
-import { initWasm, Resvg } from '@resvg/resvg-wasm';
 
 // Rasterization, kept away from the tools so that the tools stay a thin layer
 // over `@pensketch/core`.

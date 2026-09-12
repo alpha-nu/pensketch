@@ -44,7 +44,7 @@ const hosts = (Deno.env.get('ALLOWED_HOSTS') ?? '')
 
 if (!hosts.length)
   throw new Error(
-    'ALLOWED_HOSTS is unset. Set it in the Deno Deploy console, under the app\'s environment variables in the Production context, to the hostnames this deployment answers on - `<app>.<org>.deno.net` and any custom domain, comma-separated, as bare hostnames. Without it every request is refused 403 for naming a host the rebinding guard was not given.',
+    "ALLOWED_HOSTS is unset. Set it in the Deno Deploy console, under the app's environment variables in the Production context, to the hostnames this deployment answers on - `<app>.<org>.deno.net` and any custom domain, comma-separated, as bare hostnames. Without it every request is refused 403 for naming a host the rebinding guard was not given.",
   );
 
 export default createGuardedHandler({ allowedHosts: hosts });

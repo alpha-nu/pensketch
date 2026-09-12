@@ -74,12 +74,6 @@ export function registerRasterTool(server: McpServer): void {
       scale = 2,
     }) => {
       try {
-        // Loaded here rather than imported above, so that `node:fs`,
-        // `node:module` and 2.5 MB of WebAssembly enter the graph only when a
-        // raster is actually asked for. The HTTP entry passes `raster: false`
-        // and never reaches this line, which is what lets it bundle for a
-        // runtime that has no filesystem to read the WASM from.
-        const { renderPng } = await import('./render');
         const png = await renderPng(
           svgFor(d, box, { seed, hops, extrude, depth, forRaster: true }),
           {
