@@ -170,21 +170,33 @@ package rather than the workspace, so what runs there is what an npm consumer
 gets, and its version is a pin that `npm run pin` maintains — the same gate
 that holds the install line in both READMEs.
 
-Create the app once in the Deno Deploy console: **+ New App**, source *local*,
-no framework preset, runtime mode *dynamic*. The entrypoint is not set there —
-`deno.json` declares it under `deploy.runtime`, and source configuration takes
-precedence over the dashboard.
+Create the app once, from a terminal:
 
-The console rather than `deno deploy create`, because that subcommand cannot be
-invoked on Deno 2.9.6: the `deno deploy` wrapper passes its arguments twice, so
-every flagged form fails with `Option "--x" can only occur once, but was found
-several times`, and `create` itself with `Too many arguments: create`. Measured
-against both the npm shim and a standalone binary, with and without a `--`
-separator. 2.9.6 is the newest release, so there is nothing to upgrade to.
+```sh
+npm run deploy:create
+```
 
-That same bug is why `npm run deploy` is bare `deno deploy` with no flags — the
-one form that parses. Everything it needs is in `deno.json` and the app's own
-settings.
+An interactive wizard: organization, app name, source *local*, no framework
+preset, runtime mode *dynamic*. It needs a real terminal — both this and
+`npm run deploy` read interactive input, for the wizard and for the browser
+login respectively, and the token then lands in the system keyring.
+
+The entrypoint is not chosen there. `deno.json` declares it under
+`deploy.runtime`, and source configuration takes precedence over the
+dashboard, so it cannot drift from the repository.
+
+Both scripts are bare commands with no flags, and that is forced rather than
+chosen. On Deno 2.9.6 every flag passed to `deno deploy` arrives twice:
+
+    deno deploy --app pensketch
+    ✗ Option "--app" can only occur once, but was found several times
+
+The same for `--app=pensketch`, `--prod`, `--org`, and `--dry-run` on the
+`create` subcommand, measured against both the npm shim and a standalone
+binary, inside this repository and in an empty directory. 2.9.6 is the newest
+release. Bare subcommands are unaffected, so the interactive paths work and
+only non-interactive use — CI — is blocked. The app can also be created in the
+console if you prefer a form to a wizard.
 
 After each release:
 

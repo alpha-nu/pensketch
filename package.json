@@ -29,6 +29,7 @@
     "edge": "node tools/check-edge.mjs",
     "predeploy": "node tools/check-deploy.mjs",
     "deploy": "deno deploy",
+    "deploy:create": "deno deploy create",
     "bump": "changeset version && npm run pin"
   },
   "devDependencies": {
