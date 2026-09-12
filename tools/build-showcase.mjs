@@ -386,7 +386,37 @@ header.top {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  position: relative;
   border-bottom: 1px solid var(--rule);
+}
+
+/* The opening line gets more room than body prose: it is one paragraph
+   doing the work of a cover, and at 62ch it wrapped into a block that read
+   as documentation. */
+.lede { max-width: 76ch; }
+
+/* An invitation rather than an instruction: one muted chevron at the foot
+   of the first slide, drifting the way the page wants the reader to go and
+   breathing while it does. Decorative, so it is hidden from readers who
+   cannot see it, and still under reduced motion rather than gone - the
+   direction is the information, the throb is only the emphasis. */
+.scroll-cue {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border-right: 2px solid var(--ps-muted);
+  border-bottom: 2px solid var(--ps-muted);
+  transform: translate(-50%, 0) rotate(45deg);
+  animation: cue 2.6s ease-in-out infinite;
+}
+@keyframes cue {
+  0%, 100% { transform: translate(-50%, 0) rotate(45deg); opacity: 0.25; }
+  50% { transform: translate(-50%, 8px) rotate(45deg); opacity: 0.7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue { animation: none; opacity: 0.4; }
 }
 header.top h1 {
   margin: 0 0 12px;
@@ -548,10 +578,12 @@ footer pre {
 <div class="wrap">
 
 <header class="top">
-  <h1>The diagrams pensketch ships</h1>
-  <p class="measure">Drawn by the library itself, from the same data its tests
-  measure and its MCP server serves to agents. Every count on this page is read
-  off that data; only the sentences are typed.</p>
+  <h1>Watch pensketch draw</h1>
+  <p class="lede">${ORDER.length} diagrams, sketched in front of you by the
+  library that ships them. No mockups, no screenshots: every figure is drawn
+  live, from the same data the tests measure and the MCP server hands to
+  agents. Scroll, and the pen gets to work.</p>
+  <div class="scroll-cue" aria-hidden="true"></div>
 </header>
 
 ${figures}
