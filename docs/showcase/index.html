@@ -170,6 +170,11 @@ svg text { font-family: "Architects Daughter", cursive; }
 @media (min-width: 900px) {
   html { scroll-snap-type: y mandatory; }
   header.top, .fig { scroll-snap-align: start; scroll-snap-stop: always; }
+  /* The footer is shorter than a slide, so under mandatory snap a scroll
+     into it found no snap position and was pulled back to the last figure
+     - the footer was unreachable. Aligning its end to the snapport makes
+     the bottom of the page a resting place of its own. */
+  footer { scroll-snap-align: end; }
 }
 
 figcaption {
