@@ -405,40 +405,6 @@ header.top {
    as documentation. */
 .lede { max-width: 76ch; }
 
-/* The shortcut for the reader who needs no show: a disclosure that hands
-   over the commands where they stand, instead of a jump that makes them
-   leave the cover. A native <details>, so it costs no script and the
-   keyboard and the screen reader get it for free. */
-.skip { margin: 18px 0 0; font: 400 13px/1.6 var(--mono); }
-.skip summary { cursor: pointer; color: var(--ps-muted); }
-/* max-content up to the column, so the commands sit whole on one line
-   where there is room and scroll inside the block where there is not. */
-.skip pre {
-  margin: 12px 0 0;
-  padding: 16px 20px;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  overflow-x: auto;
-  width: max-content;
-  max-width: 100%;
-  font: 400 13px/1.9 var(--mono);
-}
-
-/* The closing slide: the ask, made after the show has argued it. Same
-   rhythm as a figure - number, heading, blurb - with the command where the
-   drawing goes. */
-#install pre {
-  margin: 0;
-  padding: 22px 26px;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  overflow-x: auto;
-  width: max-content;
-  max-width: 100%;
-  font: 400 14.5px/2 var(--mono);
-}
-code .comment { color: var(--ps-muted); }
-
 /* The way out to the source, riding every slide: fixed, muted until
    wanted, and small enough that no drawing has to design around it. */
 .github {
@@ -452,42 +418,6 @@ code .comment { color: var(--ps-muted); }
 .github:hover, .github:focus-visible { color: var(--ps-pen); opacity: 1; }
 .github svg { display: block; width: 26px; height: 26px; fill: currentColor; }
 
-/* An invitation rather than an instruction: three nested chevrons at the
-   foot of the first slide, a trail fading upward, the pulse travelling the
-   way the page wants the reader to go. Each link carries its own weight in
-   --cue-k - the keyframes read it, so one set of frames drives all three
-   at three intensities, and the stagger is only a delay. Decorative, so it
-   is hidden from readers who cannot see it, and still under reduced motion
-   rather than gone - the direction is the information, the pulse is only
-   the emphasis. */
-.scroll-cue {
-  position: absolute;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.scroll-cue span {
-  width: 18px;
-  height: 18px;
-  border-right: 3px solid var(--ps-muted);
-  border-bottom: 3px solid var(--ps-muted);
-  transform: rotate(45deg);
-  animation: cue 2.6s ease-in-out infinite;
-}
-.scroll-cue span + span { margin-top: -12px; }
-.scroll-cue span:nth-child(1) { --cue-k: 0.4; }
-.scroll-cue span:nth-child(2) { --cue-k: 0.65; animation-delay: 0.18s; }
-.scroll-cue span:nth-child(3) { --cue-k: 1; animation-delay: 0.36s; }
-@keyframes cue {
-  0%, 100% { opacity: calc(0.12 * var(--cue-k, 1)); transform: translateY(0) rotate(45deg); }
-  50% { opacity: calc(0.72 * var(--cue-k, 1)); transform: translateY(5px) rotate(45deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .scroll-cue span { animation: none; opacity: calc(0.5 * var(--cue-k, 1)); }
-}
 header.top h1 {
   margin: 0 0 12px;
   font: 400 clamp(30px, 5vw, 46px)/1.15 "Architects Daughter", var(--serif);
@@ -641,6 +571,83 @@ footer pre {
   font: 400 12px/1.6 var(--mono);
 }
 
+/* The component blocks close the stylesheet, below every generic rule:
+   their selectors outrank the spans, summaries and pres the page styles
+   loosely above, and a sheet that descends in specificity is the lint
+   failure that moved them here. The closing slide is addressed by class -
+   its id stays for deep links, but an id in a selector outranks every
+   class after it. */
+
+/* The closing slide: the ask, made after the show has argued it. Same
+   rhythm as a figure - number, heading, blurb - with the command where the
+   drawing goes. */
+.install pre {
+  margin: 0;
+  padding: 22px 26px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow-x: auto;
+  width: max-content;
+  max-width: 100%;
+  font: 400 14.5px/2 var(--mono);
+}
+code .comment { color: var(--ps-muted); }
+
+/* The shortcut for the reader who needs no show: a disclosure that hands
+   over the commands where they stand, instead of a jump that makes them
+   leave the cover. A native <details>, so it costs no script and the
+   keyboard and the screen reader get it for free. */
+.skip { margin: 18px 0 0; font: 400 13px/1.6 var(--mono); }
+.skip summary { cursor: pointer; color: var(--ps-muted); }
+/* max-content up to the column, so the commands sit whole on one line
+   where there is room and scroll inside the block where there is not. */
+.skip pre {
+  margin: 12px 0 0;
+  padding: 16px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow-x: auto;
+  width: max-content;
+  max-width: 100%;
+  font: 400 13px/1.9 var(--mono);
+}
+
+/* An invitation rather than an instruction: three nested chevrons at the
+   foot of the first slide, a trail fading upward, the pulse travelling the
+   way the page wants the reader to go. Each link carries its own weight in
+   --cue-k - the keyframes read it, so one set of frames drives all three
+   at three intensities, and the stagger is only a delay. Decorative, so it
+   is hidden from readers who cannot see it, and still under reduced motion
+   rather than gone - the direction is the information, the pulse is only
+   the emphasis. */
+.scroll-cue {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.scroll-cue span {
+  width: 18px;
+  height: 18px;
+  border-right: 3px solid var(--ps-muted);
+  border-bottom: 3px solid var(--ps-muted);
+  transform: rotate(45deg);
+  animation: cue 2.6s ease-in-out infinite;
+}
+.scroll-cue span + span { margin-top: -12px; }
+.scroll-cue span:nth-child(1) { --cue-k: 0.4; }
+.scroll-cue span:nth-child(2) { --cue-k: 0.65; animation-delay: 0.18s; }
+.scroll-cue span:nth-child(3) { --cue-k: 1; animation-delay: 0.36s; }
+@keyframes cue {
+  0%, 100% { opacity: calc(0.12 * var(--cue-k, 1)); transform: translateY(0) rotate(45deg); }
+  50% { opacity: calc(0.72 * var(--cue-k, 1)); transform: translateY(5px) rotate(45deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue span { animation: none; opacity: calc(0.5 * var(--cue-k, 1)); }
+}
 </style>
 <script>document.documentElement.classList.add('js')</script>
 </head>
@@ -662,7 +669,7 @@ footer pre {
 
 ${figures}
 
-<section class="fig" id="install">
+<section class="fig install" id="install">
   <header>
     <p class="n">${String(ORDER.length + 1).padStart(2, '0')}</p>
     <h2>Draw your own</h2>
