@@ -154,31 +154,40 @@ const DOTTED: Diagram = {
 
 /**
  * The count where three decimals stop being able to say `[0, 1)` by rounding:
- * at 2000 elements `(1999 / 2000).toFixed(3)` is `1.000`. A plain box is eight
- * paths - four sides at two passes - so 250 of them stand exactly on it. Not a
- * size only a generator reaches: a 200x120 hatched node is 64 elements
- * measured, so 32 of them do the same.
+ * at 2000 gestures `(1999 / 2000).toFixed(3)` is `1.000`. The unit is the
+ * gesture, not the element, since both passes of a stroke share one number -
+ * a plain box is eight paths pairing into four gestures, so 500 of them
+ * stand exactly on the bound.
  */
+// Tiny boxes, deliberately: the bound is counted in gestures and a box is
+// four of them at any size, while the cost of drawing scales with perimeter
+// - at 80x40 the five hundred of them timed out under a loaded suite.
 const AT_THE_BOUND: Diagram = {
   nodes: Array.from(
-    { length: 250 },
+    { length: 500 },
     (_, i): DiagramNode => ({
       id: `n${i}`,
       shape: 'box',
       x: 20,
-      y: 20 + i * 60,
-      w: 80,
-      h: 40,
+      y: 20 + i * 16,
+      w: 20,
+      h: 10,
     }),
   ),
 };
 
 describe('the order a hand would draw in', () => {
-  it('numbers every node shape below every connector, and all text above both', () => {
+  it('numbers every node shape below every connector, and each label beside what it names', () => {
     const svg = stamped(SHAPES_AND_CONNECTORS);
     const shapes = inked(svg, PEN);
     const connectors = inked(svg, INK);
-    const texts = textsOf(svg).map(fractionOf);
+    const texts = textsOf(svg);
+    const nodeLabels = texts
+      .filter((t) => t.textContent !== 'one')
+      .map(fractionOf);
+    const edgeLabel = texts
+      .filter((t) => t.textContent === 'one')
+      .map(fractionOf);
 
     // Counts first: without them the comparisons below would hold of two
     // empty sets, which is the shape a broken classifier takes.
@@ -186,45 +195,114 @@ describe('the order a hand would draw in', () => {
     expect(shapes).toHaveLength(24);
     // Three connectors, a shaft and two barbs each, two passes each.
     expect(connectors).toHaveLength(18);
-    // Three node labels and one edge label.
-    expect(texts).toHaveLength(4);
+    expect(nodeLabels).toHaveLength(3);
+    expect(edgeLabel).toHaveLength(1);
 
     expect(Math.max(...shapes)).toBeLessThan(Math.min(...connectors));
-    expect(Math.min(...texts)).toBeGreaterThan(Math.max(...connectors));
+    // A label rides its own phase - a node's words land with the node,
+    // before any connector, and an edge's label lands with the edges. An
+    // earlier revision queued every label at the end, where at 122 strokes
+    // all the lettering fit in the final tenth of the runtime.
+    expect(Math.max(...nodeLabels)).toBeLessThan(Math.min(...connectors));
+    expect(Math.min(...edgeLabel)).toBeGreaterThan(Math.max(...shapes));
   });
 
   it('numbers the group frame below everything it contains', () => {
     const svg = stamped(WITH_GROUP);
     const frame = inked(svg, PEN);
     const inside = inked(svg, INK);
-    const texts = textsOf(svg).map(fractionOf);
+    const texts = textsOf(svg);
+    const title = texts
+      .filter((t) => t.textContent === 'group')
+      .map(fractionOf);
+    const labels = texts
+      .filter((t) => t.textContent !== 'group')
+      .map(fractionOf);
 
     // Four sides, two passes a side.
     expect(frame).toHaveLength(8);
     // Two boxes and one connector.
     expect(inside).toHaveLength(22);
-    // The group's title and the two node labels.
-    expect(texts).toHaveLength(3);
+    expect(title).toHaveLength(1);
+    expect(labels).toHaveLength(2);
 
     // The wash is the first thing a hand puts down and the first child in the
     // document, so the two agree at zero.
     expect(fractionOf(nth(childrenOf(svg), 0))).toBe(0);
     expect(Math.max(...frame)).toBeLessThan(Math.min(...inside));
-    expect(Math.min(...texts)).toBeGreaterThan(Math.max(...inside));
+    // The title is the group phase's own last word, written before anything
+    // is drawn inside the region it names; the node labels land among the
+    // shapes they name rather than after everything.
+    expect(Math.max(...title)).toBeLessThan(Math.min(...inside));
+    for (const label of labels) {
+      expect(label).toBeGreaterThan(Math.min(...inside));
+      expect(label).toBeLessThan(Math.max(...inside));
+    }
   });
 
-  it('leaves every piece of text until last, whatever phase drew it', () => {
+  it('writes each label right after the thing it names', () => {
     const svg = stamped(EVERY_PHASE);
+    const spoken = textsOf(svg)
+      .map((t) => ({ text: t.textContent, at: fractionOf(t) }))
+      .sort((a, b) => a.at - b.at)
+      .map(({ text }) => text);
+
+    // One piece of text from every phase there is, each in its phase's own
+    // place: the group titled before its contents, each node labelled as it
+    // is drawn, the edge labelled with the connectors, and the annotations'
+    // words where the annotations are.
+    expect(spoken).toEqual(['group', 'a', 'b', 'one', 'brace', 'note', 'raw']);
+
+    // And the reversal that specifies the change: the lettering interleaves
+    // with the drawing rather than queueing after all of it.
     const texts = textsOf(svg).map(fractionOf);
     const rest = childrenOf(svg)
       .filter((el) => el.tagName !== 'text')
       .map(fractionOf);
+    expect(Math.min(...texts)).toBeLessThan(Math.max(...rest));
+  });
 
-    // The group title, the edge label, two node labels, the brace label, the
-    // note and the raw callback's label: one from each phase there is.
-    expect(texts).toHaveLength(7);
-    expect(rest.length).toBeGreaterThan(0);
-    expect(Math.min(...texts)).toBeGreaterThan(Math.max(...rest));
+  it('gives both passes of one gesture the same number', () => {
+    const svg = stamped(SHAPES_AND_CONNECTORS);
+    const paths = pathsOf(svg);
+    // The pen traces every stroke twice, back to back, so the paths pair up
+    // in document order - and a pair is one movement of one hand, so it
+    // draws as one. Numbered apart, every line was visibly drawn and then
+    // drawn again, and half the runtime went to the redraw.
+    expect(paths.length % 2).toBe(0);
+    for (let i = 0; i < paths.length; i += 2)
+      expect(fractionOf(nth(paths, i))).toBe(fractionOf(nth(paths, i + 1)));
+    // The distinct numbers count gestures, not elements.
+    const distinct = new Set(childrenOf(svg).map(fractionOf));
+    expect(distinct.size).toBeGreaterThan(0);
+    expect(distinct.size).toBeLessThan(childrenOf(svg).length);
+  });
+
+  it('measures every solid gesture against the longest', () => {
+    const svg = stamped(SHAPES_AND_CONNECTORS);
+    const lens = pathsOf(svg).map(
+      (p) => /--ps-len:([0-9.]+);/.exec(attr(p, 'style') ?? '')?.[1],
+    );
+    // Every path here is solid, so every path carries a ratio; both passes
+    // of a pair carry the same one, measured off the first pass, because a
+    // pair that disagreed about its duration would visibly split.
+    expect(lens.every((l) => l !== undefined)).toBe(true);
+    for (let i = 0; i < lens.length; i += 2) expect(lens[i]).toBe(lens[i + 1]);
+    // The longest gesture says exactly 1.00 - it is the unit the others are
+    // measured in - and nothing exceeds it.
+    const numbers = lens.map(Number);
+    expect(Math.max(...numbers)).toBe(1);
+    expect(Math.min(...numbers)).toBeGreaterThan(0);
+    // Text carries no length: it is written, not drawn on.
+    for (const t of textsOf(svg))
+      expect(attr(t, 'style')).not.toContain('--ps-len');
+  });
+
+  it('leaves --ps-len off a dashed path, which fades rather than draws', () => {
+    const svg = stamped(DOTTED);
+    const dashed = pathsOf(svg).filter((p) => attr(p, 'stroke-dasharray'));
+    expect(dashed.length).toBeGreaterThan(0);
+    for (const p of dashed) expect(attr(p, 'style')).not.toContain('--ps-len');
   });
 
   it('numbers a brace and a note above everything they annotate', () => {
@@ -276,11 +354,17 @@ describe('the order a hand would draw in', () => {
   // The other end of the same bound, and the one the 46 elements of
   // `EVERY_PHASE` cannot reach: the fraction is truncated to three decimals
   // rather than rounded, and only a drawing this size tells the two apart.
-  it('stays under one at 2000 elements, where rounding would not have', () => {
+  it('stays under one at 2000 gestures, where rounding would not have', {
+    timeout: 15000,
+  }, () => {
     const svg = stamped(AT_THE_BOUND);
     const fractions = childrenOf(svg).map(fractionOf);
 
-    expect(fractions).toHaveLength(2000);
+    // 500 boxes, eight paths each, pairing into 2000 gestures. Three
+    // decimals resolve at most a thousand distinct steps, so past a thousand
+    // gestures neighbours start sharing a value - the bound this test pins
+    // is the top staying under one, not every gesture keeping its own step.
+    expect(fractions).toHaveLength(4000);
     expect(Math.min(...fractions)).toBe(0);
     // 1999 of 2000 truncates to .999 and rounds to 1.000, so the value is the
     // whole assertion; `toBeLessThan(1)` would pass on either.

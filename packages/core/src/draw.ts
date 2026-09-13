@@ -9,6 +9,8 @@ import {
   LOOP_SPAN,
   NOTE_AMP,
   NOTE_SIZE,
+  OP1,
+  OP2,
   SIZE,
   TITLE_DX,
   TITLE_DY,
@@ -561,14 +563,20 @@ export function draw(
 
   // The order a hand would draw in, stamped on afterwards. It is not the order
   // the document is in: a shape sits over the connectors that reach it, so it
-  // is emitted after them, and a label is written after the thing it names
-  // whatever phase drew either. Nothing here reorders anything - the z-order,
-  // the seeded sequence and the elements themselves are exactly what they were
-  // - and only the number differs from the document index it is read off.
+  // is emitted after them. Nothing here reorders anything - the z-order, the
+  // seeded sequence and the elements themselves are exactly what they were -
+  // and only the number differs from the document index it is read off.
   if (options.order) {
     const children = Array.from(svg.children);
     // The phase a child came from is which of the three marks its document
-    // index falls under; text is lifted out of its phase and ranked last.
+    // index falls under. Text takes its phase's own place, so a label follows
+    // the shape it names rather than queueing with every other label at the
+    // end - the pen writes a label immediately after the thing it labels, so
+    // the document index inside a phase is already "shape, then its words".
+    // An earlier revision lifted all text last, as a draftsman inks then
+    // letters; watched at 122 strokes, every label landed in the final tenth
+    // of the runtime and the diagram was unreadable until it was finished
+    // (docs/pensketch-feedback-animation-2.md).
     //
     // Ranks 2 and 3 are told apart only by where the phases sit: annotations
     // are emitted after the shapes, so within one rank the index tiebreak
@@ -579,27 +587,88 @@ export function draw(
     // edge, that equivalence would lapse with nothing to notice.
     const rank = (k: number) =>
       k < afterGroups ? 0 : k < afterEdges ? 2 : k < afterShapes ? 1 : 3;
-    children
-      .map((el, k) => ({ el, k, r: el.tagName === 'text' ? 4 : rank(k) }))
+    const sorted = children
+      .map((el, k) => ({ el, k, r: rank(k) }))
       // Within a rank the pen's own emission order stands: it is already hand
       // order, a connector before its barbs and a shape before its hatch.
-      .sort((a, b) => a.r - b.r || a.k - b.k)
-      .forEach(({ el }, i) => {
+      .sort((a, b) => a.r - b.r || a.k - b.k);
+
+    // One number per pen gesture, not per element. Every stroke is traced
+    // twice - the lighter second pass is what reads as pressure - and the two
+    // passes are one movement of one hand, so they share an index and draw
+    // together. Numbered apart they drew in sequence, every line visibly
+    // drawn and then drawn again, and half the runtime went to the redraw.
+    // A second pass is recognised by what the pen wrote and nothing else:
+    // the immediately following document index, `OP2` where the element
+    // before it carried `OP1`. The index adjacency is load-bearing - the pen
+    // appends the pair back to back, so two strokes of the same weight drawn
+    // one after the other cannot be mistaken for each other's passes.
+    //
+    // Each gesture's length rides along, measured off the first pass's own
+    // `d` - `M` and `L` commands and nothing else - and shared by both
+    // passes: the second is re-jittered, so its length differs by noise, and
+    // a pair that disagreed about its duration would visibly split. Solid
+    // paths only: a dashed stroke fades in rather than draws on, and text is
+    // not a path.
+    const gestures: { els: Element[]; len: number }[] = [];
+    let open = false;
+    for (let n = 0; n < sorted.length; n++) {
+      const { el, k } = sorted[n] as { el: Element; k: number };
+      const prev = sorted[n - 1];
+      if (
+        open &&
+        prev !== undefined &&
+        el.tagName === 'path' &&
+        k === prev.k + 1 &&
+        el.getAttribute('opacity') === String(OP2)
+      ) {
+        gestures[gestures.length - 1]?.els.push(el);
+        open = false;
+        continue;
+      }
+      let len = 0;
+      if (
+        el.tagName === 'path' &&
+        el.getAttribute('stroke-dasharray') === null
+      ) {
+        const q = (el.getAttribute('d') ?? '').match(/-?[\d.]+/g) ?? [];
+        for (let m = 2; m + 1 < q.length; m += 2)
+          len += Math.hypot(
+            Number(q[m]) - Number(q[m - 2]),
+            Number(q[m + 1]) - Number(q[m - 1]),
+          );
+      }
+      gestures.push({ els: [el], len });
+      open =
+        el.tagName === 'path' && el.getAttribute('opacity') === String(OP1);
+    }
+    const longest = Math.max(...gestures.map((g) => g.len));
+
+    gestures.forEach(({ els, len: span }, i) => {
+      // Two decimals, floored: the ratio is in (0, 1] by construction, and
+      // the longest stroke's own entry must say exactly 1 rather than round
+      // there from below. The floor of a coarser policy - how short a short
+      // stroke may get - belongs to the stylesheet that spends the time, so
+      // the number here is the measurement and nothing else.
+      const len = span
+        ? `--ps-len:${(Math.floor((span / longest) * 100) / 100).toFixed(2)};`
+        : '';
+      for (const el of els) {
         // `pathLength` normalises a path to one unit, so a single keyframe
         // draws a 400 px connector and a 12 px arrowhead barb at the same
         // rate. A dashed path is left out of it: `pathLength` rescales every
-        // distance along the path and `stroke-dasharray` is one, so the dashes
-        // stretch past the end of the line and the stroke renders solid -
-        // measured at 90 inked px of 400 plain, 400 of 400 with it.
+        // distance along the path and `stroke-dasharray` is one, so the
+        // dashes stretch past the end of the line and the stroke renders
+        // solid - measured at 90 inked px of 400 plain, 400 of 400 with it.
         //
-        // What it tests is the *attribute*, so a dash a page put on with a CSS
-        // rule is invisible to it: such a path is normalised like any solid one
-        // and renders solid. There is no fix on this line. Seeing a computed
-        // dash needs `getComputedStyle`, which exists on this path and not on
-        // `renderToString`'s - `markup.ts` is a six-member shim - so a DOM-only
-        // guard would fork the two renderers and break the byte-parity they are
-        // held to. Style your dashes with the `dotted` field, which the pen
-        // writes as an attribute.
+        // What it tests is the *attribute*, so a dash a page put on with a
+        // CSS rule is invisible to it: such a path is normalised like any
+        // solid one and renders solid. There is no fix on this line. Seeing a
+        // computed dash needs `getComputedStyle`, which exists on this path
+        // and not on `renderToString`'s - `markup.ts` is a six-member shim -
+        // so a DOM-only guard would fork the two renderers and break the
+        // byte-parity they are held to. Style your dashes with the `dotted`
+        // field, which the pen writes as an attribute.
         if (
           el.tagName === 'path' &&
           el.getAttribute('stroke-dasharray') === null
@@ -609,24 +678,25 @@ export function draw(
         // keeps its fill and font-size.
         //
         // Truncated to three decimals, not rounded: the quotient is always
-        // below one, but `toFixed` rounds, so from 2000 elements up - 250
-        // plain boxes, or 32 hatched nodes at 200x120 - the last of them would
-        // be written `1.000`, outside the `[0, 1)` this option promises. Both
-        // counts are measured, and 2000 is where it starts, not where it gets
-        // bad.
+        // below one, but `toFixed` rounds, so from 2000 gestures up - 500
+        // plain boxes, whose four sides pair into four gestures each - the
+        // last of them would be written `1.000`, outside the `[0, 1)` this
+        // option promises.
         //
-        // The thousandths come off an integer numerator, which is one division
-        // and so one rounding, and is the floor of the exact fraction by
-        // construction. Scaling a quotient instead - `Math.trunc((i /
-        // children.length) * 1000)` - rounds twice, and is the same number
-        // only as long as the second rounding stays under the first's slack.
-        // The two were compared exhaustively over every pair to 20000 and over
-        // every exactly-divisible pair to a million, and never disagreed - so
-        // this is a rounding not taken rather than a bug seen.
+        // The thousandths come off an integer numerator, which is one
+        // division and so one rounding, and is the floor of the exact
+        // fraction by construction. Scaling a quotient instead -
+        // `Math.trunc((i / gestures.length) * 1000)` - rounds twice, and is
+        // the same number only as long as the second rounding stays under
+        // the first's slack. The two were compared exhaustively over every
+        // pair to 20000 and over every exactly-divisible pair to a million,
+        // and never disagreed - so this is a rounding not taken rather than
+        // a bug seen.
         el.setAttribute(
           'style',
-          `--ps-i:${(Math.floor((i * 1000) / children.length) / 1000).toFixed(3)};${el.getAttribute('style') || ''}`,
+          `--ps-i:${(Math.floor((i * 1000) / gestures.length) / 1000).toFixed(3)};${len}${el.getAttribute('style') || ''}`,
         );
-      });
+      }
+    });
   }
 }

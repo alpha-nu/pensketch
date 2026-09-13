@@ -52,10 +52,30 @@ const REST = ':scope>:not(path)';
 // started first, at -0.0958s. Clamped, the same call puts all 24 at 0s: the
 // drawing lands at once, which is the honest reading of "every element takes
 // longer than the whole of it".
-const PACE =
-  ' var(--ps-stroke,.5s)' +
+const DELAY =
   ' calc(var(--ps-i)*max(0s,var(--ps-dur,2s) - var(--ps-stroke,.5s)))' +
   ' var(--ps-ease,ease-out) both';
+
+// A solid stroke's duration is `--ps-stroke` scaled by `--ps-len`, the
+// gesture's measured length as a fraction of the drawing's longest - so the
+// pen moves at roughly constant speed rather than spending equal time on a
+// 700 px curve and a 12 px barb, which is most of what read as mechanical.
+//
+// Both bounds of the scale are argued, not assumed. The ceiling is 1 by
+// construction: the longest gesture is the unit the renderer measures the
+// others in, so nothing can exceed its own stroke time. The floor is a
+// tenth, and it is this stylesheet's floor rather than the renderer's: a
+// barb's true ratio is around 0.02, which at the default half-second is
+// 10 ms - under one frame at 60 Hz, so the shortest strokes would pop in
+// rather than draw. A tenth is 50 ms, three to four frames, the least that
+// still reads as movement. The renderer stamps the measurement; the policy
+// of how short a stroke may get lives here, where the time is spent.
+//
+// `--ps-len` falls back to 1, so a drawing stamped by an older renderer -
+// no `--ps-len` on anything - runs every stroke at the full `--ps-stroke`,
+// which is exactly what this stylesheet did before the variable existed.
+const DRAW_TIME = 'calc(max(.1,var(--ps-len,1))*var(--ps-stroke,.5s))';
+const FLAT_TIME = 'var(--ps-stroke,.5s)';
 
 /**
  * The stylesheet, whole and identical for every diagram. What differs between
@@ -145,9 +165,9 @@ export const rules: string =
   // property outside a keyframe - the three `@keyframes` above are the only
   // place any of them appears, and keyframes on their own style nothing.
   '@scope{' +
-  `${SOLID}{animation:ps-draw${PACE}}` +
-  `${DASHED}{animation:ps-fade${PACE}}` +
-  `${REST}{animation:ps-write${PACE}}` +
+  `${SOLID}{animation:ps-draw ${DRAW_TIME}${DELAY}}` +
+  `${DASHED}{animation:ps-fade ${FLAT_TIME}${DELAY}}` +
+  `${REST}{animation:ps-write ${FLAT_TIME}${DELAY}}` +
   // One declaration, and it is sufficient because every starting state is
   // inside a keyframe: with no animation running each property falls back to
   // what the pen emitted, so the picture is already the finished one. A reset

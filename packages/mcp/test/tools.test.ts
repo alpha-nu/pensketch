@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createServer } from '../src/index';
 import { MAX_SCALE, rasterize, renderPng } from '../src/render';
-import { reportOf, svgFor, TRAPS } from '../src/tools';
+import { animatedLine, reportOf, svgFor, TRAPS } from '../src/tools';
 
 const FLOW = {
   nodes: [
@@ -363,6 +363,107 @@ describe('render_diagram', () => {
     expect(result.content[0]?.text).toContain(
       'aria-label="fish &amp; &lt;chips&gt;"',
     );
+  });
+});
+
+describe('render_diagram, animated', () => {
+  // Enough gestures to clear the 2 s floor by a wide margin: sixty plain
+  // boxes pair into 240 gestures, 16.8 s of cadence, capped at six.
+  const BIG = {
+    nodes: Array.from({ length: 60 }, (_, i) => ({
+      id: `n${i}`,
+      x: (i % 10) * 70,
+      y: Math.floor(i / 10) * 70,
+      w: 50,
+      h: 40,
+    })),
+  };
+
+  it('reads the singular when one timing argument strays alone', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      stroke: 800,
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('drop it.');
+  });
+
+  // Driven directly: over the tool the duration is always resolved into the
+  // markup, so the fallback for a file without one - someone else's markup,
+  // or a future shape - is unreachable from a call and covered here.
+  it('accounts for markup carrying no resolved duration at the default', () => {
+    expect(animatedLine('<svg></svg>')).toContain('0 strokes over 2s');
+  });
+
+  it('refuses a timing argument on a still drawing, by name', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      duration: 3000,
+      easing: 'linear',
+    });
+    expect(result.isError).toBe(true);
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('`duration`');
+    expect(text).toContain('`easing`');
+    expect(text).toContain('animate: true');
+  });
+
+  it('writes a resolved duration into the file, scaled to the drawing', async () => {
+    const small = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      animate: true,
+    });
+    // A drawing small enough for the package's own 2 s keeps it: the floor
+    // is where the old fixed default and the scale agree.
+    expect(small.content[0]?.text).toContain('--ps-dur:2000ms');
+
+    const big = await callTool('render_diagram', {
+      diagram: BIG,
+      viewBox: [0, 0, 700, 450],
+      animate: true,
+    });
+    // 240 gestures at 70 ms is 16.8 s of cadence, held to the 6 s ceiling:
+    // past that a reader is sitting through the pen rather than watching it.
+    expect(big.content[0]?.text).toContain('--ps-dur:6000ms');
+  });
+
+  it('lets an explicit duration, stroke and easing win, resolved into the file', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      animate: true,
+      duration: 3210,
+      stroke: 800,
+      easing: 'linear',
+    });
+    const svg = result.content[0]?.text ?? '';
+    expect(svg).toContain('--ps-dur:3210ms');
+    expect(svg).toContain('--ps-stroke:800ms');
+    expect(svg).toContain('--ps-ease:linear');
+  });
+
+  it('accounts for the animation beside the findings', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      animate: true,
+    });
+    const report = result.content[1]?.text ?? '';
+    // The caller cannot watch the animation, so the second block opens with
+    // the only account of it there is: how much, how long, and the support
+    // boundary that otherwise switches it off in silence.
+    expect(report).toMatch(/^animated: \d+ strokes over 2s/);
+    expect(report).toContain('@scope');
+    expect(report).toContain('Chrome 118+');
+
+    const still = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+    });
+    expect(still.content[1]?.text).not.toContain('animated:');
   });
 });
 

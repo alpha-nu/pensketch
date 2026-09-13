@@ -666,8 +666,13 @@ await check(
   },
 );
 
-// 6. All text comes last.
-await check(6, 'all text comes last', async (want) => {
+// 6. Each label lands beside the thing it names. The check that stood here
+// asserted the opposite - all text last - which was the shipped order until
+// a session watching 122 strokes reported every label crammed into the
+// final tenth of the runtime (docs/pensketch-feedback-animation-2.md). Now
+// a label rides its phase, so each one is interior to the drawing: ink
+// before it, and more ink after.
+await check(6, 'each label lands beside the thing it names', async (want) => {
   const { context, page } = await open({ body: svgTag('flow') });
   await paint(page, { id: 'flow', diagram: FLOW });
   await seek(page, 0);
@@ -678,9 +683,20 @@ await check(6, 'all text comes last', async (want) => {
   const first = Math.min(...text.map((el) => Number.parseFloat(el.delay)));
   const last = Math.max(...rest.map((el) => Number.parseFloat(el.delay)));
   want(
-    last < first,
-    `the last non-text element starts at ${last}s and the first text at ${first}s`,
+    first < last,
+    `the first text starts at ${first}s, after the last non-text at ${last}s - the lettering is queueing at the end again`,
   );
+  // Interior on both sides, per label: something drawn starts before each
+  // label and something drawn starts after it. Under the old order the
+  // second half was false of every label at once.
+  for (const el of text) {
+    const at = Number.parseFloat(el.delay);
+    want(
+      rest.some((other) => Number.parseFloat(other.delay) < at) &&
+        rest.some((other) => Number.parseFloat(other.delay) > at),
+      `a label starting at ${at}s has drawing on only one side of it`,
+    );
+  }
   // In pixels, and the same caveat as the corridor above: sampling at the first
   // text's own start cannot corroborate the ordering. It proves the delay is
   // ink.
@@ -703,7 +719,7 @@ await check(6, 'all text comes last', async (want) => {
     `the text boxes held ${before.join('/')} inked px before the first text started and ${after.join('/')} at the end`,
   );
   await context.close();
-  return `${text.length} text elements start at ${first}s, after the last of ${rest.length} others at ${last}s; text boxes ${before.join('/')} inked px before, ${after.join('/')} after`;
+  return `${text.length} labels interleave with ${rest.length} drawn elements - first at ${first}s, drawing runs to ${last}s; text boxes ${before.join('/')} inked px before their windows, ${after.join('/')} after`;
 });
 
 // The picture the pen emitted, with no stylesheet at all. Everything checks 7

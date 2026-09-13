@@ -48,9 +48,15 @@ const PACKAGES = [
     // entry passed its gate with a single byte to spare. A budget met by
     // one byte is not a budget met - it is the next one-line fix failing a
     // gate this file exists to keep green. 5311 + 100 = 5411, up to 5440.
+    //
+    // 5696 from 5440: `order` learned to count gestures rather than
+    // elements, to measure each against the longest, and to let a label
+    // ride its phase - the animation feedback's three structural fixes
+    // (docs/pensketch-feedback-animation-2.md), +130 B after a golf pass
+    // took 55 back. 5570 + 100 = 5670, up to the next multiple of 64.
     name: '@pensketch/core',
     entry: 'packages/core/dist/index.js',
-    budget: 5440,
+    budget: 5696,
   },
   {
     // Its own entry and its own budget. The root entry measured 2562 B before
@@ -311,9 +317,13 @@ const PACKAGES = [
     //
     // 5440 from 5312, with the root entry and for its reason: the ride cost
     // this copy 145 B and left 8. 5304 + 100 = 5404, up to 5440.
+    //
+    // 5696 from 5440, with the root entry and for its reason: gestures,
+    // lengths and labels-in-phase cost this copy 116 B. 5556 + 100 = 5656,
+    // up to 5696.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 5440,
+    budget: 5696,
   },
   {
     name: '@pensketch/react',

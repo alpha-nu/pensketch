@@ -56,7 +56,7 @@ on every step rather than once.
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `duration` | `number` | `2000` | How long the whole drawing takes, first stroke to last, in ms. |
-| `stroke` | `number` | `500` | How long any one element takes to appear, in ms. |
+| `stroke` | `number` | `500` | How long the longest single stroke takes to draw, in ms. Shorter strokes take proportionally less — the renderer stamps each gesture's length as `--ps-len` and the stylesheet spends time at roughly constant speed — floored at a tenth, so the shortest still spans a few frames. A dashed stroke fades and text is written; both take the flat time. |
 | `easing` | `string` | `ease-out` | The easing every element is given, as a CSS `<easing-function>`. |
 
 Anything left out keeps the stylesheet's own default, so the defaults have

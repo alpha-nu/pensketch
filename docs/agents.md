@@ -549,17 +549,24 @@ draw(svg, diagram, { seed: 7, order: true });
 Every element then carries `--ps-i`, how far through the drawing it is, as a
 fraction in `[0, 1)`. The number counts in the order a hand would draw in —
 group frames, then node shapes, then connectors, then braces, notes and `raw`,
-and then every piece of text whatever phase drew it — which is **not** the
-order the document is in. Nothing is reordered: the z-order, the seeded
-sequence and the elements themselves are what they were, and with `order`
-unset not one byte differs from the drawing you would have had.
+with each label taking its own phase's place, right after the thing it names —
+which is **not** the order the document is in. Nothing is reordered: the
+z-order, the seeded sequence and the elements themselves are what they were,
+and with `order` unset not one byte differs from the drawing you would have
+had. The two passes of one stroke — the pen traces everything twice, and the
+lighter pass is what reads as pressure — share a single index, so a pair draws
+as the one gesture it is, and the count staggered over is gestures rather than
+paths.
 
 Every path carrying no `stroke-dasharray` also gains `pathLength="1"`, which
-normalises it so a single keyframe draws a 400 px connector and a 12 px
-arrowhead barb at the same rate. A dashed path is deliberately left alone:
-`pathLength` rescales every distance along a path, `stroke-dasharray` among
-them, so a normalised dotted line renders solid. A `pen` driven by hand is
-uninstrumented — the index is a property of `draw`'s phases, and a pen has
+normalises it so one set of keyframes serves every stroke, and `--ps-len`, its
+gesture's length as a fraction of the drawing's longest — the stylesheet
+scales each stroke's duration by it, so the pen moves at roughly constant
+speed rather than spending a 700 px curve's time on a 12 px barb. A dashed
+path is deliberately left alone: `pathLength` rescales every distance along a
+path, `stroke-dasharray` among them, so a normalised dotted line renders
+solid — it fades in instead, at the flat stroke time. A `pen` driven by hand
+is uninstrumented — the index is a property of `draw`'s phases, and a pen has
 none.
 
 The motion itself is a separate package, `@pensketch/animation`, peered on
@@ -578,10 +585,20 @@ onto the element as custom properties. What comes back is a self-contained
 `<svg>` — it draws itself inline in a page, embedded as `<img src>`, and
 opened as a file, with nothing else loaded. Nothing else is added to your
 element: no class, no id. The options are `duration` (the whole drawing,
-default 2000) and `stroke` (any one element, default 500), both in
-milliseconds, and `easing` (any CSS `<easing-function>`, default `ease-out`).
-Anything left out keeps the stylesheet's own default, so the defaults have
-exactly one home.
+default 2000) and `stroke` (the longest single stroke — shorter ones take
+proportionally less, floored at a tenth; default 500), both in milliseconds,
+and `easing` (any CSS `<easing-function>`, default `ease-out`). Anything left
+out keeps the stylesheet's own default, so the defaults have exactly one home.
+
+Over MCP, `render_diagram` takes the same three beside `animate`, refuses them
+by name without it, and writes the resolved values into the file — a
+standalone `.svg` has no parent document to set a custom property on, so a
+knob only a host page could turn would be no knob at all. Its default
+`duration` scales with the drawing: 70 ms of cadence per stroke, held between
+2 and 6 seconds, because a six-stroke sketch and a six-hundred-stroke
+architecture should not share a runtime. The findings block opens with one
+line of account — stroke count, resolved duration, and the `@scope` support
+boundary — since the caller cannot watch what it just made.
 
 **Call it after `draw`, never before.** `draw` removes every child of the
 element it fills, so a `<style>` put there first goes with them and the

@@ -355,7 +355,7 @@ export function registerTools(server: McpServer): void {
     {
       title: 'Render a diagram to SVG',
       annotations: { readOnlyHint: true },
-      description: `Returns SVG markup for a diagram, and beside it the layout findings for the drawing it just made: overlapping boxes, text too wide for its box, a node out of frame. The markup is first and the findings second, so one call both draws and checks. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face. It is returned, not displayed: many clients render none of it, so save it to a file, embed it in a page, or hand it onward rather than assuming the reader has seen the picture.`,
+      description: `Returns SVG markup for a diagram, and beside it the layout findings for the drawing it just made: overlapping boxes, text too wide for its box, a node out of frame. Two content blocks: the markup alone, then the findings - when saving to a file, write the first block only, because anything appended after </svg> makes the file invalid. Deterministic: the same diagram and seed produce the same bytes. ${TRAPS.coordinates} ${TRAPS.text} The markup names the handwriting font stack, so a browser draws it in the reader's own hand-drawn face. It is returned, not displayed: many clients render none of it, so save it to a file, embed it in a page, or hand it onward rather than assuming the reader has seen the picture.`,
       inputSchema: z.strictObject(
         {
           diagram,
@@ -388,13 +388,33 @@ export function registerTools(server: McpServer): void {
             .boolean()
             .optional()
             .describe(
-              'Return an <svg> that draws itself, stroke by stroke, in the order a hand would have drawn it. It carries its own scoped <style> and is complete on its own: nothing to fetch, no CSS to write, no class or attribute to add. It animates inline in a page, embedded as an <img src>, or opened as a file. Where @scope is not understood the diagram renders finished and static rather than blank. Default false.',
+              'Return an <svg> that draws itself, stroke by stroke, in the order a hand would have drawn it: each region first, each shape with its own label, then the connectors, then the annotations. It carries its own scoped <style> with the resolved timing written in, and is complete on its own: nothing to fetch, no CSS to write, no class or attribute to add. It animates inline in a page, embedded as an <img src>, or opened as a file; it assumes a light surface, and a page restyles it by redefining the --ps-* variables it names. Where @scope is not understood the diagram renders finished and static rather than blank. Default false.',
+            ),
+          duration: z
+            .number()
+            .positive()
+            .optional()
+            .describe(
+              'How long the whole drawing takes, first stroke to last, in ms. Requires animate. Default: scaled to the drawing at 70 ms per stroke, clamped to [2000, 6000] - a six-stroke sketch and a six-hundred-stroke architecture should not share a runtime.',
+            ),
+          stroke: z
+            .number()
+            .positive()
+            .optional()
+            .describe(
+              'How long the longest single stroke takes to draw, in ms; shorter strokes take proportionally less, floored at a tenth of this. Requires animate. Default 500.',
+            ),
+          easing: z
+            .string()
+            .optional()
+            .describe(
+              'The CSS easing every stroke takes, as an <easing-function>. Requires animate. Default ease-out.',
             ),
         },
         refuses(
           'render_diagram',
           'argument',
-          'a diagram, a viewBox, and an optional seed, hops, extrude, depth, label and animate',
+          'a diagram, a viewBox, and an optional seed, hops, extrude, depth, label, animate, duration, stroke and easing',
         ),
       ),
     },
@@ -407,7 +427,26 @@ export function registerTools(server: McpServer): void {
       depth,
       label,
       animate,
+      duration,
+      stroke,
+      easing,
     }) => {
+      // Named rather than ignored, the same rule `render_png` holds `animate`
+      // to: a timing argument on a still drawing would be accepted and do
+      // nothing, and a caller who cannot see the picture cannot see that.
+      const timed = (
+        [
+          ['duration', duration],
+          ['stroke', stroke],
+          ['easing', easing],
+        ] as const
+      )
+        .filter(([, value]) => value !== undefined)
+        .map(([name]) => `\`${name}\``);
+      if (timed.length && !animate)
+        return failed(
+          `render_diagram was given ${timed.join(', ')} without \`animate: true\`. The three time an animation, and a still drawing has no animation to time: pass animate: true, or drop ${timed.length > 1 ? 'them' : 'it'}.`,
+        );
       const refusal = refuseDiagram(d);
       if (refusal) return failed(refusal);
       try {
@@ -418,6 +457,9 @@ export function registerTools(server: McpServer): void {
           extrude,
           depth,
           animate,
+          duration,
+          stroke,
+          easing,
         });
         // The findings for the drawing just made, not for a neighbouring one:
         // the same viewBox, the same extrude and the same depth, which are
@@ -434,10 +476,20 @@ export function registerTools(server: McpServer): void {
         // above narrows the gap between the two but is not proof it is
         // closed. Ink you already have is never lost to a second opinion
         // about it.
+        // What the caller cannot see about an animated result, said in one
+        // line ahead of the findings: how much there is to draw, how long it
+        // resolved to, and the one support boundary that silently switches
+        // the whole thing off. The caller cannot watch the animation, so
+        // this line is the only account of it there is
+        // (docs/pensketch-feedback-animation-2.md).
+        const report = reportOf(d, box, extrude, depth);
         return {
           content: [
             { type: 'text' as const, text: svg },
-            { type: 'text' as const, text: reportOf(d, box, extrude, depth) },
+            {
+              type: 'text' as const,
+              text: animate ? `${animatedLine(svg)}\n${report}` : report,
+            },
           ],
         };
       } catch (error) {
@@ -494,7 +546,53 @@ export interface SvgOptions {
   forRaster?: boolean | undefined;
   /** Stamp the drawing order and carry the stylesheet that reads it. */
   animate?: boolean | undefined;
+  /** The whole drawing, first stroke to last, in ms. Read with `animate`. */
+  duration?: number | undefined;
+  /** The longest single stroke, in ms. Read with `animate`. */
+  stroke?: number | undefined;
+  /** The easing every stroke takes. Read with `animate`. */
+  easing?: string | undefined;
 }
+
+/**
+ * How many gestures a stamped drawing holds: distinct `--ps-i` values, which
+ * is what the stylesheet staggers by. Distinct, because both passes of one
+ * stroke share a value on purpose, and past a thousand gestures the three
+ * decimals saturate - an estimate for a cadence, not a census.
+ */
+const gesturesIn = (markup: string): number =>
+  new Set(markup.match(/--ps-i:[\d.]+/g) ?? []).size;
+
+/**
+ * The default animation length for a drawing of `gestures` strokes: 70 ms of
+ * cadence per stroke, held between two and six seconds.
+ *
+ * Both bounds are argued, not assumed. The floor is the package's own 2 s
+ * default, so a drawing small enough to fit it keeps the timing every
+ * pensketch animation has always had. The ceiling is where a diagram stops
+ * being a drawing and starts being a wait: past six seconds a reader is
+ * being made to sit through the pen rather than watch it. Between them, 70
+ * ms a stroke is the cadence at which half-second strokes overlap densely
+ * enough to read as one continuous hand. The fixed 2 s this replaces was
+ * calibrated once at small sizes and never checked at the other end: at 122
+ * strokes it left 12 ms between starts, which does not read as drawing at
+ * all - it reads as a flash (docs/pensketch-feedback-animation-2.md).
+ */
+const scaledDuration = (gestures: number): number =>
+  Math.min(6000, Math.max(2000, gestures * 70));
+
+/**
+ * The one-line account of an animation the caller cannot watch, read off the
+ * markup rather than recomputed: the gesture count from the stamps, the
+ * duration from the resolved `--ps-dur` the stylesheet carries. If the two
+ * ever disagreed with what plays, the markup would be lying too.
+ */
+export const animatedLine = (svg: string): string => {
+  const gestures = gesturesIn(svg);
+  const ms = Number(/--ps-dur:([\d.]+)ms/.exec(svg)?.[1] ?? Number.NaN);
+  const seconds = Number.isNaN(ms) ? '2' : String(ms / 1000);
+  return `animated: ${gestures} strokes over ${seconds}s, in hand order - each region, each shape with its label, then connectors, then annotations. Plays where @scope is understood (Chrome 118+, Safari 17.4+, Firefox 128+); elsewhere the file opens finished and still.`;
+};
 
 /**
  * The `<svg>` wrapper around what `renderToString` draws, which is its
@@ -518,6 +616,9 @@ export function svgFor(
     depth,
     forRaster = false,
     animate = false,
+    duration,
+    stroke,
+    easing,
   }: SvgOptions = {},
 ): string {
   // The rasterizer resolves no CSS custom properties, so it is given the
@@ -543,6 +644,18 @@ export function svgFor(
   // It takes the contents of an `<svg>` and returns contents, which is
   // exactly what `renderToString` hands back and what the wrapper below
   // encloses - so the stylesheet lands inside the element it scopes itself to.
-  const body = animate ? animateMarkup(inner) : inner;
+  //
+  // The duration is always passed, defaulted to the drawing's own scale when
+  // the caller named none, so the resolved value is written into the file:
+  // a standalone .svg has no parent document to set `--ps-dur` on, and a
+  // knob only a host page can turn is not a knob for the caller this server
+  // has (docs/pensketch-feedback-animation-2.md).
+  const body = animate
+    ? animateMarkup(inner, {
+        duration: duration ?? scaledDuration(gesturesIn(inner)),
+        ...(stroke === undefined ? {} : { stroke }),
+        ...(easing === undefined ? {} : { easing }),
+      })
+    : inner;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}"${font}${aria}>${body}</svg>`;
 }

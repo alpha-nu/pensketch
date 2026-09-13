@@ -114,13 +114,22 @@ describe('the stagger is inside the shorthand', () => {
   // once - which looks like a working animation that is merely fast, and so is
   // not caught by looking. The assertion above that `animation` is the only
   // property declared outside the keyframes is the other half of this.
-  it.each(REVEALS)('gives $what a duration then a delay', ({ selector }) => {
-    const rule = animating.find((found) => found.selector === selector);
-    expect(rule?.body).toMatch(
-      /^animation:ps-\w+ var\(--ps-stroke,[^)]+\) calc\(.+\) var\(--ps-ease,[^)]+\) both$/,
-    );
-    expect(rule?.body).toContain('var(--ps-i)');
-  });
+  it.each(REVEALS)(
+    'gives $what a duration then a delay',
+    ({ selector, keyframes }) => {
+      const rule = animating.find((found) => found.selector === selector);
+      // The draw-on spends time by measured length - `--ps-stroke` scaled by
+      // `--ps-len`, floored at a tenth so the shortest stroke still spans a
+      // few frames - where a fade and a write take the flat stroke time: they
+      // reveal, they do not travel, so there is no length to spend at.
+      expect(rule?.body).toMatch(
+        keyframes === 'ps-draw'
+          ? /^animation:ps-draw calc\(max\(\.1,var\(--ps-len,1\)\)\*var\(--ps-stroke,[^)]+\)\) calc\(.+\) var\(--ps-ease,[^)]+\) both$/
+          : /^animation:ps-\w+ var\(--ps-stroke,[^)]+\) calc\(.+\) var\(--ps-ease,[^)]+\) both$/,
+      );
+      expect(rule?.body).toContain('var(--ps-i)');
+    },
+  );
 
   it('gives `--ps-i` no fallback, so its absence switches the animation off', () => {
     expect(rules).not.toMatch(/var\(\s*--ps-i\s*,/);
@@ -151,13 +160,18 @@ describe('the stagger is inside the shorthand', () => {
 // always passes an explicit duration - so `.5s` was changed to `.8s` and 441
 // unit tests and 10 browser checks stayed green. This is the one exact match.
 describe('the published defaults', () => {
-  it('are 2s, .5s and ease-out, and there are exactly three of them', () => {
+  it('are 2s, .5s, 1 and ease-out, and there are exactly four of them', () => {
     const fallbacks = [...rules.matchAll(/var\((--ps-[a-z]+),\s*([^)]+)\)/g)];
     expect(
       Object.fromEntries(fallbacks.map(([, name, value]) => [name, value])),
     ).toEqual({
       '--ps-dur': '2s',
       '--ps-stroke': '.5s',
+      // The length ratio's fallback is the whole compatibility story: a
+      // drawing an older renderer stamped carries no `--ps-len`, falls back
+      // to 1, and runs every stroke at the full stroke time - exactly what
+      // this stylesheet did before the variable existed.
+      '--ps-len': '1',
       '--ps-ease': 'ease-out',
     });
   });
