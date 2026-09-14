@@ -180,9 +180,19 @@ Gate: full suite, both parity goldens byte-identical to a fresh
       whole delta to the round. `npm run diagrams`, the animation check,
       lint and the suite all green by exit code.
 
-- [ ] 2.3 The changeset — core and mcp, both minor, the output-moves
+- [x] 2.3 The changeset — core and mcp, both minor, the output-moves
       language CONTRIBUTING requires — and `openspec validate --strict`
       clean on this change.
+
+      **Written as `.changeset/a-coordinate-earns-its-digits.md`**, core
+      and mcp named minor explicitly (the T-104 reading: mcp's rendered
+      output is core's, and a dependency-only patch would claim a
+      byte-stability this version does not have), the output-moves
+      sentence up front so a snapshot-testing consumer reads why every
+      snapshot moved before reading anything else. It folds into the
+      pending release beside the three gesture-work changesets.
+      `openspec validate a-coordinate-earns-its-digits --strict` exits 0
+      on the final tree.
 
 Gate: all gates green from a cold tree in dependency order; /swat at the
 boundary; every Truthful finding remediated before hand-off.
