@@ -490,9 +490,9 @@ is the direction the whole checker errs in.
 
 **`check` validates a depth's form, not its cost.** A `depth: 20000` on one box
 passes in under half a millisecond, and drawing that same diagram emits 6,388
-paths, 1.7 MB of markup and 34 MB of heap - 38 ms through `renderToString`, and
-around twenty times that through jsdom. Depth costs about 84 B per px on top of
-a fixed 4.6 kB for the faces, and nothing bounds it: no rule here reports a
+paths, 1.2 MB of markup and 34 MB of heap - 38 ms through `renderToString`, and
+around twenty times that through jsdom. Depth costs about 56 B per px on top of
+a fixed 2.9 kB for the faces, and nothing bounds it: no rule here reports a
 number that is merely expensive.
 
 This repository runs the checker over its own examples and its README image

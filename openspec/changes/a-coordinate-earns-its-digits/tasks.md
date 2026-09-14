@@ -106,13 +106,52 @@ Gate: full suite, both parity goldens byte-identical to a fresh
 
 ## 2. The record catches up
 
-- [ ] 2.1 The depth-cost probe re-runs (the T-103 recipe recorded in
+- [x] 2.1 The depth-cost probe re-runs (the T-103 recipe recorded in
       `docs/agents.md`, seed included) and all four documents move
       together: `docs/agents.md`, `README.md`, `packages/core/README.md`,
       and the `depth` JSDoc in `packages/core/src/types.ts`.
       `npm run resources` re-embeds the corrected spec. Any other committed
       byte figure found by grep moves in the same commit or is listed here
       as deliberately historical.
+
+      **Re-measured, driver and navigator byte-agreeing, after one piece
+      of archaeology the recipe now spares the next reader.** The recorded
+      recipe omitted the probe box's position; recovered as 40, 40 by
+      reproducing all five old figures byte-exact on a cold build of the
+      pre-change commit (slope 83.8164, growth 4,558 at d=1, 90,303 at
+      depth 1000, 1,690,153 and 6,388 paths at 20000) — and the position
+      is load-bearing, three other positions give three other totals, so
+      the recipe in agents.md and the JSDoc now name it. New figures:
+      slope **55.7807** ("about 56 B per px"), fixed face growth
+      **2,920 B** at d=1 (2,916–2,926 over d ∈ [0.0001, 5]), depth 1000
+      **59,628 B** ("60 kB"), depth 20000 **1,182,541 B** ("1.2 MB") over
+      an unchanged **6,388** paths — rounding drops digits, never paths.
+      Resources regenerated idempotently (hash-stable), schema a no-op.
+
+      One more stale figure the grep caught at review: `tools.ts`'s
+      "2.5 KB of correct markup" comment, a measured claim from the
+      refusal-gate change, re-measured at 1,559 B and moved to 1.5 KB.
+
+      **Deliberately historical, each with its reason:** the GIF pricing
+      in `tools/showcase-recording.mjs` (encoder output, 2.2 records the
+      new weights); `openspec/specs/repo-tooling/spec.md`'s KB figures
+      (that spec's own dated measurement record); `content/posts/*/
+      preview.html` (published posts, records of what shipped);
+      everything under `openspec/changes/archive/` and every CHANGELOG,
+      by rule. Not stale: the 5,595 B library rows (group 1's own
+      measurement), the mcp 1 MB body cap and 30 KB input bound (caps,
+      not measurements), `tools.ts:217`'s 122 KB findings figure
+      (checker text, upstream of both funnels).
+
+      **Surfaced, not settled here:** `tools/build-showcase.mjs`'s
+      `trim()` is now a no-op with a falsified JSDoc — its removal rides
+      2.2, whose rebuild is what proves it dead. And the timing and heap
+      figures beside the byte figures (0.46 ms, 38 ms, 34 MB) were left:
+      they are not byte figures, no method is recorded for them, and the
+      driver measured they do not reproduce even on the old build
+      (29.8 ms median, 29.2 MB heap delta under a controlled method;
+      render time unmoved by the round, heap −14%). Re-measuring them
+      with a recorded method is its own decision, carried to the owner.
 
 - [ ] 2.2 Committed rendered assets re-render from the new bytes: the hero
       PNGs, both README GIFs, the showcase figures. `npm run diagrams` and

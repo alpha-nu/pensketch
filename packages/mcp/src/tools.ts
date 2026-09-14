@@ -471,7 +471,7 @@ export function registerTools(server: McpServer): void {
         //
         // Its own `try`, inside `reportOf`, and this is the whole reason for
         // it: `check` is not a superset of `draw`, so a shared `try` would
-        // turn a diagram that rendered into an error and throw away 2.5 KB
+        // turn a diagram that rendered into an error and throw away 1.5 KB
         // of correct markup for a report nobody asked for. The schema gate
         // above narrows the gap between the two but is not proof it is
         // closed. Ink you already have is never lost to a second opinion
