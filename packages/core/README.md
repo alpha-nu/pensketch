@@ -122,6 +122,8 @@ for (const f of check(diagram, { viewBox: [0, 0, 880, 340] }))
 | `orphan-node` | no edge names a node | warning |
 | `edge-overlap` | two edges draw as one line: the whole way, or along a run of 40px out of a shared anchor | warning |
 | `text-collision` | two pieces of text - a node label, a group title, an edge or brace label, a note - have overlapping boxes | warning |
+| `clipped-ink` | a node's ink stops inside the pen's own reach of the frame - 5.3px, overshoot plus wobble - so strokes will be clipped | warning |
+| `brace-opens-away` | a brace's tip points to one side of its span while its label sits on the other | warning |
 
 Raise, lower or silence any of them with
 `check(diagram, { rules: { 'orphan-node': 'off' } })`. It never renders, never

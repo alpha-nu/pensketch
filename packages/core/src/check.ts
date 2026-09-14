@@ -1,6 +1,9 @@
 import {
+  AMP,
+  BRACE_DEPTH,
   EDGE_SIZE,
   NOTE_SIZE,
+  OVERSHOOT,
   SIZE,
   TITLE_DX,
   TITLE_DY,
@@ -39,7 +42,9 @@ export type RuleId =
   | 'orphan-node'
   | 'edge-overlap'
   | 'text-collision'
-  | 'undrawable-depth';
+  | 'undrawable-depth'
+  | 'clipped-ink'
+  | 'brace-opens-away';
 
 /** One defect, in enough detail to fix it without seeing the drawing. */
 export interface Finding {
@@ -124,6 +129,8 @@ const DEFAULTS: Record<RuleId, Severity> = {
   'edge-overlap': 'warning',
   'text-collision': 'warning',
   'undrawable-depth': 'error',
+  'clipped-ink': 'warning',
+  'brace-opens-away': 'warning',
 };
 
 // How much line two connectors may share before it is reported, in px.
@@ -700,6 +707,34 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
       );
   });
 
+  // Which side the tip lands on is the sign of `depth`: the cross product of
+  // the span with the tip's offset reduces to depth times the span's length,
+  // so one cross product of the span with the label tells whether the words
+  // sit with the tip or across from it. A brace opening away from its own
+  // label is geometrically valid and visually backwards - the sign
+  // convention trips exactly the caller who reasoned "positive is toward
+  // the label" on a span whose travel direction flips right and left - and
+  // it is invisible to every rule that measures distance rather than
+  // direction (docs/pensketch-probe-suite.md, probe E). A label ON the span
+  // (cross of zero) takes no side and draws no finding.
+  braces.forEach((b, i) => {
+    if (
+      !b.lines?.length ||
+      typeof b.lx !== 'number' ||
+      typeof b.ly !== 'number'
+    )
+      return;
+    const [fx, fy] = b.from;
+    const side = (b.to[0] - fx) * (b.ly - fy) - (b.to[1] - fy) * (b.lx - fx);
+    if (side !== 0 && Math.sign(side) !== Math.sign(b.depth ?? BRACE_DEPTH))
+      add(
+        'brace-opens-away',
+        `brace ${i} opens away from its label: the tip points to one side of the span and the words sit on the other; flip the sign of depth or move the label across`,
+        [b.lx, b.ly],
+        [`brace ${i}`],
+      );
+  });
+
   notes.forEach((nt, i) => {
     // As above: no lines is no text, and a note is the one carrier whose
     // `lines` the type demands, so `[]` is the only way to write it empty.
@@ -770,6 +805,36 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
           // The node's own corner, not the swept one: `at` is somewhere to go
           // and look, and the place to look at a clipped slab is the node
           // that casts it.
+          [n.x, n.y],
+          [`node "${n.id}"`],
+        );
+    }
+
+    // The near-miss band of the rule above. Every finding here measures the
+    // ideal geometry, but ink is jittered around it - a stroke point wanders
+    // up to `AMP / 2` sideways and a rect's sides overrun their corners by
+    // up to `OVERSHOOT` - so a box that stops at the frame is a box whose
+    // strokes cross it: clipped in the picture, clean in the findings
+    // (docs/pensketch-probe-suite.md, probe E). The band is the pen's own
+    // maximum reach, read off the constants that set it rather than chosen:
+    // wider would cry wolf on layouts with honest margins, and narrower
+    // would pass ink the pen provably throws. Nodes only, deliberately: an
+    // edge's ends sit on a node's side and a via this close to the frame is
+    // the caller's own point - the box is where the overrun lives.
+    const reach = OVERSHOOT + AMP / 2;
+    for (const n of nodes) {
+      const b = inkOf(n);
+      if (outside(b.x, b.y) || outside(b.x + b.w, b.y + b.h)) continue;
+      const gap = Math.min(
+        b.x - vx,
+        b.y - vy,
+        vx + vw - (b.x + b.w),
+        vy + vh - (b.y + b.h),
+      );
+      if (gap < reach)
+        add(
+          'clipped-ink',
+          `node "${n.id}" stops ${Math.round(gap)}px from the frame and the pen reaches up to ${reach}px past a box; its strokes will be clipped - pull it in or widen the viewBox`,
           [n.x, n.y],
           [`node "${n.id}"`],
         );

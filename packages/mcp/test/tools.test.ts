@@ -107,8 +107,8 @@ describe('check_diagram', () => {
           {
             id: 'wordy',
             shape: 'box',
-            x: 0,
-            y: 0,
+            x: 10,
+            y: 10,
             w: 40,
             h: 40,
             lines: ['far too wide for this'],

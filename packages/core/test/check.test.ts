@@ -57,6 +57,8 @@ describe('check', () => {
     'edge-overlap': 'warning',
     'text-collision': 'warning',
     'undrawable-depth': 'error',
+    'clipped-ink': 'warning',
+    'brace-opens-away': 'warning',
   } satisfies Record<RuleId, Severity>;
 
   // The runtime half, because a table typed correctly and spelled wrongly
@@ -623,7 +625,7 @@ describe('out-of-bounds', () => {
   it('reports a node reaching past the frame', () => {
     const findings = check(
       wired(
-        [box('a', 0, 0), box('over', 450, 100)],
+        [box('a', 10, 10), box('over', 450, 100)],
         [{ from: ['a', 'r'], to: ['over', 'l'] }],
       ),
       { viewBox: VIEW_BOX },
@@ -640,7 +642,7 @@ describe('out-of-bounds', () => {
   it('reports a waypoint the arrow turns at outside the frame', () => {
     const findings = check(
       wired(
-        [box('a', 0, 0), box('b', 300, 200)],
+        [box('a', 10, 10), box('b', 300, 200)],
         [{ from: ['a', 'r'], to: ['b', 'l'], via: [[600, 20]] }],
       ),
       { viewBox: VIEW_BOX },
@@ -691,7 +693,7 @@ describe('out-of-bounds', () => {
   it('gives at a point that is really outside, not one rounded back in', () => {
     const findings = check(
       wired(
-        [box('a', 0, 20), box('b', 0, 200)],
+        [box('a', 10, 20), box('b', 10, 200)],
         [{ from: ['a', 'b'], to: ['b', 't'], via: [[500.4, 120]] }],
       ),
       { viewBox: VIEW_BOX },
@@ -718,7 +720,7 @@ describe('out-of-bounds', () => {
   it('leaves an anchor outside the frame to the node it sits on', () => {
     const findings = check(
       wired(
-        [box('a', 0, 0), box('gone', 600, 600)],
+        [box('a', 10, 10), box('gone', 600, 600)],
         [
           { from: ['a', 'r'], to: ['gone', 'l'] },
           { from: ['a', 'b'], to: ['gone', 't'] },
@@ -736,7 +738,7 @@ describe('out-of-bounds', () => {
   it('reports a bow that leaves a frame its chord stays inside', () => {
     const bowed = (bow?: number): Diagram =>
       wired(
-        [box('a', 0, 250), box('b', 300, 250)],
+        [box('a', 10, 250), box('b', 300, 250)],
         [{ from: ['a', 'r'], to: ['b', 'l'], ...(bow ? { bow } : {}) }],
       );
     expect(check(bowed(), { viewBox: VIEW_BOX })).toEqual([]);
@@ -756,7 +758,7 @@ describe('out-of-bounds', () => {
   it('does not report a corner on an edge that turns at none', () => {
     const findings = check(
       wired(
-        [box('a', 0, 0), box('b', 300, 200)],
+        [box('a', 10, 10), box('b', 300, 200)],
         [
           { from: ['a', 'r'], to: ['b', 'l'] },
           { from: ['b', 'r'], to: ['b', 'r'], via: [[600, 20]] },
@@ -770,7 +772,7 @@ describe('out-of-bounds', () => {
   it('reports a label and a note placed where nobody will see them', () => {
     const findings = check(
       {
-        nodes: [box('a', 0, 0), box('b', 300, 200)],
+        nodes: [box('a', 10, 10), box('b', 300, 200)],
         edges: [
           { from: ['a', 'r'], to: ['b', 'l'], label: 'gone', lx: 900, ly: 40 },
         ],
@@ -783,10 +785,14 @@ describe('out-of-bounds', () => {
     expect(findings.map((f) => f.subjects)).toEqual([['note 0'], ['edge 0']]);
   });
 
-  it('counts everything inside the frame, including a box ending exactly on it', () => {
+  // This test once blessed a box ending exactly on the frame, and the probe
+  // suite proved that blessing false: ink is jittered past the ideal box, so
+  // flush is clipped. Flush now belongs to `clipped-ink`; clean means clear
+  // of the band too.
+  it('counts everything inside the frame as inside', () => {
     const findings = check(
       {
-        nodes: [box('a', 0, 0), box('edge', 400, 260)],
+        nodes: [box('a', 10, 10), box('edge', 390, 250)],
         edges: [
           {
             from: ['a', 'r'],
@@ -794,8 +800,8 @@ describe('out-of-bounds', () => {
             via: [[250, 20]],
             label: 'fine',
             lx: 150,
-            // Clear of its own line: 15px up, and the text is 12.5px tall, so
-            // the gap is 8.75px against a 6.1px margin.
+            // Well clear of its own line: the first leg passes ~16px under
+            // the text's bottom edge, against a 6.1px margin.
             ly: 5,
           },
         ],
@@ -811,13 +817,174 @@ describe('out-of-bounds', () => {
   // nothing to measure against and stays silent rather than inventing one.
   it('does not run at all without a viewBox', () => {
     const escaping = wired(
-      [box('a', 0, 0), box('over', 9000, 9000)],
+      [box('a', 10, 10), box('over', 9000, 9000)],
       [{ from: ['a', 'r'], to: ['over', 'l'] }],
     );
     expect(check(escaping)).toEqual([]);
     expect(rules(check(escaping, { viewBox: VIEW_BOX }))).toEqual([
       'out-of-bounds',
     ]);
+  });
+});
+
+describe('clipped-ink', () => {
+  // Probe E's node, verbatim: x + w = 400 = the frame's width, ideal
+  // geometry inside, every jittered stroke crossing out. The band is the
+  // pen's own reach - OVERSHOOT past a corner plus AMP / 2 of wobble - read
+  // off the constants rather than chosen here.
+  const FRAME = [0, 0, 400, 200] as const;
+  const flush = (x: number): Diagram => ({
+    nodes: [
+      { id: 'a', x, y: 40, w: 160, h: 50, lines: ['flush to frame'] },
+      { id: 'b', x: 20, y: 40, w: 160, h: 50, lines: ['B'] },
+    ],
+    edges: [{ from: ['b', 'r'], to: ['a', 'l'] }],
+  });
+
+  it('warns on a box flush to the frame, naming the gap and the reach', () => {
+    const findings = check(flush(240), { viewBox: FRAME });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'clipped-ink',
+      severity: 'warning',
+      at: [240, 40],
+      subjects: ['node "a"'],
+      message:
+        'node "a" stops 0px from the frame and the pen reaches up to 5.3px past a box; its strokes will be clipped - pull it in or widen the viewBox',
+    });
+  });
+
+  // Both sides of the band's edge, one pixel apart: the bound is the reach
+  // itself, so a mutant that shrinks the margin to OVERSHOOT alone lets the
+  // 5px gap through and fails here.
+  it('fires at a 5px gap and is silent at 6', () => {
+    expect(rules(check(flush(235), { viewBox: FRAME }))).toEqual([
+      'clipped-ink',
+    ]);
+    expect(check(flush(234), { viewBox: FRAME })).toEqual([]);
+  });
+
+  it('leaves a node past the frame to out-of-bounds alone', () => {
+    const findings = check(flush(390), { viewBox: FRAME });
+    expect(rules(findings)).toEqual(['out-of-bounds']);
+  });
+
+  // The band measures ink, not the box: a slab's face reaches `depth`
+  // further, so a box the flat render clears by 14px extrudes into the band.
+  it('measures the swept box when a node extrudes', () => {
+    const roomy: Diagram = {
+      nodes: [{ id: 'a', shape: 'box', x: 226, y: 40, w: 160, h: 50 }],
+    };
+    const opts = { viewBox: FRAME, rules: { 'orphan-node': 'off' } } as const;
+    expect(check(roomy, opts)).toEqual([]);
+    expect(rules(check(roomy, { ...opts, extrude: true }))).toEqual([
+      'clipped-ink',
+    ]);
+  });
+
+  it('does not run without a viewBox, like the rule it shadows', () => {
+    expect(check(flush(240), { rules: { 'orphan-node': 'off' } })).toEqual([]);
+  });
+});
+
+describe('brace-opens-away', () => {
+  // Probe E's brace, verbatim: a downward span where positive depth points
+  // the tip west, written with -20 so the tip goes east while the label
+  // sits west - geometrically valid, visually backwards.
+  const FRAME = [0, 0, 400, 200] as const;
+  const inverted = (depth: number): Diagram => ({
+    braces: [
+      {
+        from: [210, 100],
+        to: [210, 170],
+        depth,
+        lines: ['label sits west'],
+        lx: 150,
+        ly: 135,
+        anchor: 'end',
+      },
+    ],
+  });
+
+  it('warns when the tip points away from the label', () => {
+    const findings = check(inverted(-20), { viewBox: FRAME });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'brace-opens-away',
+      severity: 'warning',
+      at: [150, 135],
+      subjects: ['brace 0'],
+      message:
+        'brace 0 opens away from its label: the tip points to one side of the span and the words sit on the other; flip the sign of depth or move the label across',
+    });
+  });
+
+  it('is silent when the tip and the label share a side', () => {
+    expect(check(inverted(20), { viewBox: FRAME })).toEqual([]);
+  });
+
+  // The default depth is positive, so an unwritten depth still takes a
+  // side - a mutant that drops the fallback compares against NaN and never
+  // fires again.
+  it('reads the default depth when none is written', () => {
+    const findings = check({
+      braces: [
+        {
+          from: [210, 100],
+          to: [210, 170],
+          lines: ['east of a west-opening brace'],
+          lx: 260,
+          ly: 135,
+        },
+      ],
+    });
+    expect(rules(findings)).toEqual(['brace-opens-away']);
+  });
+
+  // A label sitting on the span takes no side, so this rule stays out of
+  // it - and the collision rule correctly claims what is literally text on
+  // the line it labels.
+  it('lets a label on the span itself take no side', () => {
+    const findings = check({
+      braces: [
+        {
+          from: [210, 100],
+          to: [210, 170],
+          depth: -20,
+          lines: ['on the line'],
+          lx: 210,
+          ly: 135,
+        },
+      ],
+    });
+    expect(rules(findings)).toEqual(['label-collision']);
+  });
+
+  // Probe E whole: the flush node and the inverted brace in one diagram,
+  // which the checker once answered with "No findings." for both.
+  it('reports probe E, both defects, sorted by rule', () => {
+    const findings = check(
+      {
+        nodes: [
+          { id: 'a', x: 240, y: 40, w: 160, h: 50, lines: ['flush to frame'] },
+          { id: 'b', x: 20, y: 40, w: 160, h: 50, lines: ['B'] },
+        ],
+        edges: [{ from: ['b', 'r'], to: ['a', 'l'] }],
+        braces: [
+          {
+            from: [210, 100],
+            to: [210, 170],
+            depth: -20,
+            lines: ['label sits west'],
+            lx: 150,
+            ly: 135,
+            anchor: 'end',
+          },
+        ],
+      },
+      { viewBox: FRAME },
+    );
+    expect(rules(findings)).toEqual(['brace-opens-away', 'clipped-ink']);
   });
 });
 
@@ -1303,7 +1470,7 @@ describe('a brace is checked as the shape it draws', () => {
 
   it('reports a brace label outside the frame, as it reports any other text', () => {
     const findings = check(
-      { braces: [{ ...span, lines: ['set'], lx: 500, ly: 150 }] },
+      { braces: [{ ...span, lines: ['set'], lx: -100, ly: 150 }] },
       { viewBox: FRAME },
     );
     expect(rules(findings)).toEqual(['out-of-bounds']);
@@ -1402,7 +1569,7 @@ describe('an extruded node is measured extruded', () => {
     it('is reported where the face rises above the top of the frame', () => {
       const HIGH: Diagram = {
         nodes: [
-          { id: 'agent', shape: 'box', x: 100, y: 5, w: 200, h: 80 },
+          { id: 'agent', shape: 'box', x: 100, y: 7, w: 200, h: 80 },
           { id: 'schema', shape: 'box', x: 600, y: 200, w: 200, h: 80 },
         ],
         edges: [{ from: ['agent', 'r'], to: ['schema', 'l'] }],
@@ -1436,8 +1603,14 @@ describe('an extruded node is measured extruded', () => {
     // The margin the case turns on, asserted rather than described: two more
     // pixels of frame and the face fits, so the rule is measuring the face
     // and not merely firing near it.
-    it('says nothing once the frame is two pixels wider', () => {
-      expect(check(FRAME, { viewBox: [0, 0, 1202, 600], ...DEEP })).toEqual([]);
+    it('stops erring once the frame is two pixels wider', () => {
+      // The sweep arithmetic this pins is the error's silence: the face ends
+      // exactly at 1202. The 2px left over sit inside the pen's own reach,
+      // which is `clipped-ink`'s band and a warning by design - a frame
+      // sized to the ideal face still clips the wobble around it.
+      expect(
+        rules(check(FRAME, { viewBox: [0, 0, 1202, 600], ...DEEP })),
+      ).toEqual(['clipped-ink']);
     });
   });
 
@@ -1758,12 +1931,12 @@ describe('an extruded node is measured extruded', () => {
   // wrong reason.
   it('measures a shape that cannot carry a face by its flat box', () => {
     const small = (shape: 'pill' | 'box'): Diagram => ({
-      nodes: [{ id: 'p', shape, x: 85, y: 40, w: 10, h: 8 }],
+      nodes: [{ id: 'p', shape, x: 80, y: 40, w: 10, h: 8 }],
     });
     const opts = { viewBox: [0, 0, 100, 100] as const, ...DEEP, ...QUIET };
 
     expect(check(small('pill'), opts)).toEqual([]);
-    // 85 + 10 + 12 = 107, which is 7 px past the frame.
+    // 80 + 10 + 12 = 102, which is 2 px past the frame.
     expect(rules(check(small('box'), opts))).toEqual(['out-of-bounds']);
   });
 
