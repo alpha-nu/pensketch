@@ -386,10 +386,11 @@ describe('edgePath', () => {
   // disagreement between two branchings rather than between two point lists,
   // and every shape is exercised.
   //
-  // The pen jitters x and y independently by up to AMP / 2 each, so a point
-  // can land AMP / 2 * sqrt(2) away and no further. Leg ends are damped to
+  // The pen jitters x and y independently by up to AMP / 2 each - plus the
+  // 0.005 the two-decimal write may move each axis - so a point can land
+  // (AMP / 2 + 0.005) * sqrt(2) away and no further. Leg ends are damped to
   // 40% of that. The bound is under 2px against a drift that would be tens.
-  const BOUND = (AMP / 2) * Math.SQRT2;
+  const BOUND = (AMP / 2 + 0.005) * Math.SQRT2;
 
   // The first pass of the connector's own stroke. `arrow` draws that before
   // either barb, so it is the first <path> in the document.

@@ -73,7 +73,12 @@ numeric attribute through `el()` — `x`, `y`, `font-size`, `opacity`,
 what turns `stroke-width="1.2000000000000002"` into `stroke-width="1.2"`,
 and it means no future attribute can leak float noise by forgetting a wrap.
 Strings pass through untouched (`stroke-dasharray`, colors, the `--ps-*`
-style text `draw` composes — already fixed-width by `toFixed`).
+style text `draw` composes — already fixed-width by `toFixed`). One writer
+sits outside both funnels, found in review: `label` interpolates its `size`
+into a style string on both sides of the parity gate (`pen.ts` and the
+reference alike). It is caller data, parity-symmetric, and integral in
+every shipped caller, so it stays as it is; if a fractional label size ever
+matters, the round belongs there too, on both sides at once.
 
 The helper is module-private to `pen.ts`. It was weighed against a
 `constants.ts` entry and kept private: `constants` is a closed, counted

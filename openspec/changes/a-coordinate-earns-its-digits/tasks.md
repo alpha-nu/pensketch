@@ -8,7 +8,7 @@ task, /swat at the group boundary, every finding binding.
 
 ## 1. The round lands
 
-- [ ] 1.1 Both sides of the parity gate in one commit. The reference's `el`
+- [x] 1.1 Both sides of the parity gate in one commit. The reference's `el`
       and `pass` round every written number to two decimals; `pen.ts` takes
       the same round at its `pass()` template and `el()` stringification;
       `npm run goldens` regenerates both goldens from the reference; the
@@ -18,6 +18,33 @@ task, /swat at the group boundary, every finding binding.
       displacement ≤ 0.005 (the analytic bound), element counts identical.
       Before/after render pair produced for the owner's eye at the group
       boundary. Full suite, typecheck, lint, build — by exit code.
+
+      **Landed, driver and navigator each measuring independently.** The
+      round sits at the two funnels and nowhere upstream — `grep round2`
+      shows the definition and five call sites, `j()` and all geometry
+      full precision. Proof, the navigator's own run: sampler 122
+      elements, 1,616 numbers compared pairwise, max displacement
+      **0.0049984**; budgets 106 elements, **1,656** numbers (the driver
+      first reported 1,664; the navigator's count stands), max
+      **0.0049959** — both under the 0.005 analytic bound, and the
+      non-numeric residue of every line byte-identical, a digits-only
+      diff. Bytes: sampler 38,450 → 22,103 (−42.5%), budgets
+      37,743 → 21,185 (−43.9%). Regeneration is a fixed point
+      (consecutive `npm run goldens` hash-identical) and the port-side
+      round is load-bearing: the mutation dropping it from `el()` alone
+      fails parity 4 of 4, restored to a byte-identical diff.
+
+      One tolerance fired and taught the general lesson: read-back
+      assertions bounded at exact jitter half-widths now sit 0.005 under
+      what the file itself declares, so `pen.test.ts` carries the quantum
+      in its `spread`/`damped` helpers (its one strictness assertion gets
+      stricter, not weaker), and the same latent bound in
+      `draw.test.ts` (both `expectNear` and the loop-anchor literals) and
+      `geometry.test.ts` (`BOUND`) was widened in the same commit rather
+      than left to fire on the next legitimate byte move. The one writer
+      outside both funnels — `label`'s raw `size` in a style string — is
+      recorded in design.md D4 as caller data, parity-symmetric, deferred
+      until a fractional size exists.
 
 - [ ] 1.2 The rule gets a witness. A test scans a rendered fixture's whole
       serialization (path data and every attribute) and fails on any number

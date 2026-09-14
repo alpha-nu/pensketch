@@ -949,14 +949,15 @@ describe('draw() self-transitions', () => {
     // Both anchors on the side, half a span either way from its middle. The
     // tolerance is the pen's own: the M point wanders the full amplitude and
     // the last point of a leg is damped, which is what every other assertion
-    // in this file allows for too.
-    expect(Math.abs(first[0] - MID[0])).toBeLessThanOrEqual(1.3);
+    // in this file allows for too - each plus the 0.005 the two-decimal
+    // write may move a read-back point.
+    expect(Math.abs(first[0] - MID[0])).toBeLessThanOrEqual(1.305);
     expect(Math.abs(first[1] - (MID[1] - LOOP_SPAN / 2))).toBeLessThanOrEqual(
-      1.3,
+      1.305,
     );
-    expect(Math.abs(last[0] - MID[0])).toBeLessThanOrEqual(0.52);
+    expect(Math.abs(last[0] - MID[0])).toBeLessThanOrEqual(0.525);
     expect(Math.abs(last[1] - (MID[1] + LOOP_SPAN / 2))).toBeLessThanOrEqual(
-      0.52,
+      0.525,
     );
   });
 
@@ -1517,11 +1518,16 @@ describe('draw() extrusion', () => {
     pathsOf(svg).filter((path) => attr(path, 'stroke') === defaultTheme.ink);
   const mutedPaths = (svg: SVGSVGElement) =>
     pathsOf(svg).filter((path) => attr(path, 'stroke') === defaultTheme.muted);
-  // A jittered point lands within amplitude / 2 of where it was aimed, so an
+  // A jittered point lands within amplitude / 2 of where it was aimed - plus
+  // the 0.005 the two-decimal write may move what is read back - so an
   // assertion against that bound fails only if the renderer aimed elsewhere.
   const expectNear = (actual: Point, expected: Point) => {
-    expect(Math.abs(actual[0] - expected[0])).toBeLessThanOrEqual(AMP / 2);
-    expect(Math.abs(actual[1] - expected[1])).toBeLessThanOrEqual(AMP / 2);
+    expect(Math.abs(actual[0] - expected[0])).toBeLessThanOrEqual(
+      AMP / 2 + 0.005,
+    );
+    expect(Math.abs(actual[1] - expected[1])).toBeLessThanOrEqual(
+      AMP / 2 + 0.005,
+    );
   };
   // The offset chain is the first path after a box's eight front sides, and
   // its first point is the top-left corner plus the extrusion vector - the

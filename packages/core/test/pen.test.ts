@@ -36,12 +36,14 @@ const {
 } = constants;
 
 // A point jittered at amplitude `a` lands within a/2 of where it was aimed,
-// and the last point of a leg within a * END_DAMP / 2. Every tolerance below
-// is one of those two bounds, so an assertion fails only if the renderer
-// aimed somewhere else - never because a different draw of the dice was
-// unlucky.
-const spread = (amplitude: number) => amplitude / 2;
-const damped = (amplitude: number) => (amplitude * END_DAMP) / 2;
+// and the last point of a leg within a * END_DAMP / 2 - plus the 0.005 the
+// two-decimal write may move what is read back out of the markup. Every
+// tolerance below is one of those two bounds plus that quantum, so an assertion fails only if
+// the renderer aimed somewhere else - never because a different draw of the
+// dice was unlucky.
+const QUANT = 0.005;
+const spread = (amplitude: number) => amplitude / 2 + QUANT;
+const damped = (amplitude: number) => (amplitude * END_DAMP) / 2 + QUANT;
 
 function expectNear(actual: Point, expected: Point, within: number) {
   expect(Math.abs(actual[0] - expected[0])).toBeLessThanOrEqual(within);
@@ -89,11 +91,11 @@ describe('stroke()', () => {
     const [first, second] = [nth(pathsOf(svg), 0), nth(pathsOf(svg), 1)];
     // Literals, not the constants under test: the scenario names these
     // numbers, so deriving them from the same source asserts nothing.
-    // The emitted strings, not rounded numbers: 1.6 * .75 is not exactly
-    // 1.2 in binary floating point, and it is the emitted bytes that are the
-    // contract.
+    // The emitted bytes are still the contract, and the contract now takes
+    // the two-decimal round at the write: 1.6 * .75 is not exactly 1.2 in
+    // binary floating point, and that noise never reaches the markup.
     expect(attr(first, 'stroke-width')).toBe('1.6');
-    expect(attr(second, 'stroke-width')).toBe('1.2000000000000002');
+    expect(attr(second, 'stroke-width')).toBe('1.2');
     expect(attr(first, 'opacity')).toBe('0.92');
     expect(attr(second, 'opacity')).toBe('0.5');
     for (const path of [first, second]) {

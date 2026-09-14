@@ -39,6 +39,15 @@ import type {
 
 const NS = 'http://www.w3.org/2000/svg';
 
+// Every number written into markup carries at most two decimals, rounded
+// here as the last act before the value becomes text - the geometry upstream
+// stays full precision, and nothing ever computes from a rounded value. The
+// quantization error of 0.005 units is 0.4% of the smallest jitter amplitude
+// (HEAD_AMP, 1.2) and 0.02 device pixels at MAX_SCALE 4. Math.round over
+// toFixed: an integer over 100 prints as its shortest round-trip decimal (no
+// padded zeros, no exponent in this range), and `-0` interpolates as "0".
+const round2 = (v: number) => Math.round(v * 100) / 100;
+
 /**
  * Binds a set of hand-drawn primitives to `svg`, all driven by one seeded
  * sequence. Existing children are left alone (only `draw` clears the
@@ -69,7 +78,10 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   // under a browser, jsdom or any other conforming DOM.
   function el(name: string, attrs: Record<string, string | number>) {
     const e = svg.ownerDocument.createElementNS(NS, name);
-    for (const k in attrs) e.setAttribute(k, String(attrs[k]));
+    for (const k in attrs) {
+      const v = attrs[k];
+      e.setAttribute(k, String(typeof v === 'number' ? round2(v) : v));
+    }
     svg.appendChild(e);
     return e;
   }
@@ -79,7 +91,7 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
   // corners stay recognisable.
   function pass(pts: Point[], amp: number) {
     const [px, py] = pts[0] as Point;
-    let d = `M${j(px, amp)} ${j(py, amp)}`;
+    let d = `M${round2(j(px, amp))} ${round2(j(py, amp))}`;
     for (let i = 1; i < pts.length; i++) {
       const [x0, y0] = pts[i - 1] as Point;
       const [x1, y1] = pts[i] as Point;
@@ -87,10 +99,9 @@ export function pen(svg: SVGSVGElement, options: PenOptions = {}): Pen {
       const steps = Math.max(MIN_STEPS, Math.round(len / SEG_LEN));
       for (let s = 1; s <= steps; s++) {
         const t = s / steps;
-        d += ` L${j(x0 + (x1 - x0) * t, s === steps ? amp * END_DAMP : amp)} ${j(
-          y0 + (y1 - y0) * t,
-          s === steps ? amp * END_DAMP : amp,
-        )}`;
+        d += ` L${round2(
+          j(x0 + (x1 - x0) * t, s === steps ? amp * END_DAMP : amp),
+        )} ${round2(j(y0 + (y1 - y0) * t, s === steps ? amp * END_DAMP : amp))}`;
       }
     }
     return d;

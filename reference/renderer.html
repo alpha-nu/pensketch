@@ -70,16 +70,17 @@ function sketcher(svg, seed){
   const R = mulberry32(seed);
   const NS='http://www.w3.org/2000/svg';
   const j=(v,a)=>v+(R()-.5)*a;
-  function el(name,attrs){const e=document.createElementNS(NS,name);for(const k in attrs)e.setAttribute(k,attrs[k]);svg.appendChild(e);return e}
+  const r2=n=>Math.round(n*100)/100;
+  function el(name,attrs){const e=document.createElementNS(NS,name);for(const k in attrs)e.setAttribute(k,typeof attrs[k]==='number'?r2(attrs[k]):attrs[k]);svg.appendChild(e);return e}
 
   function pass(pts,amp){
-    let d='M'+j(pts[0][0],amp)+' '+j(pts[0][1],amp);
+    let d='M'+r2(j(pts[0][0],amp))+' '+r2(j(pts[0][1],amp));
     for(let i=1;i<pts.length;i++){
       const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
       const len=Math.hypot(x1-x0,y1-y0), steps=Math.max(2,Math.round(len/26));
       for(let s=1;s<=steps;s++){
         const t=s/steps;
-        d+=' L'+j(x0+(x1-x0)*t, s===steps?amp*.4:amp)+' '+j(y0+(y1-y0)*t, s===steps?amp*.4:amp);
+        d+=' L'+r2(j(x0+(x1-x0)*t, s===steps?amp*.4:amp))+' '+r2(j(y0+(y1-y0)*t, s===steps?amp*.4:amp));
       }
     }
     return d;
