@@ -153,10 +153,32 @@ Gate: full suite, both parity goldens byte-identical to a fresh
       render time unmoved by the round, heap −14%). Re-measuring them
       with a recorded method is its own decision, carried to the owner.
 
-- [ ] 2.2 Committed rendered assets re-render from the new bytes: the hero
+- [x] 2.2 Committed rendered assets re-render from the new bytes: the hero
       PNGs, both README GIFs, the showcase figures. `npm run diagrams` and
       the animation check green; GIF weights recorded (they should shrink
       or hold — the encoder sees near-identical frames).
+
+      **Landed — and the showcase page turned out to be the proof rather
+      than the work.** `trim()` in `build-showcase.mjs` was the round,
+      page-local, applied since 15c9bb8 with the exact formula core now
+      owns; the generator's output without it is byte-identical to its
+      output with it and to the committed page (hash-stable across three
+      runs, one on a cold dist), so the function is removed as proven
+      dead and `docs/showcase/index.html` does not move at all — the
+      page-level workaround simply became the library's law.
+
+      Assets, all deterministic (every regeneration hash-identical on a
+      second run, the light GIF reproduced byte-exact by the navigator
+      from the recorded header command): hero PNGs 1760×600 unchanged,
+      light 134,573 → 134,406 B, dark 135,519 → 135,937 B — sub-pixel
+      antialiasing re-deflation, proven by pixel comparison (0.95% of
+      pixels touched, peak channel delta 18% of range: no stroke crossed
+      a pixel boundary); GIFs 2010×1200, 128 frames unchanged, light
+      980,133 → 877,894 B, dark 1,017,258 → 890,210 B. The GIF shrink is
+      multi-cause — the old recordings predate the constant-speed
+      gesture work — so the weights are recorded without charging the
+      whole delta to the round. `npm run diagrams`, the animation check,
+      lint and the suite all green by exit code.
 
 - [ ] 2.3 The changeset — core and mcp, both minor, the output-moves
       language CONTRIBUTING requires — and `openspec validate --strict`

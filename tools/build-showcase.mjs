@@ -140,31 +140,6 @@ const attr = (text) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-/**
- * The same drawing, with the digits nobody can see taken off.
- *
- * `renderToString` prints coordinates at full IEEE-754 precision -
- * `27.579534765519202` - and 23,499 of this page's 26,680 numbers carry
- * twelve decimal places or more. They carry no information: the pen's own
- * jitter amplitude is 2.6 px, so everything below 0.01 px is far under the
- * noise floor of the thing being drawn.
- *
- * It is worth 145 KB gzipped, 58% of the page. This repository budgets its
- * core entry at 5,440 gzipped bytes and has re-argued that number over 21 of
- * them; shipping 145 KB of float noise on a published page is the same
- * question, and nothing in this change had asked it.
- *
- * Scoped to the two attributes that carry long decimals - `d` and
- * `stroke-width` - rather than run over every number in the document, because
- * a label reading "3.14159" is text and not a coordinate.
- */
-const trim = (svg) =>
-  svg.replace(
-    /(\b(?:d|stroke-width)=")([^"]*)"/g,
-    (_, name, value) =>
-      `${name}${value.replace(/\d+\.\d{3,}/g, (n) => String(Math.round(Number(n) * 100) / 100))}"`,
-  );
-
 /** The file a diagram was loaded from, off the name the loader built. */
 const sourceOf = (name) =>
   String(name)
@@ -287,7 +262,7 @@ const svgFor = ({ diagram, viewBox, options }, name) => {
   // one line" against "Photosynthesis, in one line" - so labelling from it
   // gave two readers two names for one figure. `role="img"` prunes the
   // subtree, so the title is the whole of what is announced.
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}" role="img"><title>${attr(name)}</title>${animateMarkup(trim(inner))}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}" role="img"><title>${attr(name)}</title>${animateMarkup(inner)}</svg>`;
 };
 
 const figures = ORDER.map(([key, title, blurb], i) => {
