@@ -814,4 +814,21 @@ describe('the refusal a guessed diagram gets', () => {
     expect(result.content?.[0]?.text).toBe(resource);
     expect(resource).toBeTruthy();
   });
+
+  // Discovery without a call: `serverInfo` has carried the version since the
+  // first release and clients hide it, so the one description whose whole
+  // job is discovery names the build. Off the wire, not off the source.
+  it('names its own build in the get_schema description', async () => {
+    const { send } = await connected();
+    const listed = await send('tools/list', {});
+    const schema = (
+      (listed.result?.tools ?? []) as {
+        name: string;
+        description?: string;
+      }[]
+    ).find((tool) => tool.name === 'get_schema');
+    expect(schema?.description).toContain(
+      `this build is @pensketch/mcp ${__MCP_VERSION__}`,
+    );
+  });
 });

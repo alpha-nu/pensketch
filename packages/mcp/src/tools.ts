@@ -509,8 +509,12 @@ export function registerTools(server: McpServer): void {
       // are optional in many clients; tools are universal. The content is
       // the pensketch://schema resource verbatim, so there is still exactly
       // one document.
-      description:
-        'Returns the JSON Schema for the diagram the drawing tools take: every field of a node, an edge, a brace and a note, with what each means. The same document as the pensketch://schema resource, as a tool, for clients that cannot read resources. Call it once per session at most - it changes only when the server version does, and every mismatch is also reported field by field when a diagram is refused.',
+      //
+      // The build names itself here because nowhere else a model can see
+      // does: `serverInfo` has carried the version since the first release
+      // and clients hide it, so a probe suite spent eight calls deducing
+      // what one string settles. A description costs nothing per call.
+      description: `Returns the JSON Schema for the diagram the drawing tools take: every field of a node, an edge, a brace and a note, with what each means. The same document as the pensketch://schema resource, as a tool, for clients that cannot read resources. Call it once per session at most - it changes only when the server version does; this build is @pensketch/mcp ${__MCP_VERSION__}. Every mismatch is also reported field by field when a diagram is refused.`,
       inputSchema: z.strictObject(
         {},
         refuses('get_schema', 'argument', 'no arguments'),

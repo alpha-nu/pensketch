@@ -62,6 +62,19 @@ describe('refuseDiagram', () => {
     expect(onEdge).not.toContain('words go in "lines"');
   });
 
+  // The one string that tells a stale deployment from a live one: a probe
+  // suite spent eight calls deducing which build served an endpoint, and
+  // this footer settles it in any refusal. Read from the same define tsup
+  // substitutes, so the assertion moves with the manifest and pins nothing
+  // by hand.
+  it('signs every refusal with the build it came from', () => {
+    const text = refuseDiagram({ nodes: 'wrong' });
+    expect(text?.endsWith(`This is @pensketch/mcp ${__MCP_VERSION__}.`)).toBe(
+      true,
+    );
+    expect(__MCP_VERSION__).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
   it('counts what it does not list past the cap', () => {
     const text = refuseDiagram({
       nodes: Array.from({ length: 30 }, (_, i) => ({

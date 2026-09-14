@@ -166,6 +166,10 @@ export function refuseDiagram(diagram: unknown): string | null {
     'The diagram does not match its schema:',
     ...lines.slice(0, MAX_DEFECTS).map((l) => `- ${l}`),
     ...(rest > 0 ? [`- and ${rest} more, not listed`] : []),
-    'Every field is described by pensketch://schema; the get_schema tool returns the same document.',
+    // The version rides the refusal so any response identifies the build: a
+    // deployment serving stale code looks exactly like new code behaving
+    // identically, and one string here is the difference between settling
+    // that in one call and deducing it across eight (the probe suite did).
+    `Every field is described by pensketch://schema; the get_schema tool returns the same document. This is @pensketch/mcp ${__MCP_VERSION__}.`,
   ].join('\n');
 }
