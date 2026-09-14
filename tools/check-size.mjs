@@ -184,9 +184,18 @@ const PACKAGES = [
     // thirty-eight times the measured noise, so under the one rule at the
     // head of this list the number stands - the owner's call, made by
     // removing the floor reading rather than raising the budget.
+    //
+    // 4288 from 3968 for the two probe-E rules, 2026-09-14: clipped-ink,
+    // the near-miss band of out-of-bounds priced at the pen's own reach,
+    // and brace-opens-away, one cross product per labelled brace. The
+    // built rehearsal lands this entry at 4165 - 267 B for two rules and
+    // the sentences they speak with - and 4165 plus the conventional 100
+    // is 4265, taken up to the next multiple of 64. The raise rides its
+    // own commit ahead of the code that needs it, the depth change's 1.3
+    // precedent.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 3968,
+    budget: 4288,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries
