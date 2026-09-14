@@ -1,5 +1,60 @@
 # @pensketch/mcp
 
+## 0.11.0
+
+### Minor Changes
+
+- 5704cc3: Every number the renderer writes into markup carries at most two decimals,
+  rounded as the last act before the value becomes text. Rendered output
+  changes on every diagram — anyone snapshot-testing their own drawings will
+  see every snapshot move, once — and shrinks by about 40%: a typical figure
+  drops from 28.3 kB to 16.7 kB, which for a caller who pays by the token is
+  roughly four thousand of them back on every render.
+
+  What a reader can see does not move. The geometry is computed at full
+  precision throughout — anchors, findings, the seeded jitter and the order
+  it is consumed in are all untouched — and the written digits quantize by at
+  most 0.005 viewBox units, 0.4% of the smallest deliberate wobble the pen
+  makes and 0.02 device pixels at the raster boundary's largest scale. The
+  same rule ends a wart: IEEE-754 noise no longer reaches the file, so the
+  second pass writes `stroke-width="1.2"`, not `1.2000000000000002`.
+
+  `@pensketch/mcp` is named here because its rendered output is core's: the
+  markup `render_diagram` returns and `render_png` rasterizes moves with the
+  same release, and a dependency-only patch would claim a byte-stability this
+  version does not have.
+
+- 0dfd86e: `render_diagram` grows `duration`, `stroke` and `easing` beside `animate` —
+  refused by name without it, because a timing argument on a still drawing
+  would be accepted and do nothing. The resolved values are written into the
+  file: a standalone `.svg` has no parent document to set a custom property on,
+  so a knob only a host page could turn was no knob at all
+  (docs/pensketch-feedback-animation-2.md).
+
+  The default `duration` scales with the drawing: 70 ms of cadence per stroke,
+  held between 2 and 6 seconds. The fixed 2 s it replaces was calibrated at
+  small sizes and never checked at the other end — at 122 strokes it left 12 ms
+  between starts, which reads as a flash, not as drawing. Small diagrams keep
+  the timing they always had; the floor is the package default itself.
+
+  An animated result's findings block now opens with one line of account —
+  stroke count, resolved duration, hand order, and the `@scope` support
+  boundary (Chrome 118+, Safari 17.4+, Firefox 128+) below which the file opens
+  finished and still — because the caller cannot watch what it just made, and
+  that line is the only description of the animation there is. The tool
+  description also now says the result is two content blocks and to save only
+  the first: the markup and the findings were always separate, and a client
+  that glues text blocks together writes `</svg>No findings.` into a file by
+  its own hand, not this server's.
+
+### Patch Changes
+
+- Updated dependencies [5704cc3]
+- Updated dependencies [0dfd86e]
+- Updated dependencies [0dfd86e]
+  - @pensketch/core@0.9.0
+  - @pensketch/animation@0.2.0
+
 ## 0.10.0
 
 ### Minor Changes

@@ -1,5 +1,50 @@
 # @pensketch/core
 
+## 0.9.0
+
+### Minor Changes
+
+- 5704cc3: Every number the renderer writes into markup carries at most two decimals,
+  rounded as the last act before the value becomes text. Rendered output
+  changes on every diagram — anyone snapshot-testing their own drawings will
+  see every snapshot move, once — and shrinks by about 40%: a typical figure
+  drops from 28.3 kB to 16.7 kB, which for a caller who pays by the token is
+  roughly four thousand of them back on every render.
+
+  What a reader can see does not move. The geometry is computed at full
+  precision throughout — anchors, findings, the seeded jitter and the order
+  it is consumed in are all untouched — and the written digits quantize by at
+  most 0.005 viewBox units, 0.4% of the smallest deliberate wobble the pen
+  makes and 0.02 device pixels at the raster boundary's largest scale. The
+  same rule ends a wart: IEEE-754 noise no longer reaches the file, so the
+  second pass writes `stroke-width="1.2"`, not `1.2000000000000002`.
+
+  `@pensketch/mcp` is named here because its rendered output is core's: the
+  markup `render_diagram` returns and `render_png` rasterizes moves with the
+  same release, and a dependency-only patch would claim a byte-stability this
+  version does not have.
+
+- 0dfd86e: `order: true` counts gestures, not elements, and measures them. Three changes
+  to what the stamps say, none to any unstamped byte:
+
+  Both passes of one stroke share a single `--ps-i` — the pen traces everything
+  twice and the lighter pass is what reads as pressure, so a pair is one
+  movement of one hand and now draws as one. Numbered apart, every line was
+  visibly drawn and then drawn again, and half of an animation's runtime went
+  to the redraw.
+
+  Each label takes its own phase's place instead of queueing after everything —
+  the pen writes a label immediately after the thing it names, so a node's
+  words now land with the node and an edge's with the edges. The old order put
+  every label in an animation's final stretch: watched at 122 strokes, all the
+  lettering fit in the last tenth of the runtime and the diagram was unreadable
+  until it was over (docs/pensketch-feedback-animation-2.md).
+
+  Every solid path also gains `--ps-len`, its gesture's length as a fraction of
+  the drawing's longest, measured off the path itself. It is a measurement, not
+  a policy: what to do with it belongs to whoever spends the time, which is
+  `@pensketch/animation`.
+
 ## 0.8.0
 
 ### Minor Changes
