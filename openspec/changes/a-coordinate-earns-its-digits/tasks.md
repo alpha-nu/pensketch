@@ -46,12 +46,35 @@ task, /swat at the group boundary, every finding binding.
       recorded in design.md D4 as caller data, parity-symmetric, deferred
       until a fractional size exists.
 
-- [ ] 1.2 The rule gets a witness. A test scans a rendered fixture's whole
+- [x] 1.2 The rule gets a witness. A test scans a rendered fixture's whole
       serialization (path data and every attribute) and fails on any number
       carrying three or more decimals; a second pins `stroke-width="1.2"`
       exactly where `1.2000000000000002` was pinned before. Both proven by
       mutation: the round dropped from `pass()` alone goes red, dropped
       from `el()` alone goes red.
+
+      **Landed as `precision.test.ts`, and the spec learned its own
+      carve-out.** The blanket "every attribute value" scenario written at
+      proposal time was falsified by the renderer itself: an `order`
+      render stamps `--ps-i` at three decimals by design (its thousandths
+      are 1,000 distinct stagger steps), so the requirement and the
+      witness both carve out the `style` attribute — text composed
+      upstream of the funnel — and text content, the caller's words. The
+      carve-out is exercised, not decorative: a second test asserts the
+      unstripped file does hold a three-decimal `--ps-i`.
+
+      The scan reads the shared serializer over a SAMPLER spread extended
+      with a bow (labelled at fractional lx/ly), a self-loop and a brace,
+      rendered with `order: true` and `extrude: true`. Green is not
+      evidence, so the witness also demands ≥1,000 numbers of one or two
+      decimals — measured 2,978 on the clean tree, and collapsing to 383
+      with both funnels gutted (the navigator's own run), so the floor is
+      a real tripwire. Mutants, both runs reproduced by the navigator:
+      `pass()` unrounded = 2,544 offenders, `el()` unrounded = 66 (the
+      float-noise class), each caught by the offenders-by-name assertion
+      while the sparing test stayed green — the two are not entangled.
+      Both wording nits folded (the style text's composer named exactly;
+      "every closed shape" narrowed past the never-extruding group).
 
 - [ ] 1.3 Price it, measured not estimated. `npm run size` on all entries
       against D7 (expected: root and `./server` move by the helper's cost,

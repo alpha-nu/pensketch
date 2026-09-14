@@ -14,9 +14,16 @@ seeded `mulberry32` PRNG, and the order of PRNG consumption is part of the
 public contract — reordering draw operations is a visual change even when
 output looks the same.
 
-Every number the renderer writes into markup — path data and numeric
-attribute values alike — SHALL carry at most two decimal places, rounded as
-the last act before writing. Geometry SHALL be computed at full precision
+Every number the renderer writes as path data or as a numeric attribute
+value SHALL carry at most two decimal places, rounded as the last act
+before writing. The `style` attribute stands outside the rule by
+construction rather than by exception: it is text composed upstream of the
+attribute funnel, never a
+number the attribute funnel stringifies, and its `--ps-*` variables keep
+their own pinned formats — three decimals for `--ps-i`, whose thousandths
+are 1,000 distinct stagger steps, and two for `--ps-len`. Text content is
+likewise the caller's data, not a number the renderer writes. Geometry
+SHALL be computed at full precision
 throughout: anchors, the checker's measurements, and the hand-order ranking
 never see a rounded value, and no PRNG draw is added, removed, or reordered
 by the round. The bound is two decimals because 0.005 viewBox units is 0.4%
@@ -35,8 +42,8 @@ written `1.2`.
 - **THEN** the serializations differ (the wobble moved), while node positions and text content are unchanged
 
 #### Scenario: A written number owes the file its brevity
-- **WHEN** any fixture is rendered and every number in its serialization — path data and attribute values — is inspected
-- **THEN** none carries more than two decimal places
+- **WHEN** any fixture is rendered and every number in its serialization is inspected — path data and every attribute value except `style`, whose composed `--ps-*` text keeps its own fixed formats
+- **THEN** none carries more than two decimal places, while an `order` render's `style` still says `--ps-i` at exactly three
 
 #### Scenario: Float noise never reaches the markup
 - **WHEN** a stroke's second pass is rendered, whose width is `WIDTH * PASS2_W` and computes to `1.2000000000000002`
