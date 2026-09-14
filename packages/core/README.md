@@ -143,7 +143,7 @@ modeling them, so a shape that does not fill its box is reported further apart
 than its ink is. Two 100 × 100 diamonds do it flat - `node-overlap` at 69 px of
 clear air - and depth adds `(d + 0.75d) / √2` on the diagonal they approach on,
 so at `depth: 40` the pair is reported at 119 px. And it reads a depth's form, not its
-cost - `depth: 20000` on one box passes in under half a millisecond, where
+cost - `depth: 20000` on one box passes, where
 drawing it emits 6,388 paths and 1.2 MB of markup, depth costing about 56 B
 per px with nothing to bound it.
 

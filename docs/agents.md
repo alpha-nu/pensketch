@@ -499,8 +499,8 @@ can use.
 `undrawable-depth` reports what `draw` would refuse rather than what it would
 draw, in the same words the throw uses, as `duplicate-id` does. It reads a
 depth's form and never its cost: `check` passes `depth: 20000` on a one-box
-diagram in **0.46 ms**, where `draw` on the same diagram takes **38 ms**,
-emits **1.2 MB** of markup and allocates **34 MB** of heap.
+diagram outright, where `draw` on the same diagram emits **1.2 MB** of
+markup.
 
 Findings arrive sorted by severity, then rule, then position, so the array is
 stable enough to snapshot. `at` is a point in the diagram's own coordinates,

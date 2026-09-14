@@ -203,7 +203,7 @@ boundary; every Truthful finding remediated before hand-off.
       minors (core 0.9.0, mcp 0.11.0 expected); merge, Publish,
       `npm run deploy`.
 
-- [ ] 3.2 **OWNER (T-118a)**: decide whether the timing and heap figures
+- [x] 3.2 **OWNER (T-118a)**: decide whether the timing and heap figures
       still published beside the byte figures — "38 ms", "34 MB of heap",
       "under a millisecond" in `README.md`, `docs/agents.md` and the
       `depth` JSDoc — get re-measured under a recorded method. They are
@@ -212,6 +212,16 @@ boundary; every Truthful finding remediated before hand-off.
       delta) does not reproduce them even on the pre-change build; they
       err conservative, which is why shipping them another release is
       tolerable and leaving them forever is not.
+
+      **Owner ruled 2026-09-14: drop the claims.** All four sites lose
+      their timing and heap sentences and keep every byte fact around
+      them — the form-not-cost contrast now stands on what is measured
+      and recorded (6,388 paths, 1.2 MB) rather than on numbers nobody
+      can reproduce. The mcp README's cap timings (593 ms / 2.5 s /
+      9.8 s / 39 ms) stay: they carry their own recorded derivation
+      ("measured on a hub with n spokes") and were never in the flagged
+      set. Resources re-embedded; a claim dropped is a claim that can
+      no longer go stale.
 
 - [ ] 3.3 **OWNER (T-118b)**: rule on CONTRIBUTING's golden-change letter
       — "Such a commit carries a before/after PNG pair showing the
