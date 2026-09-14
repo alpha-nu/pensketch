@@ -142,16 +142,31 @@ export function refuseDiagram(diagram: unknown): string | null {
       allow(error.instancePath, error.params.allowedValues as unknown[]);
   }
 
-  // No dedupe beyond this: the summaries go because each carries no path a
-  // branch error does not, and once every losing branch is dropped, one
-  // member has one voice - ajv says each of a branch's complaints once.
+  // The summaries go because each carries no path a branch error does not,
+  // and once every losing branch is dropped, one member has one voice - ajv
+  // says each of a branch's complaints once.
   const kept = raw.filter((error) => {
     if (error.keyword === 'anyOf') return false;
     const b = branchOf(error);
     return !b || best.get(b.owner) === b.index;
   });
 
-  const lines = kept.map((error) =>
+  // One mistake, one sentence. A number where a side belongs fails its slot
+  // twice - "must be string" by type and "must be one of ..." by enum - and
+  // the enum sentence subsumes the type one: nothing satisfies the list
+  // without being a string. Only that exact pairing collapses; a type error
+  // on a path no enum names (a bare id slot, a whole tuple) keeps its voice,
+  // and so does the hint the tuple-level type sentence carries.
+  const named = new Set(
+    kept
+      .filter((e) => e.keyword === 'const' || e.keyword === 'enum')
+      .map((e) => e.instancePath),
+  );
+  const spoken = kept.filter(
+    (e) => !(e.keyword === 'type' && named.has(e.instancePath)),
+  );
+
+  const lines = spoken.map((error) =>
     error.keyword === 'const' || error.keyword === 'enum'
       ? `${at(error.instancePath)} must be one of ${[
           ...(allowedAt.get(error.instancePath) ?? []),

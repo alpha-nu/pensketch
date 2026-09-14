@@ -797,6 +797,11 @@ describe('the refusal a guessed diagram gets', () => {
     const rendered = await across('render_diagram', pairs);
     expect(checked).toBe(rendered);
     expect(checked).toContain('edges[0].from[0] must be string');
+    // One mistake, one sentence: the side slot fails by type and by enum at
+    // once, and the enum line subsumes the type line - a number in that slot
+    // once drew two complaints for one defect (the probe suite's B row).
+    expect(checked).toContain('edges[0].from[1] must be one of');
+    expect(checked).not.toContain('edges[0].from[1] must be string');
   });
 
   // The document behind every refusal, reachable as a tool because many
