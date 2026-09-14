@@ -6,7 +6,11 @@ A constant chosen against one failure mode is half chosen, so both ends are
 priced.
 
 **The fidelity bound (too few digits).** The quantization error of two
-decimals is at most 0.005 viewBox units per coordinate. The smallest
+decimals is at most 0.005 viewBox units per coordinate (for magnitudes
+below 2^53 / 100 ≈ 9.0 × 10¹³, where v × 100 is still an exactly
+resolvable integer; past it the absolute error grows with the spacing of
+doubles while the relative error stays near 10⁻¹⁶ — no drawing lives
+there). The smallest
 deliberate movement the pen makes is `HEAD_AMP = 1.2` (an arrowhead barb's
 jitter); the error is 0.4% of it. At `MAX_SCALE = 4`, the largest raster the
 tool boundary will produce, the error is 0.02 device pixels. One decimal
@@ -36,9 +40,18 @@ accepted and stated:
 - `--ps-len` is measured by `draw` from the written `d` attribute, so it is
   now measured from rounded digits. The per-gesture ratio it emits is
   floored to two decimals by its own format; an input perturbation of
-  0.005 units per point can move a ratio by at most a hundredth. That is
-  inside the resolution the variable already declares, and it is
-  deterministic.
+  0.005 units per point can move a ratio by at most a hundredth, for
+  every gesture whose rounded span is nonzero. That is inside the
+  resolution the variable already declares, and it is deterministic. The
+  boundary case is named rather than hidden (T-114): a gesture whose
+  every written point rounds to the same hundredth — reachable only
+  through `raw` callbacks at amplitude ≲ 0.004 with coincident points —
+  measures a span of zero, loses its stamp, and takes the stylesheet's
+  fallback of 1, exactly as an amplitude-0 stroke always did. The code
+  fix was priced and rejected as a phantom guard: it would write bytes
+  the old renderer never wrote, need its own `longest = 0` guard, and
+  spend real headroom on an invisible zero-length stroke nobody can
+  reach without writing one on purpose.
 - A caller who parses coordinates back out of the markup reads rounded
   values. That reader was already reading jitter, not geometry; the diagram
   data remains the only source of exact positions, which is the library's
@@ -78,7 +91,14 @@ sits outside both funnels, found in review: `label` interpolates its `size`
 into a style string on both sides of the parity gate (`pen.ts` and the
 reference alike). It is caller data, parity-symmetric, and integral in
 every shipped caller, so it stays as it is; if a fractional label size ever
-matters, the round belongs there too, on both sides at once.
+matters, the round belongs there too, on both sides at once. The MCP
+server adds two more of the same class (T-117): `svgFor` interpolates the
+caller's own viewBox numbers into the `viewBox`/`width`/`height` it wraps
+the drawing in, and a caller-passed `duration` lands verbatim as
+`--ps-dur` in the served style text. Both are the caller's digits echoed
+back — the defense `label`'s size already has — bounded by their schemas,
+and owed no witness: a test guarding the caller's own numbers guards
+nothing.
 
 The helper is module-private to `pen.ts`. It was weighed against a
 `constants.ts` entry and kept private: `constants` is a closed, counted

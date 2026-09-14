@@ -202,3 +202,23 @@ boundary; every Truthful finding remediated before hand-off.
 - [ ] 3.1 **OWNER**: push; the Version PR folds this into the pending
       minors (core 0.9.0, mcp 0.11.0 expected); merge, Publish,
       `npm run deploy`.
+
+- [ ] 3.2 **OWNER (T-118a)**: decide whether the timing and heap figures
+      still published beside the byte figures — "38 ms", "34 MB of heap",
+      "under a millisecond" in `README.md`, `docs/agents.md` and the
+      `depth` JSDoc — get re-measured under a recorded method. They are
+      not byte figures, no method was ever recorded for them, and a
+      controlled counter-measurement (29.8 ms median, 29.2 MB heap
+      delta) does not reproduce them even on the pre-change build; they
+      err conservative, which is why shipping them another release is
+      tolerable and leaving them forever is not.
+
+- [ ] 3.3 **OWNER (T-118b)**: rule on CONTRIBUTING's golden-change letter
+      — "Such a commit carries a before/after PNG pair showing the
+      shift" — against this change's practice: the pair was produced for
+      the owner's eye at the boundary and paired with a measured bound
+      (≤ 0.0049984 units of displacement), not committed as ~270 KB of
+      binary showing two indistinguishable pictures. bced142 is the
+      repository's first intended golden change, so the ruling sets the
+      precedent: amend the CONTRIBUTING sentence, or bind the next
+      golden change to its letter.

@@ -65,14 +65,17 @@ about what a written number owes the file.
   before. The owner accepted the one-time byte churn on 2026-09-13.
 - **The geometry.** Anchors, the checker's findings, hop windows, `--ps-i`
   ranks: all computed from the diagram data at full precision, exactly as
-  today. The round is the last act before writing, never an input to
-  anything. `check`'s findings are byte-identical to today's on every
-  fixture.
+  today. The round is the last act before writing, never an input to the
+  geometry; the one reader of written digits is `--ps-len`, taken
+  deliberately in design D2. `check`'s findings are byte-identical to
+  today's on every fixture.
 - **The seeded sequence.** No rng draw is added, removed, or reordered. The
   same jitter is computed; fewer of its digits are written.
 - **The animation stylesheet.** It carries no coordinates. `--ps-len` is
   measured from the written digits and may shift by a hundredth on a
-  boundary, which is inside the resolution its own format already declares.
+  boundary — for any gesture whose rounded span is nonzero, which is
+  every gesture a diagram can draw; the zero-span degeneracy a `raw`
+  caller can construct on purpose is named in design D2 (T-114).
 - **The API.** No new export, no new option, no knob. The rule is
   mandatory, by owner decision — a precision *parameter* was considered and
   rejected as a knob nobody should have to turn.
