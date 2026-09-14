@@ -223,7 +223,7 @@ boundary; every Truthful finding remediated before hand-off.
       set. Resources re-embedded; a claim dropped is a claim that can
       no longer go stale.
 
-- [ ] 3.3 **OWNER (T-118b)**: rule on CONTRIBUTING's golden-change letter
+- [x] 3.3 **OWNER (T-118b)**: rule on CONTRIBUTING's golden-change letter
       — "Such a commit carries a before/after PNG pair showing the
       shift" — against this change's practice: the pair was produced for
       the owner's eye at the boundary and paired with a measured bound
@@ -232,3 +232,13 @@ boundary; every Truthful finding remediated before hand-off.
       repository's first intended golden change, so the ruling sets the
       precedent: amend the CONTRIBUTING sentence, or bind the next
       golden change to its letter.
+
+      **Owner ruled 2026-09-14: the letter stands, and future golden
+      changes are bound to it.** CONTRIBUTING is not amended; the next
+      commit that changes a golden carries its before/after PNG pair in
+      the commit, as written. This change's own non-compliance is the
+      one exemption, waived by the ruling it produced: its pair was
+      delivered at review (the published before/after page) with the
+      displacement bound beside it, and retrofitting binaries onto
+      bced142 would rewrite pushed-adjacent history for no new evidence.
+      Recorded here so the precedent is the ruling, not the exception.
