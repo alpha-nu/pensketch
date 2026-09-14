@@ -76,12 +76,30 @@ task, /swat at the group boundary, every finding binding.
       Both wording nits folded (the style text's composer named exactly;
       "every closed shape" narrowed past the never-extruding group).
 
-- [ ] 1.3 Price it, measured not estimated. `npm run size` on all entries
+- [x] 1.3 Price it, measured not estimated. `npm run size` on all entries
       against D7 (expected: root and `./server` move by the helper's cost,
       `./check` and animation do not move at all); the probe figure's
       render re-measured (28,277 B full → ~16.7 kB expected); the goldens'
       shrink recorded. A budget moves only if its tripwire fires, in its
       own commit, under the ledger's standing rule.
+
+      **Priced against a cold build of the pre-change commit** (a
+      scratchpad worktree at dc19213, `npm ci`, full build, the same
+      `check-size.mjs`), not against numbers remembered from older
+      ledgers: core 5570 → 5595 (**+25 B**, 101 free of 5696), server
+      5556 → 5584 (**+28 B**, 112 free), `./check` 3898 → 3898
+      (**exactly nought** — it serializes nothing, as D7 predicted),
+      react and animation unmoved. No budget tripwire fired; the one
+      that did fire was designed to: the size gate's README pin went red
+      at 5570 vs 5595, and the comparison row moved with the
+      measurement. Both "about 5.5 KB" claims still true at 5595.
+
+      What the bytes bought, on the library's own outputs: the probe
+      figure (947 B of diagram JSON) renders 28,277 → **16,740 B**
+      (−40.8%) plain and 33,267 → **21,730 B** (−34.7%) animated; the
+      goldens 38,450 → 22,103 and 37,743 → 21,185 (task 1.1). About 25
+      code bytes purchased eleven and a half thousand per typical
+      render, every render.
 
 Gate: full suite, both parity goldens byte-identical to a fresh
 `npm run goldens`, `npm run size` green.
