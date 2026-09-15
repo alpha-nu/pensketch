@@ -215,9 +215,18 @@ const PACKAGES = [
     // rehearsed shape - leaving 88 free, which stands under the one rule
     // at the head of this list: forty-four times measured noise, and 100
     // is not owed to a standing entry.
+    //
+    // 4608 from 4416 for `anchors`, the entry's second export, 2026-09-14:
+    // the two points each edge's drawn line begins and ends at, resolved by
+    // the same `edgePath` every rule measures. Built and measured: the
+    // fraction guard in `edgePath` had already brought this entry to 4396
+    // under the standing budget, and the function and its export land it at
+    // 4482 - 66 past. 4482 + 100 = 4582, up to the next multiple of 64. The
+    // root entry and `./server` are 5761 and 5752, unmoved - the check that
+    // the export landed in the checker and not in shared code.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 4416,
+    budget: 4608,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries
