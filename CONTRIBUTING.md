@@ -166,22 +166,42 @@ and `--system-font` may well cover it.
 
 ## Deploying the HTTP server
 
-There is currently no hosted deployment. The Deno Deploy app this section
-used to operate was suspended by its free tier and its account deleted
-(2026-09-15), and everything that served it went with it in one commit:
-`deploy/`, the `deploy`, `deploy:create` and `predeploy` scripts, the `deno`
-devDependency, and the deploy half of `npm run pin`. The operating knowledge
-that section carried - the console-stored entrypoint, the workspace-shadowing
-trap, the CLI's double-forwarding bug - lives in this file's history at that
-commit, where it can be read without being mistaken for instructions.
+The hosted deployment is a Cloudflare Worker, and `deploy-workers/` is all
+of it: an adapter of a dozen lines around `createGuardedHandler` and a
+`wrangler.jsonc`. The directory sits outside the npm workspaces on purpose -
+`npm install` run inside it fetches the *published* `@pensketch/mcp` from
+the registry at the exact version its manifest names, so what the Worker
+serves is what a release shipped, never the working tree. That version line
+is a home of the install pin and `npm run pin` maintains it; leaving it
+behind is how a redeploy once put a stale release back online in the Deno
+era. Pull the merged Version PR before deploying all the same, so the
+manifest you deploy from is the one pin last wrote.
 
-What remains is the portable half, and it is the whole point:
-`@pensketch/mcp/http` exports a web-standard `fetch` handler with no Node
-built-in in reach, and `npm run edge` holds it to that. Any worker runtime
-takes it with an adapter of a dozen lines - Cloudflare Workers is the
-measured front-runner for the next host, verified against `workerd` locally
-with byte-identical output - and nothing in core or the server changes when
-one is chosen.
+Deploying takes the owner's Cloudflare account (`npx wrangler login` once):
+
+```
+cd deploy-workers
+npm install
+npx wrangler deploy
+```
+
+The first deploy prompts for a `workers.dev` subdomain and prints the URL.
+`ALLOWED_HOSTS` starts empty, and empty admits nothing - the rebinding
+guard serves only the names it is given - so set it to the printed hostname
+in `wrangler.jsonc` and deploy again. The guard decides which names reach
+the handler, not who; there is no authentication in front of this.
+
+The free-tier arithmetic that chose Workers (measured 2026-09-15): 100k
+requests a day resetting at midnight UTC and 10 ms CPU per invocation,
+against a measured 4-5 ms typical render; the worst legal inputs die on
+every free edge tier and always have. Exhaustion browns out until midnight
+instead of pausing for a month, which is the failure that ended the Deno
+Deploy app (account deleted 2026-09-15; that era's operating knowledge
+lives in this file's history at "the deno vestiges come out").
+
+None of this leaks inward. `@pensketch/mcp/http` stays a web-standard
+`fetch` handler with no Node built-in in reach, `npm run edge` holds it to
+that, and nothing in core or the server knows the Worker exists.
 
 ## Releasing
 

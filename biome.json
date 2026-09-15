@@ -12,7 +12,9 @@
       "!packages/mcp/src/validate.generated.ts",
       "!**/coverage",
       "!**/node_modules",
-      "!package-lock.json"
+      "!package-lock.json",
+      "!deploy-workers/package-lock.json",
+      "!**/.wrangler"
     ]
   },
   "formatter": {

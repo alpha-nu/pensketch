@@ -1,0 +1,11 @@
+{
+  "name": "pensketch-deploy-workers",
+  "private": true,
+  "description": "The hosted HTTP deployment: a Cloudflare Worker around the published @pensketch/mcp. Deliberately outside the npm workspaces so `npm install` here fetches the release from the registry, never the working tree; the exact version below is a home of the install pin and `npm run pin` maintains it.",
+  "dependencies": {
+    "@pensketch/mcp": "0.13.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.131.2"
+  }
+}

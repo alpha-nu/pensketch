@@ -1,0 +1,13 @@
+{
+  // `npm install` here, then `npx wrangler deploy` - from this directory,
+  // so the bundle resolves the published package this folder installed and
+  // not the workspace. CONTRIBUTING.md § Deploying the HTTP server holds
+  // the rest.
+  "name": "pensketch",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-01",
+  // Empty admits nothing: the rebinding guard serves only the names it is
+  // given. The first deploy prints the workers.dev hostname - put it here
+  // and deploy again.
+  "vars": { "ALLOWED_HOSTS": "" }
+}

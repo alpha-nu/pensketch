@@ -71,7 +71,8 @@ if (!entry)
 // served and the generator that can rewrite it. Both are pinned, or a
 // regeneration after a release would resurrect the version the page had
 // just been corrected away from. (`deploy/main.ts` was a fifth home until
-// the hosted deployment was retired with its account, 2026-09-15.)
+// the Deno deployment was retired with its account, 2026-09-15; the Worker
+// that replaced it is pinned structurally below, like server.json.)
 const FILES = [
   'README.md',
   'packages/mcp/README.md',
@@ -99,6 +100,27 @@ if (!found) {
   fail(
     `no \`@pensketch/mcp@<version>\` found in ${FILES.join(' or ')}. The install instructions are pinned on purpose; if that changed, this tool and the reasoning above need to change with it.`,
   );
+}
+
+// The Worker deployment serves the *published* package - its manifest names
+// an exact version and `npm install` in that directory fetches it from the
+// registry. That dependency line is therefore a home of the pin: left
+// behind, `wrangler deploy` from a fresh checkout would put the previous
+// release back online, which is the Deno stale-pin incident with fewer
+// steps.
+const WORKER_JSON = 'deploy-workers/package.json';
+const worker = JSON.parse(read(WORKER_JSON));
+if (worker.dependencies?.['@pensketch/mcp'] === undefined)
+  fail(
+    `${WORKER_JSON} no longer depends on @pensketch/mcp, so the Worker deployment has nothing to serve and this tool has nothing to pin there. If the deployment changed shape, this tool and the reasoning above change with it.`,
+  );
+if (worker.dependencies['@pensketch/mcp'] !== version) {
+  worker.dependencies['@pensketch/mcp'] = version;
+  writeFileSync(
+    new URL(WORKER_JSON, root),
+    `${JSON.stringify(worker, null, 2)}\n`,
+  );
+  changed.push(WORKER_JSON);
 }
 
 if (server.version !== version || entry.version !== version) {

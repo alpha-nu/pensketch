@@ -3,3 +3,9 @@ node_modules/
 dist/
 coverage/
 
+# The Worker deployment installs the published package, so its lockfile
+# records an integrity hash `npm run pin` cannot rewrite - the exact-version
+# dependency in its package.json is the reproducibility, the lockfile is not.
+deploy-workers/package-lock.json
+.wrangler/
+
