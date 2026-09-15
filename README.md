@@ -87,9 +87,10 @@ the objects they hold.
 
 It is also the widest use of the data model this repository ships — all three
 drawn shapes, `accent` and `hatch`, straight connectors and orthogonal ones, a
-self-transition, both kinds of brace, note pointers that bow and take corners,
-and a break where two connectors cross. If you want to know what pensketch can
-draw before reading how, that is the answer.
+self-transition, a pair of arrows split along one side by fractional anchors,
+both kinds of brace, note pointers that bow and take corners, and a break
+where two connectors cross. If you want to know what pensketch can draw
+before reading how, that is the answer.
 
 ## Quickstart: vanilla
 
