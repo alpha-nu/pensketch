@@ -143,7 +143,7 @@ if (!svg.startsWith('<svg ') || !svg.endsWith('</svg>'))
   fail(
     `render_diagram returned no svg: ${JSON.stringify(drawn).slice(0, 200)}`,
   );
-if (drawn.result?.content?.[1]?.text !== 'No findings.')
+if (drawn.result?.content?.[1]?.text !== '0 errors, 0 warnings')
   fail(
     `expected a findings block, got ${JSON.stringify(drawn.result?.content?.[1])}`,
   );

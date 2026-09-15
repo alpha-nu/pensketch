@@ -464,7 +464,7 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 The three are not a ladder you can climb halfway. **A clean `check` is not a
 promise that `draw` will accept the diagram**: they answer different
 questions, and the first list above is the one `check` has no rule for. A
-diagram with an edge label and no `lx`/`ly` reports "No findings." and is then
+diagram with an edge label and no `lx`/`ly` reports "0 errors, 0 warnings" and is then
 refused by the renderer. `render_diagram` returns findings beside its markup,
 so a clean report there *does* mean it drew — but a refusal returns the
 message alone, with no findings at all.

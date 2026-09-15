@@ -93,7 +93,7 @@ describe('check_diagram', () => {
 
   it('says so plainly when there is nothing to report', async () => {
     const result = await callTool('check_diagram', { diagram: FLOW });
-    expect(result.content[0]?.text).toBe('No findings.');
+    expect(result.content[0]?.text).toBe('0 errors, 0 warnings');
   });
 
   // Two things at once, both of which a caller depends on: the frame reaches
@@ -249,7 +249,7 @@ describe('render_diagram', () => {
 
     expect(result.content).toHaveLength(2);
     expect(result.content[0]?.text).toBe(svgFor(FLOW, VIEW_BOX, { seed: 7 }));
-    expect(result.content[1]?.text).toBe('No findings.');
+    expect(result.content[1]?.text).toBe('0 errors, 0 warnings');
   });
 
   // And they are the findings for the drawing actually made. This pair is
@@ -273,7 +273,7 @@ describe('render_diagram', () => {
         })
       ).content[1]?.text ?? '';
 
-    expect(await at({})).toBe('No findings.');
+    expect(await at({})).toBe('0 errors, 0 warnings');
 
     const raised = await at({ extrude: true, depth: 60 });
     expect(raised).toContain('2 errors, 0 warnings');

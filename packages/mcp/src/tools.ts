@@ -233,7 +233,11 @@ const MAX_LINES = 50;
  * answer is how a caller learns to trust one tool over the other.
  */
 const report = (findings: Parameters<typeof line>[0][]) => {
-  if (!findings.length) return 'No findings.';
+  // One spelling for every outcome: a clean report is "0 errors, 0 warnings",
+  // the same sentence a dirty one starts with, so a caller parses one format
+  // instead of branching on a special case (the probe suite's D row). "No
+  // findings." read better and parsed worse, and a tool result is read by
+  // parsers more often than by people.
   const errors = findings.filter((f) => f.severity === 'error').length;
   const warnings = findings.length - errors;
   const head = `${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`;

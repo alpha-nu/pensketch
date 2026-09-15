@@ -150,7 +150,7 @@ describe('the http handler', () => {
     expect(body.result?.content?.[0]?.text).toBe(
       svgFor(FLOW, VIEW_BOX, { seed: 7 }),
     );
-    expect(body.result?.content?.[1]?.text).toBe('No findings.');
+    expect(body.result?.content?.[1]?.text).toBe('0 errors, 0 warnings');
   });
 
   // Absence, not refusal. The tool is not registered, so the SDK answers a
