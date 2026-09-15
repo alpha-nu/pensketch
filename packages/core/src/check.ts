@@ -8,6 +8,7 @@ import {
   TITLE_DX,
   TITLE_DY,
   TITLE_SIZE,
+  WIDTH,
 } from './constants';
 import { ACCEPTS, depthOf, drawable, extrudes, magnitude } from './draw';
 import {
@@ -44,7 +45,8 @@ export type RuleId =
   | 'text-collision'
   | 'undrawable-depth'
   | 'clipped-ink'
-  | 'brace-opens-away';
+  | 'brace-opens-away'
+  | 'touching-ink';
 
 /** One defect, in enough detail to fix it without seeing the drawing. */
 export interface Finding {
@@ -131,6 +133,7 @@ const DEFAULTS: Record<RuleId, Severity> = {
   'undrawable-depth': 'error',
   'clipped-ink': 'warning',
   'brace-opens-away': 'warning',
+  'touching-ink': 'warning',
 };
 
 // How much line two connectors may share before it is reported, in px.
@@ -384,16 +387,45 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
   // Groups are regions, so they overlap everything by design; only the drawn
   // shapes are compared against each other.
   const shapes = nodes.filter((n) => n.shape !== 'group');
+  // The near-miss band under the error, the same reasoning `clipped-ink`
+  // applies at the frame: the rule measures ideal boxes, the pen draws a
+  // band about `WIDTH + AMP` wide centred on a side that itself wobbles -
+  // the width `HOP_GAP` is priced on - so two boxes clearing by less than
+  // that band can have touching ink while the error above stays silent.
+  // `OVERSHOOT` is left out on purpose: it runs along a side, past its
+  // corners, widening corner-to-corner diagonals and not the face gaps this
+  // measures - and pricing it in would flag the deliberate tight gaps this
+  // repository itself ships.
+  const band = WIDTH + AMP;
   shapes.forEach((a, i) => {
     const ia = inkOf(a);
-    for (const b of shapes.slice(i + 1))
-      if (intersects(ia, inkOf(b)))
+    for (const b of shapes.slice(i + 1)) {
+      const ib = inkOf(b);
+      if (intersects(ia, ib))
         add(
           'node-overlap',
           `nodes "${a.id}" and "${b.id}" overlap; one is drawn over the other`,
           [Math.max(a.x, b.x), Math.max(a.y, b.y)],
           [`node "${a.id}"`, `node "${b.id}"`],
         );
+      else {
+        // Per-axis separation, so exact contact is tellable from a near
+        // miss: boxes laid flush share a border on purpose - the adjacency
+        // idiom the overlap rule already exempts, two wobbled borders
+        // merging into one drawn line - where an almost-flush gap is a
+        // separation that failed. Zero on both axes is flush; a gap inside
+        // the band on either is the warning.
+        const sx = Math.max(ia.x, ib.x) - Math.min(ia.x + ia.w, ib.x + ib.w);
+        const sy = Math.max(ia.y, ib.y) - Math.min(ia.y + ia.h, ib.y + ib.h);
+        if (sx < band && sy < band && Math.max(sx, sy) > 0)
+          add(
+            'touching-ink',
+            `nodes "${a.id}" and "${b.id}" clear each other by under ${band}px, the width of the band a stroke lays down; their ink may touch - give them more room`,
+            [Math.max(a.x, b.x), Math.max(a.y, b.y)],
+            [`node "${a.id}"`, `node "${b.id}"`],
+          );
+      }
+    }
   });
 
   // Partial intersection only. A node wholly outside a group is in another

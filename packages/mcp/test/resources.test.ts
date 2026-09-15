@@ -154,6 +154,7 @@ describe('the showcase counts what the code has', () => {
     'ten',
     'eleven',
     'twelve',
+    'thirteen',
   ];
   const showcase = () => source('examples/showcase/index.html');
 

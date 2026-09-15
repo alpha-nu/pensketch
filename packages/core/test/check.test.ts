@@ -59,6 +59,7 @@ describe('check', () => {
     'undrawable-depth': 'error',
     'clipped-ink': 'warning',
     'brace-opens-away': 'warning',
+    'touching-ink': 'warning',
   } satisfies Record<RuleId, Severity>;
 
   // The runtime half, because a table typed correctly and spelled wrongly
@@ -884,6 +885,49 @@ describe('clipped-ink', () => {
 
   it('does not run without a viewBox, like the rule it shadows', () => {
     expect(check(flush(240), { rules: { 'orphan-node': 'off' } })).toEqual([]);
+  });
+});
+
+describe('touching-ink', () => {
+  // The band is `WIDTH + AMP` = 4.2: a stroke lays down ink about that wide
+  // centred on a side that itself wobbles - the same figure `HOP_GAP` is
+  // priced on - so two boxes clearing by less can have touching ink while
+  // `node-overlap` stays rightly silent.
+  const pair = (gap: number): Diagram => ({
+    nodes: [box('a', 10, 10), box('b', 110 + gap, 10)],
+    edges: [{ from: ['a', 'r'], to: ['b', 'l'] }],
+  });
+
+  it('warns on a 4px gap and is silent at 5', () => {
+    const findings = check(pair(4));
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      rule: 'touching-ink',
+      severity: 'warning',
+      subjects: ['node "a"', 'node "b"'],
+      message:
+        'nodes "a" and "b" clear each other by under 4.2px, the width of the band a stroke lays down; their ink may touch - give them more room',
+    });
+    expect(check(pair(5))).toEqual([]);
+  });
+
+  it('leaves an overlapping pair to node-overlap alone', () => {
+    expect(rules(check(pair(-10)))).toEqual(['node-overlap']);
+  });
+
+  it('spares boxes laid exactly flush, the adjacency idiom', () => {
+    expect(check(pair(0))).toEqual([]);
+  });
+
+  // Ink, not the box: a pair the flat render clears by 15px extrudes into
+  // the band, because the slab's face reaches `depth` = 12 further right,
+  // leaving 3.
+  it('measures the swept box when a node extrudes', () => {
+    const roomy = pair(15);
+    expect(check(roomy)).toEqual([]);
+    expect(rules(check(roomy, { extrude: true, depth: 12 }))).toEqual([
+      'touching-ink',
+    ]);
   });
 });
 

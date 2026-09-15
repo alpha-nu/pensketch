@@ -468,6 +468,7 @@ const findings = check(diagram, { viewBox: [0, 0, 880, 340] });
 | `text-collision` | two pieces of text — a node label, a group title, an edge or brace label, a note — have overlapping boxes | warning |
 | `clipped-ink` | a node's ink stops inside the pen's own reach of the frame - 5.3px, overshoot plus wobble - so strokes will be clipped | warning |
 | `brace-opens-away` | a brace's tip points to one side of its span while its label sits on the other | warning |
+| `touching-ink` | two nodes' ideal boxes stay apart but clear each other by under 4.2px, the band a stroke lays down, so their ink may touch | warning |
 
 The three are not a ladder you can climb halfway. **A clean `check` is not a
 promise that `draw` will accept the diagram**: they answer different

@@ -199,7 +199,11 @@ const PACKAGES = [
     // probe-E rules alone and this entry rehearses at 4299 with the third -
     // 11 B past a budget taken this morning, which is what pricing to the
     // named work and not to the day costs. 4299 plus the conventional 100
-    // is 4399, taken up to the next multiple of 64.
+    // is 4399, taken up to the next multiple of 64. Landed, the rule's
+    // final form measures 4328 - the flush exemption cost 29 B over the
+    // rehearsed shape - leaving 88 free, which stands under the one rule
+    // at the head of this list: forty-four times measured noise, and 100
+    // is not owed to a standing entry.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
     budget: 4416,
