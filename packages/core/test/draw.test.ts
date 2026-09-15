@@ -175,6 +175,64 @@ describe('anchor()', () => {
         );
       }
   });
+
+  it('walks a fraction along each side from the written corner', () => {
+    const node: DiagramNode = {
+      id: 'n',
+      shape: 'box',
+      x: 10,
+      y: 20,
+      w: 100,
+      h: 40,
+    };
+    // A quarter of the way along: t and b run from x toward x + w, l and r
+    // from y toward y + h. Pinned as literals, like the depth vector above.
+    expect(anchor(node, 't', 0, 0.25)).toEqual([35, 20]);
+    expect(anchor(node, 'b', 0, 0.25)).toEqual([35, 60]);
+    expect(anchor(node, 'l', 0, 0.25)).toEqual([10, 30]);
+    expect(anchor(node, 'r', 0, 0.25)).toEqual([110, 30]);
+    // 0 and 1 are the side's corners, so a corner anchor needs no fifth name.
+    expect(anchor(node, 't', 0, 0)).toEqual([10, 20]);
+    expect(anchor(node, 't', 0, 1)).toEqual([110, 20]);
+    expect(anchor(node, 'r', 0, 1)).toEqual([110, 60]);
+  });
+
+  it('reads 0.5 as the midpoint the two-member spelling always named', () => {
+    const node: DiagramNode = {
+      id: 'n',
+      shape: 'box',
+      x: 10,
+      y: 20,
+      w: 100,
+      h: 40,
+    };
+    // Exact equality on purpose: `w * 0.5` and `w / 2` are the same IEEE
+    // operation, which is what keeps the goldens byte-identical. Odd
+    // dimensions too, where a different association would show first.
+    const odd: DiagramNode = { ...node, w: 137, h: 43 };
+    for (const side of ['t', 'b', 'l', 'r'] as Side[]) {
+      expect(anchor(node, side, 0, 0.5)).toEqual(anchor(node, side));
+      expect(anchor(odd, side, 0, 0.5)).toEqual(anchor(odd, side));
+      expect(anchor(odd, side, 12, 0.5)).toEqual(anchor(odd, side, 12));
+    }
+  });
+
+  it('carries a fraction of a moved side by the whole extrusion vector', () => {
+    const node: DiagramNode = {
+      id: 'n',
+      shape: 'box',
+      x: 10,
+      y: 20,
+      w: 100,
+      h: 40,
+    };
+    // The flat fractional point plus (d, -0.75d) at d = 10 on the two moved
+    // sides; the front-plane pair keeps every fraction of itself flat.
+    expect(anchor(node, 't', 10, 0.25)).toEqual([45, 12.5]);
+    expect(anchor(node, 'r', 10, 0.25)).toEqual([120, 22.5]);
+    expect(anchor(node, 'l', 10, 0.25)).toEqual(anchor(node, 'l', 0, 0.25));
+    expect(anchor(node, 'b', 10, 0.25)).toEqual(anchor(node, 'b', 0, 0.25));
+  });
 });
 
 describe('draw() render order', () => {
@@ -277,6 +335,53 @@ describe('draw() validation', () => {
       },
       'edge 1 names node "b" at both ends but sides "l" and "t"; a self-transition attaches to one side, so name the same side in from and to',
     );
+  });
+
+  // A fraction is judged for what it is, like a depth: outside [0, 1] it
+  // extrapolates past a corner, and NaN would poison the anchor - both are
+  // refused naming the edge and the end, because the fix is a different
+  // field depending on which carried it.
+  it('refuses an anchor fraction past the corner, naming the end that carried it', () => {
+    rejects(
+      { nodes, edges: [{ from: ['a', 'r', 1.5], to: ['b', 'l'] }] },
+      "edge 0 takes fraction 1.5 in from; an anchor fraction is a number from 0 to 1 - 0 and 1 are the side's corners",
+    );
+    rejects(
+      { nodes, edges: [{ from: ['a', 'r'], to: ['b', 'l', -0.25] }] },
+      "edge 0 takes fraction -0.25 in to; an anchor fraction is a number from 0 to 1 - 0 and 1 are the side's corners",
+    );
+    rejects(
+      { nodes, edges: [{ from: ['a', 'r', Number.NaN], to: ['b', 'l'] }] },
+      "edge 0 takes fraction NaN in from; an anchor fraction is a number from 0 to 1 - 0 and 1 are the side's corners",
+    );
+  });
+
+  it('takes 0 and 1, which are the corners rather than past them', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes,
+      edges: [{ from: ['a', 'r', 0], to: ['b', 'l', 1] }],
+    });
+    expect(pathsOf(svg).length).toBeGreaterThan(0);
+  });
+
+  it('refuses a self-transition whose two ends name different fractions', () => {
+    rejects(
+      { nodes, edges: [{ from: ['a', 'r', 0.3], to: ['a', 'r', 0.7] }] },
+      'edge 0 names node "a" at both ends but fractions 0.3 and 0.7; a self-transition attaches at one point, so name the same fraction in from and to',
+    );
+    // The default is 0.5, so one spelled-out midpoint and one omitted agree -
+    // they name one point - while a spelled-out anything-else does not.
+    rejects(
+      { nodes, edges: [{ from: ['a', 'r', 0.7], to: ['a', 'r'] }] },
+      'edge 0 names node "a" at both ends but fractions 0.7 and 0.5; a self-transition attaches at one point, so name the same fraction in from and to',
+    );
+    const svg = makeSvg();
+    draw(svg, {
+      nodes,
+      edges: [{ from: ['a', 'r', 0.5], to: ['a', 'r'] }],
+    });
+    expect(pathsOf(svg).length).toBeGreaterThan(0);
   });
 
   // Edge validation runs before any edge is drawn, and that is the whole of
@@ -925,6 +1030,26 @@ describe('draw() edge phase', () => {
     expect(near([150, 200])).toBe(true);
     expect(near(anchor(nth(nodes, 1), 'l'))).toBe(true);
   });
+
+  it('runs the shaft between the fractional anchors the ends name', () => {
+    const svg = makeSvg();
+    draw(svg, {
+      nodes,
+      edges: [{ from: ['a', 'r', 0.2], to: ['b', 'l', 0.8] }],
+    });
+
+    const points = pointsOf(nth(pathsOf(svg), 0));
+    const first = nth(points, 0);
+    const last = nth(points, points.length - 1);
+    // a.r at 0.2 is (100, 10) and b.l at 0.8 is (200, 40) - the literals, so
+    // a renderer quietly falling back to the midpoints dies here. The bounds
+    // are the pen's own: full amplitude at the M point, damped at the last,
+    // each plus the 0.005 the two-decimal write may move a read-back point.
+    expect(Math.abs(first[0] - 100)).toBeLessThanOrEqual(1.305);
+    expect(Math.abs(first[1] - 10)).toBeLessThanOrEqual(1.305);
+    expect(Math.abs(last[0] - 200)).toBeLessThanOrEqual(0.525);
+    expect(Math.abs(last[1] - 40)).toBeLessThanOrEqual(0.525);
+  });
 });
 
 describe('draw() self-transitions', () => {
@@ -959,6 +1084,22 @@ describe('draw() self-transitions', () => {
     expect(Math.abs(last[1] - (MID[1] + LOOP_SPAN / 2))).toBeLessThanOrEqual(
       0.525,
     );
+  });
+
+  it('centres the loop on the fraction both ends name, not the midpoint', () => {
+    const points = pointsOf(
+      nth(pathsOf(loopOf({ from: ['a', 'r', 0.2], to: ['a', 'r', 0.2] })), 0),
+    );
+    const first = nth(points, 0);
+    const last = nth(points, points.length - 1);
+
+    // 0.2 along the 50 px right side is y = 10, so the two anchors sit at
+    // 10 -/+ LOOP_SPAN / 2 - which is what moves a loop along its side and
+    // lets two of them share one. Same pen tolerances as above.
+    expect(Math.abs(first[1] - (10 - LOOP_SPAN / 2))).toBeLessThanOrEqual(
+      1.305,
+    );
+    expect(Math.abs(last[1] - (10 + LOOP_SPAN / 2))).toBeLessThanOrEqual(0.525);
   });
 
   it("sets the anchors span apart, and span is the caller's to change", () => {

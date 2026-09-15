@@ -11,6 +11,45 @@ export type Point = [number, number];
  */
 export type Side = 't' | 'b' | 'l' | 'r';
 
+/**
+ * Where along its side an edge end attaches, as a fraction of the side: `0.5`
+ * — the default, and the point the two-member spelling has always named — is
+ * the midpoint, `0` and `1` are the side's two corners, so a corner anchor is
+ * a fraction rather than a fifth side name. `0.25` sits a quarter of the way
+ * along. What it buys is fan-in and fan-out: two arrows arriving at one side
+ * used to stack their heads on its midpoint, and now each can name its own
+ * point.
+ *
+ * The fraction runs from the corner the box is written from: on `t` and `b`
+ * from `x` toward `x + w`, on `l` and `r` from `y` toward `y + h`. A mirrored
+ * spelling — negative `w` or `h` — therefore measures it from the written
+ * corner, exactly as the side names themselves follow the written spelling.
+ *
+ * It walks the *box's* side, which only a box's or a group's outline runs
+ * along: on a pill or a diamond the midpoint is the one fraction that lands
+ * on ink, and anything else floats off the outline. That is a placement the
+ * caller can see coming from the shape alone, so nothing reports it.
+ *
+ * When the node extrudes, the fraction rides the side it is on: a point along
+ * a side the extrusion moves is carried by the same whole vector the midpoint
+ * is, and a side that stays flat keeps every fraction of it flat.
+ *
+ * On a self-transition the loop centres on the fraction instead of the
+ * midpoint — which is what lets two loops share one side — and both ends must
+ * name the same fraction, as they must name the same side; `draw` throws when
+ * they differ. Anything outside `[0, 1]`, or not a finite number, is refused
+ * by `draw` naming the edge and the end that carried it: a fraction past the
+ * corner is not a fraction of the side.
+ *
+ * The two tags below put the same bound into the generated JSON Schema, so a
+ * caller sending data is refused at the boundary in the words the schema
+ * speaks, and a caller writing code is refused by `draw` in its own.
+ *
+ * @minimum 0
+ * @maximum 1
+ */
+export type SideFraction = number;
+
 /** Per-call overrides for any of the pen's outline primitives. */
 export interface StrokeOptions {
   /** Any CSS color or `var()` expression. Default: `theme.ink`. */
@@ -298,18 +337,26 @@ export type DiagramNode = GroupNode | ShapeNode;
  * obstacle.
  */
 export interface DiagramEdge {
-  /** The id of the node to leave, and which side to leave from. */
-  from: [string, Side];
   /**
-   * The id of the node to reach, and which side the head lands on.
+   * The id of the node to leave, which side to leave from, and — optionally —
+   * where along that side: `['a', 'r']` leaves the right side's midpoint, and
+   * `['a', 'r', 0.25]` leaves a quarter of the way along it. `SideFraction`
+   * carries the whole of the third member's meaning: which corner it runs
+   * from, that 0 and 1 are the corners, and what is refused.
+   */
+  from: [string, Side, SideFraction?];
+  /**
+   * The id of the node to reach, which side the head lands on, and optionally
+   * where along it, as in `from`.
    *
    * Naming the same node and the same side as `from` draws a self-transition:
    * a loop off that side, leaving and returning to it, with the arrowhead on
    * the anchor it returns to. The same node with two *different* sides throws
    * — a loop attaches to one side, and a corner loop is a different shape with
-   * its own geometry to get right.
+   * its own geometry to get right. Two different fractions throw on the same
+   * terms: the loop centres on one point, so both ends must name it.
    */
-  to: [string, Side];
+  to: [string, Side, SideFraction?];
   /**
    * How far a self-transition projects beyond its side, in px. Default: `30`.
    *

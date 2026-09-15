@@ -68,7 +68,7 @@ const sentence = (error: SchemaError): string => {
       return `${path} is missing ${quote(error.params.missingProperty)}`;
     case 'type': {
       const hint = /^edges\[\d+\]\.(?:from|to)$/.test(path)
-        ? ' - an edge end is ["nodeId", "side"], like ["a", "r"]'
+        ? ' - an edge end is ["nodeId", "side"], like ["a", "r"], plus an optional fraction 0-1 along the side'
         : '';
       return `${path} must be ${error.params.type}${hint}`;
     }

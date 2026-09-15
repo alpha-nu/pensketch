@@ -57,6 +57,10 @@ When space is tight, put the text in the box instead of beside the arrow.
 size it. Naming the same node with two *different* sides throws — a loop hangs
 off one side, and a corner loop is a different shape. Those three fields settle
 the whole of its path, so a non-empty `via`, or a `bow`, on one throws as well.
+An anchor fraction (the optional third member of an edge end) moves the whole
+loop along its side — it centres on the fraction instead of the midpoint,
+which is how two loops share one side — and both ends must name the same one,
+or `draw` throws as it does for two sides.
 
 This trap used to say the opposite, and it is the one most likely to be
 remembered wrongly. Until this version an edge joined two *different* nodes, a
@@ -96,7 +100,7 @@ field describes — not because a shape looks unusual.
 
 ```ts
 type Point = [number, number];
-type Side  = 't' | 'b' | 'l' | 'r';   // top, bottom, left, right edge midpoint
+type Side  = 't' | 'b' | 'l' | 'r';   // top, bottom, left, right of the box
 
 type DiagramNode =
   | { id: string; x: number; y: number; w: number; h: number;
@@ -118,8 +122,19 @@ type DiagramNode =
                            // too small to carry a face resolves flat
 
 interface DiagramEdge {
-  from: [string, Side];    // node id + which side to leave
-  to:   [string, Side];    // same node and same side = a self-transition
+  from: [string, Side, fraction?];   // node id, which side to leave, and
+                           // optionally where along it: 0 and 1 are the
+                           // side's corners, 0.5 the default midpoint. The
+                           // fraction runs from the written corner - on t and
+                           // b from x toward x+w, on l and r from y toward
+                           // y+h - and it walks the BOX's side, so on a pill
+                           // or a diamond anything but the midpoint floats
+                           // off the ink. Outside [0, 1] draw throws. This is
+                           // how a fan lands on one side without stacking
+                           // every head on its midpoint
+  to:   [string, Side, fraction?];   // same node and same side = a
+                           // self-transition; its loop centres on the
+                           // fraction, and both ends must name the same one
   out?: number;            // loop only: how far it projects, default 30
   span?: number;           // loop only: how far apart its anchors sit, default 40
   via?: Point[];           // corners, used verbatim; never with bow, never on a
@@ -295,9 +310,11 @@ connector leaves `queue` at (202, 54) rather than at the flat (190, 63).
 What moves is the screen side, not the name: a node written with a negative
 `w` or `h` draws the same picture and moves the same points, so with `w < 0`
 the side named `l` — facing screen-right — moves and `r` does not, and with
-`h < 0` named `b` moves and `t` does not.
-`anchor(node, side, depth)` applies the depth it is handed and never resolves
-one.
+`h < 0` named `b` moves and `t` does not. An anchor fraction rides its side:
+every point of a moved side is carried by the same whole vector the midpoint
+is, and every fraction of a side that stays flat stays flat.
+`anchor(node, side, depth, at)` applies the depth and the fraction it is
+handed and never resolves or validates either.
 
 **A bad depth is refused where it is read.** `draw` throws before it draws
 anything: on the options `depth` whenever the diagram-wide `extrude` is on,
@@ -326,7 +343,8 @@ schema this package publishes — the `pensketch://schema` resource, or the
 is refused with every defect named at once, each as a path and a fix:
 `nodes[0] has no field "text" - words go in "lines", an array of strings`,
 `edges[0].from must be array - an edge end is ["nodeId", "side"], like
-["a", "r"]`, `edges[0].from[1] must be one of "t", "b", "l", "r"`. The same
+["a", "r"], plus an optional fraction 0-1 along the side`,
+`edges[0].from[1] must be one of "t", "b", "l", "r"`. The same
 validator stands in front of `check_diagram`, `render_diagram` and
 `render_png`, so a diagram one accepts is a diagram all three do. The table
 below is what remains: the defects a well-shaped diagram can still carry.
@@ -338,6 +356,8 @@ below is what remains: the defects a well-shaped diagram can still carry.
 | `node "x" has unknown shape "y"` | one of `group`, `box`, `pill`, `diamond` — or leave it out, which is a box |
 | `edge N has label "…" but lx and ly are not both numbers` | a label is positioned by hand, because text is never measured |
 | `edge N names node "x" at both ends but sides "t" and "r"` | a self-transition attaches to one side; name the same side in `from` and `to` |
+| `edge N takes fraction … in from; an anchor fraction is a number from 0 to 1` | the optional third member of an edge end places the anchor along the side, and past a corner — or `NaN` — is not a place on it |
+| `edge N names node "x" at both ends but fractions 0.3 and 0.7` | a self-transition's loop centres on one point; name the same fraction in `from` and `to`, or leave both out |
 | `edge N carries bow; its path is already described by via` | a path is described once — drop whichever of the two the arrow is not to take. A note pointer carrying both says `note N` and means the same |
 | `edge N carries via; its path is already described by the side it hangs off, out and span` | a self-transition's path is settled by those three, so a corner to turn at contradicts it. `bow` on one is refused the same way and says so |
 | `brace N has lines but lx and ly are not both numbers` | the same rule an edge label is held to, for the same reason: nothing measures text, so nothing can place it for you |
@@ -440,8 +460,9 @@ things look for you, in increasing order of what they can tell:
 
 - **`draw` throws** on unknown ids, duplicate ids, unknown shapes, a label
   without coordinates — a brace's `lines` counts — a self-transition naming two
-  different sides, a depth that gets read and is not a positive finite number,
-  and a path described twice: `bow` with `via`, or either on a
+  different sides or two different anchor fractions, an anchor fraction that
+  is not a number from 0 to 1, a depth that gets read and is not a positive
+  finite number, and a path described twice: `bow` with `via`, or either on a
   self-transition. It stops at the first one.
 - **The JSON Schema** rejects malformed data, including misspelled keys.
 - **`check` finds the rest** — every trap in the list above — and reports all

@@ -171,8 +171,12 @@ export function swept(b: Box, d: number): Box {
  * measures a line the picture does not contain. The pair defaults to nothing,
  * so a caller that has no opinion about depth gets flat anchors.
  *
- * `null` when either end names a node the diagram does not define. `draw`
- * throws on that by name, so there is nothing the checker can usefully add.
+ * `null` when either end names a node the diagram does not define, when an
+ * end's anchor fraction is outside `[0, 1]` or not a finite number, and when a
+ * loop's two ends name different fractions. `draw` throws on all three by
+ * name, so there is nothing the checker can usefully add - and a fraction
+ * measured anyway would either poison every rule downstream with `NaN` or
+ * measure an extrapolated point on a line the renderer refuses to draw.
  *
  * A `via` on an edge naming one node at both ends is left out entirely: the
  * loop branch never reads the field. `draw` refuses that edge rather than
@@ -197,18 +201,25 @@ export function edgePath(
   const from = byId.get(e.from[0]);
   const to = byId.get(e.to[0]);
   if (!from || !to) return null;
+  const ok = (f?: number) =>
+    f === undefined || (Number.isFinite(f) && f >= 0 && f <= 1);
+  if (!ok(e.from[2]) || !ok(e.to[2])) return null;
+  const fromAt = e.from[2] ?? 0.5;
+  const toAt = e.to[2] ?? 0.5;
+  if (e.from[0] === e.to[0] && fromAt !== toAt) return null;
   const bow = e.bow ?? 0;
-  const at = (n: DiagramNode, side: Side) => anchor(n, side, depthOf(n, o));
+  const at = (n: DiagramNode, side: Side, f: number) =>
+    anchor(n, side, depthOf(n, o), f);
   return e.from[0] === e.to[0]
     ? loopPoints(
-        at(from, e.from[1]),
+        at(from, e.from[1], fromAt),
         e.from[1],
         e.out ?? LOOP_OUT,
         e.span ?? LOOP_SPAN,
       )
     : bow !== 0
-      ? bowPoints(at(from, e.from[1]), at(to, e.to[1]), bow)
-      : [at(from, e.from[1]), ...(e.via || []), at(to, e.to[1])];
+      ? bowPoints(at(from, e.from[1], fromAt), at(to, e.to[1], toAt), bow)
+      : [at(from, e.from[1], fromAt), ...(e.via || []), at(to, e.to[1], toAt)];
 }
 
 /**

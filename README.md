@@ -205,8 +205,8 @@ obstacle.
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
-| `from` | `[string, Side]` | required | The node to leave, and which side to leave from. |
-| `to` | `[string, Side]` | required | The node to reach, and which side the arrowhead lands on. |
+| `from` | `[string, Side, fraction?]` | required | The node to leave, which side to leave from, and optionally where along it — 0 and 1 are the side's corners, 0.5 the default midpoint. |
+| `to` | `[string, Side, fraction?]` | required | The node to reach, which side the arrowhead lands on, and optionally where along it. |
 | `out` | `number` | `30` | Self-transitions only: how far the loop projects beyond its side. |
 | `span` | `number` | `40` | Self-transitions only: how far apart the loop's two anchors sit along that side. |
 | `via` | `Point[]` | none | Corner points between the two anchors. `draw` throws when corners are given with `bow`, and on a self-transition, whose path its side, `out` and `span` already settle. An empty array names no corner and is accepted anywhere. |
@@ -266,6 +266,15 @@ a node carries everything attached to it:
 | `b` | Bottom edge, halfway across |
 | `l` | Left edge, halfway down |
 | `r` | Right edge, halfway down |
+
+Halfway is only the default. An edge end takes an optional third member, a
+fraction of the side from the corner the box is written from: `['a', 'r', 0.25]`
+attaches a quarter of the way down the right side, `0` and `1` are the corners,
+and `draw` refuses anything outside `[0, 1]` by name. That is how a fan lands on
+one side without stacking every arrowhead on its midpoint. The fraction walks
+the *box's* side, so on a pill or a diamond anything but the midpoint floats off
+the ink; a self-transition centres its loop on the fraction, and both ends must
+name the same one.
 
 When a node extrudes, `t` and `r` move by the full extrusion vector, so an
 arrow attaches to the silhouette rather than to the flat outline behind it.
@@ -566,7 +575,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **5595 B** | 8919 B |
+| Size, min+gzip | **5761 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

@@ -36,10 +36,21 @@ import type {
 } from './types';
 
 /**
- * Where an edge meets a node: the midpoint of the named side of its box,
- * carried onto the silhouette when the node is extruded. Edges are anchored
- * by side rather than by coordinate, so moving, resizing or extruding a node
- * carries everything attached to it.
+ * Where an edge meets a node: a point along the named side of its box — the
+ * midpoint unless `at` says otherwise — carried onto the silhouette when the
+ * node is extruded. Edges are anchored by side rather than by coordinate, so
+ * moving, resizing or extruding a node carries everything attached to it.
+ *
+ * `at` is the fraction along the side, applied as given like `depth` below:
+ * `0.5` — the default — is the midpoint every anchor was before fractions
+ * existed, `0` and `1` are the side's corners, and the fraction runs from the
+ * corner the box is written from — on `t` and `b` from `x` toward `x + w`, on
+ * `l` and `r` from `y` toward `y + h`. This applies what it is given and
+ * validates nothing, so a fraction outside `[0, 1]` extrapolates past the
+ * corner and `NaN` poisons the point; `draw` refuses both by name before they
+ * reach here, and a caller driving this directly owns its numbers the way a
+ * pen's caller does. `SideFraction` on the edge type carries the rest of the
+ * meaning — the mirrored spelling, the pill and diamond caveat, the loop rule.
  *
  * `depth` is a **resolved** depth, not a request. This applies what it is
  * given and resolves nothing: a positive value moves the sides of the covered
@@ -69,12 +80,20 @@ import type {
  * flat whatever its pair says, so `DEPTH` passed for a 10 x 8 pill reports a
  * point 13.8 px from that pill's own ink.
  */
-export function anchor(node: DiagramNode, side: Side, depth = 0): Point {
+export function anchor(
+  node: DiagramNode,
+  side: Side,
+  depth = 0,
+  at = 0.5,
+): Point {
+  // `w * at` rather than `w / 2` at the default: multiplying by 0.5 and
+  // dividing by 2 are the same IEEE operation, so the two-member spelling
+  // renders the bytes it always did and the goldens hold.
   const sides: Record<Side, Point> = {
-    t: [node.x + node.w / 2, node.y],
-    b: [node.x + node.w / 2, node.y + node.h],
-    l: [node.x, node.y + node.h / 2],
-    r: [node.x + node.w, node.y + node.h / 2],
+    t: [node.x + node.w * at, node.y],
+    b: [node.x + node.w * at, node.y + node.h],
+    l: [node.x, node.y + node.h * at],
+    r: [node.x + node.w, node.y + node.h * at],
   };
   const [x, y] = sides[side];
   // The moved sides are chosen off the screen geometry, not the name: the
@@ -195,7 +214,9 @@ export const drawable = (d: number) => Number.isFinite(d) && d > 0;
  * diagram does not define, two nodes share an id, a node carries an unknown
  * shape, an edge has a `label` without numeric `lx` and `ly`, a brace has
  * `lines` without them, an edge names one node at both ends but two different
- * sides, an edge or note describes its path twice - `bow` with `via`, or
+ * sides - or two different anchor fractions, since a loop hangs off one
+ * point - an edge end's fraction is not a number from 0 to 1, an edge or note
+ * describes its path twice - `bow` with `via`, or
  * either on a self-transition - or a depth that is read is not a positive
  * finite number: the options `depth` whenever the diagram-wide `extrude` is
  * on, and the depth every extruded node asks for, an inherited options value
@@ -360,6 +381,31 @@ export function draw(
       throw new Error(
         `edge ${i} names node "${e.from[0]}" at both ends but sides "${e.from[1]}" and "${e.to[1]}"; a self-transition attaches to one side, so name the same side in from and to`,
       );
+    // A fraction is judged for what it is, the way a depth is: outside
+    // [0, 1] it is not a fraction of the side - it extrapolates past a
+    // corner - and NaN would poison the anchor and draw nothing where
+    // something was asked for. Both ends are read, so the message can name
+    // the end to fix.
+    for (const [end, name] of [
+      [e.from, 'from'],
+      [e.to, 'to'],
+    ] as const) {
+      const f = end[2];
+      if (f !== undefined && !(Number.isFinite(f) && f >= 0 && f <= 1))
+        throw new Error(
+          `edge ${i} takes fraction ${f} in ${name}; an anchor fraction is a number from 0 to 1 - 0 and 1 are the side's corners`,
+        );
+    }
+    const fromAt = e.from[2] ?? 0.5;
+    const toAt = e.to[2] ?? 0.5;
+    // A loop hangs off one point, which `span` then spreads: two fractions
+    // is two points, refused on the same terms as two sides. Compared after
+    // the default so `['s', 'r']` and `['s', 'r', 0.5]` agree, as they name
+    // one point.
+    if (loop && fromAt !== toAt)
+      throw new Error(
+        `edge ${i} names node "${e.from[0]}" at both ends but fractions ${fromAt} and ${toAt}; a self-transition attaches at one point, so name the same fraction in from and to`,
+      );
     // Nought and absent are one case: nought is not a caller asking for a
     // flat arc, which has no centre and no radius, but a caller describing
     // the straight line they would have got by leaving the field out. Read
@@ -395,21 +441,21 @@ export function draw(
     // about here.
     return loop
       ? loopPoints(
-          anchor(from, e.from[1], depthOf(from, options)),
+          anchor(from, e.from[1], depthOf(from, options), fromAt),
           e.from[1],
           e.out ?? LOOP_OUT,
           e.span ?? LOOP_SPAN,
         )
       : bow !== 0
         ? bowPoints(
-            anchor(from, e.from[1], depthOf(from, options)),
-            anchor(to, e.to[1], depthOf(to, options)),
+            anchor(from, e.from[1], depthOf(from, options), fromAt),
+            anchor(to, e.to[1], depthOf(to, options), toAt),
             bow,
           )
         : [
-            anchor(from, e.from[1], depthOf(from, options)),
+            anchor(from, e.from[1], depthOf(from, options), fromAt),
             ...(e.via || []),
-            anchor(to, e.to[1], depthOf(to, options)),
+            anchor(to, e.to[1], depthOf(to, options), toAt),
           ];
   });
 

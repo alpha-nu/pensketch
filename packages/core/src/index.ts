@@ -16,5 +16,6 @@ export type {
   Point,
   ShapeOptions,
   Side,
+  SideFraction,
   StrokeOptions,
 } from './types';

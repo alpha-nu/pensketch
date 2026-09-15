@@ -6,9 +6,10 @@
   as boxes, dependencies as arrows - four published packages, one of which
   carries four entry points. What makes it the showcase is that it reaches for
   nearly the whole data model in one picture - all three drawn shapes, `accent`
-  and `hatch`, straight connectors, orthogonal ones, a self-transition, both
-  kinds of brace, and note pointers that bow and take corners - without once
-  reaching for `raw`.
+  and `hatch`, straight connectors, orthogonal ones, a self-transition, a pair
+  of arrows split along one side by fractional anchors, both kinds of brace,
+  and note pointers that bow and take corners - without once reaching for
+  `raw`.
 
   That last part is the point. `raw` is the escape hatch for what the data
   model has no word for, and this diagram needed no escape: it is plain data
@@ -145,8 +146,8 @@ svg text {
       // checked. `mcp` reaches four things and leaves by three sides; `react`
       // arrives at core's left rather than descending the column `page`
       // already occupies. Measured: no two of them share any length at all -
-      // the pair out of mcp's right side diverges at the anchor itself, and
-      // that is drawn on purpose - see below. Extrusion moves a top anchor by
+      // the pair out of mcp's right side leaves by two fractional anchors,
+      // each with a point of its own - see below. Extrusion moves a top anchor by
       // (12, -9), so each orthogonal run's final via sits a slab's width
       // right of where the flat drawing put it, and a drop stays a drop.
       //
@@ -157,7 +158,7 @@ svg text {
       { from: ['react', 'b'], to: ['root', 'l'],   via: [[440, 196], [26, 196], [26, 295]] },
       { from: ['mcp', 'l'],   to: ['check', 't'],  via: [[570, 115], [570, 210], [452, 210]] },
       { from: ['mcp', 'b'],   to: ['server', 't'] },
-      { from: ['mcp', 'r'],   to: ['schema', 't'], via: [[830, 115], [830, 200], [972, 200]],
+      { from: ['mcp', 'r', 0.7], to: ['schema', 't'], via: [[830, 115], [830, 200], [972, 200]],
         dotted: true, label: 'reads the schema', lx: 880, ly: 182, anchor: 'start' },
 
       // A dependency that runs sideways rather than down, because the package
@@ -165,20 +166,21 @@ svg text {
       // `render_diagram` takes an `animate` option, and the tool imports the
       // package to serve it.
       //
-      // It forks off the schema arrow rather than leaving by mcp's own free
-      // side. A top anchor was drawn first and was worse: mcp's bottom anchor
-      // already drops straight down at x=700, so a stub leaving the top at the
-      // same x read as one line run through the box. The fork used to share
-      // twenty px of trunk; extrusion moved mcp's right anchor to (822, 106)
-      // while the via stayed put, so the pair now diverges at the anchor
-      // itself - two lines leaving one point still read as a fork, and
-      // `edge-overlap` has nothing left to measure.
+      // These two used to leave one midpoint - first as a 20px shared trunk,
+      // then, once extrusion moved the anchor off the via, as two lines out
+      // of one point read as a fork. An anchor takes a fraction of its side
+      // now, so each relationship leaves by a point of its own: the schema
+      // arrow at 0.7 of the right side - (822, 115.2) once the slab carries
+      // it, which lines its first leg up with the via at y=115 - and this one
+      // at 0.3, (822, 96.8), descending to the sibling's flat left anchor.
+      // Two arrows, two points, and `edge-overlap` has nothing to measure
+      // because nothing is shared.
       //
       // React reaches the same package and no arrow says so, because there is
       // nothing to draw: `PenSketch` takes `animate` as a function, and the
       // react package never names it. Nothing descends from `anim` for the
       // same kind of reason - it imports nothing, core included.
-      { from: ['mcp', 'r'],   to: ['anim', 'l'] },
+      { from: ['mcp', 'r', 0.3], to: ['anim', 'l'] },
 
       { from: ['root', 'b'],   to: ['draw', 't'] },
       { from: ['check', 'b'],  to: ['rules', 't'], via: [[440, 372], [1007, 372]] },

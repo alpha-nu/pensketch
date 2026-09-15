@@ -33,6 +33,33 @@ describe('refuseDiagram', () => {
     expect(text).toContain('edges[0].from must NOT have fewer than 2 items');
   });
 
+  // The fraction is bounded in the schema itself - @minimum/@maximum on
+  // `SideFraction` - so a caller sending data is refused at the boundary in
+  // the schema's own words, before core's throw can be reached. No sentence
+  // of ours: `maximum` falls back to Ajv's message behind the caller's path,
+  // which is exact about the slot.
+  it('refuses a fraction past the corner at the boundary, by its path', () => {
+    const box = { id: 'a', x: 0, y: 0, w: 100, h: 40 };
+    expect(
+      refuseDiagram({
+        nodes: [box],
+        edges: [{ from: ['a', 'r', 1.5], to: ['a', 'l'] }],
+      }),
+    ).toContain('edges[0].from[2] must be <= 1');
+    expect(
+      refuseDiagram({
+        nodes: [box],
+        edges: [{ from: ['a', 'r'], to: ['a', 'l', -0.5] }],
+      }),
+    ).toContain('edges[0].to[2] must be >= 0');
+    expect(
+      refuseDiagram({
+        nodes: [box],
+        edges: [{ from: ['a', 'r', 0.25], to: ['a', 'l'] }],
+      }),
+    ).toBeNull();
+  });
+
   // A shape no branch owns fails every branch at its own constant, and the
   // honest line is all of them at once rather than whichever branch spoke
   // first.

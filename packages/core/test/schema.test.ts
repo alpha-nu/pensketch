@@ -106,6 +106,25 @@ describe('the generated diagram schema', () => {
     );
   });
 
+  // The optional third member of an edge end, bounded in the schema by the
+  // same [0, 1] `draw` refuses outside of - the @minimum/@maximum tags on
+  // `SideFraction` are load-bearing, and this is what notices them falling
+  // off in a regeneration.
+  it('accepts a fraction along the side, and holds it to [0, 1]', () => {
+    const end = (...from: unknown[]) => ({
+      edges: [{ from, to: ['b', 'l'] }],
+    });
+    expect(accepts(end('a', 'r', 0.25))).toBe(true);
+    expect(accepts(end('a', 'r', 0))).toBe(true);
+    expect(accepts(end('a', 'r', 1))).toBe(true);
+    expect(accepts(end('a', 'r', 1.5))).toBe(false);
+    expect(accepts(end('a', 'r', -0.25))).toBe(false);
+    expect(accepts(end('a', 'r', '0.25'))).toBe(false);
+    // Three members is the most an end has; a fourth is a misshape, not a
+    // future field.
+    expect(accepts(end('a', 'r', 0.25, 0.5))).toBe(false);
+  });
+
   // A typo is the mistake a caller writing JSON has nothing else to catch.
   it('rejects a misspelled key rather than ignoring it', () => {
     expect(accepts({ nodez: [] })).toBe(false);

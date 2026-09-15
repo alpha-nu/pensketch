@@ -378,6 +378,55 @@ describe('edgePath', () => {
     ).toBeNull();
   });
 
+  // By hand: 0.25 along `a`'s right side is (200, 60 + 40 * 0.25) = (200, 70),
+  // and 0.75 along `b`'s top is (300 + 100 * 0.75, 200) = (375, 200). The
+  // line the checker measures has to leave and land where the renderer's will.
+  it('walks from the fractional anchors the ends name', () => {
+    expect(
+      edgePath({ from: ['a', 'r', 0.25], to: ['b', 't', 0.75] }, BY_ID),
+    ).toEqual([
+      [200, 70],
+      [375, 200],
+    ]);
+    // And carried whole by the extrusion vector on a moved side, (12, -9).
+    expect(
+      edgePath({ from: ['a', 'r', 0.25], to: ['b', 't', 0.75] }, BY_ID, {
+        extrude: true,
+        depth: 12,
+      }),
+    ).toEqual([
+      [212, 61],
+      [387, 191],
+    ]);
+  });
+
+  // A loop centres on the fraction: 0.25 along the side is (200, 70), so its
+  // two ends sit LOOP_SPAN / 2 = 20 either side of that.
+  it('hangs a self-transition off the fraction both ends name', () => {
+    const path = edgePath(
+      { from: ['a', 'r', 0.25], to: ['a', 'r', 0.25] },
+      BY_ID,
+    ) as Point[];
+    expect(nth(path, 0)).toEqual([200, 50]);
+    expect(nth(path, path.length - 1)).toEqual([200, 90]);
+  });
+
+  // What `draw` refuses by name, this measures as no line at all: a fraction
+  // past a corner or NaN would otherwise poison every rule downstream, or
+  // measure an extrapolated point on ink the renderer never lays down. The
+  // mismatched loop pair is refused on the same terms.
+  it('says nothing about a fraction draw would refuse', () => {
+    expect(
+      edgePath({ from: ['a', 'r', 1.5], to: ['b', 't'] }, BY_ID),
+    ).toBeNull();
+    expect(
+      edgePath({ from: ['a', 'r'], to: ['b', 't', Number.NaN] }, BY_ID),
+    ).toBeNull();
+    expect(
+      edgePath({ from: ['a', 'r', 0.3], to: ['a', 'r', 0.7] }, BY_ID),
+    ).toBeNull();
+  });
+
   // The anti-drift test. The checker measures a line it computes itself; if
   // `draw` ever assembled a different one - a routing point, a changed anchor,
   // a branch taken on different terms - every clearance the checker reports
@@ -428,6 +477,16 @@ describe('edgePath', () => {
     [
       'a self-transition sized by hand',
       { from: ['a', 'r'], to: ['a', 'r'], out: 130, span: 90 },
+    ],
+    // The fraction rows: a drift in which end reads which fraction, or in the
+    // corner it runs from, moves an anchor by tens of px and dies here.
+    [
+      'a straight run between fractional anchors',
+      { from: ['a', 'r', 0.25], to: ['b', 't', 0.75] },
+    ],
+    [
+      'a self-transition centred on a fraction',
+      { from: ['a', 'r', 0.2], to: ['a', 'r', 0.2] },
     ],
   ];
 
