@@ -65,9 +65,20 @@ const PACKAGES = [
     // `edgePath` and lands at 4396 against its 4416 - 20 B free, ten times
     // the measured noise, standing under the one rule at the head of this
     // list until a rule of its own next needs room.
+    //
+    // 6208 from 5888 for `order: 'flow'`, 2026-09-14: the stamping ranked
+    // by a walk of the graph rather than by phase. Built and measured at
+    // 6054 here after a golf pass took 6 back - the per-edge and per-shape
+    // span marks, the root selection, the depth-first walk and the ranks
+    // read off the spans - so +293 on this entry, which is the `order` and
+    // `hop` departure again: a behaviour of `draw` rather than an entry
+    // point, carried by every consumer whether or not a diagram asks for
+    // it. 6054 + 100 = 6154, up to the next multiple of 64. `./check`
+    // measures 4483 against 4608, +1 B of gzip noise on code it never
+    // imports.
     name: '@pensketch/core',
     entry: 'packages/core/dist/index.js',
-    budget: 5888,
+    budget: 6208,
   },
   {
     // Its own entry and its own budget. The root entry measured 2562 B before
@@ -365,9 +376,12 @@ const PACKAGES = [
     // 5888 from 5696, with the root entry and for its reason: the bundled
     // copy of the renderer pays the same fraction walk and the same
     // refusals, measured at 5752. 5752 + 100 = 5852, up to 5888.
+    //
+    // 6208 from 5888, with the root entry and for its reason: the flow
+    // walk lands this copy at 6050. 6050 + 100 = 6150, up to 6208.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 5888,
+    budget: 6208,
   },
   {
     name: '@pensketch/react',
