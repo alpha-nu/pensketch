@@ -462,6 +462,13 @@ export function draw(
   // `??` and not `||`, so `hop: false` is an opt-out of a diagram-wide switch
   // rather than indistinguishable from leaving the field out.
   const over = edgeList.map((e) => e.hop ?? options.hops ?? false);
+  // Where each edge's elements stop, one count per edge, and the same for
+  // each drawn shape below: the finer marks `order: 'flow'` ranks by, since
+  // a walk that interleaves nodes and connectors has to know which element
+  // belongs to which. Recorded as the phases run, like the three marks, and
+  // unconditionally for their reason: a push costs less than the branch.
+  const edgeEnds: number[] = [];
+  const shapeEnds: { id: string; end: number }[] = [];
   edgeList.forEach((e, i) => {
     const pts = paths[i] as Point[];
     const opts = {
@@ -492,6 +499,7 @@ export function draw(
         anchor: e.anchor || 'middle',
       });
     }
+    edgeEnds.push(svg.children.length);
   });
   const afterEdges = svg.children.length;
 
@@ -553,6 +561,7 @@ export function draw(
         p.label(n.x + n.w / 2, n.y + n.h / 2, n.lines, {
           size: n.size || SIZE,
         });
+      shapeEnds.push({ id: n.id, end: svg.children.length });
     });
   const afterShapes = svg.children.length;
 
@@ -631,8 +640,70 @@ export function draw(
     // seeds. They are numbered apart because they are different phases, and if
     // the emission order ever changed so that an annotation could precede an
     // edge, that equivalence would lapse with nothing to notice.
-    const rank = (k: number) =>
+    const hand = (k: number) =>
       k < afterGroups ? 0 : k < afterEdges ? 2 : k < afterShapes ? 1 : 3;
+    // Flow order: the same stamping, ranked by a walk of the graph instead of
+    // by phase - a node with its label, each edge it leaves by, the node that
+    // edge reaches - so a flowchart draws in the order its story runs. Group
+    // frames keep rank 0 and the annotations keep the last rank; between
+    // them every node and every edge is a unit of its own, numbered when the
+    // walk reaches it. The walk is depth-first, an edge before the subtree
+    // it opens, so one path runs to its end before the next branch starts;
+    // roots are the nodes no edge enters and at least one leaves - a
+    // self-transition counts as leaving, not entering - in `nodes` order,
+    // and whatever is never reached (a cycle, an island, a legend box with
+    // nothing attached) joins where its declaration falls, so scenery draws
+    // in its place rather than jumping the queue for having no arrows.
+    // Declaration order breaks every tie and geometry breaks none, so the
+    // same data stamps the same numbers - the determinism clause
+    // `order: true` already keeps.
+    const flow = () => {
+      const nodeSeq = new Map<string, number>();
+      const edgeSeq: number[] = [];
+      let next = 1;
+      const targets = edgeList.map((e) => e.to[0]);
+      const out = new Map<string, number[]>();
+      const entered = new Set<string>();
+      edgeList.forEach((e, i) => {
+        out.get(e.from[0])?.push(i) ?? out.set(e.from[0], [i]);
+        if (e.from[0] !== e.to[0]) entered.add(e.to[0]);
+      });
+      const visit = (id: string) => {
+        if (nodeSeq.has(id)) return;
+        nodeSeq.set(id, next++);
+        for (const i of out.get(id) ?? []) {
+          edgeSeq[i] = next++;
+          visit(targets[i] as string);
+        }
+      };
+      for (const n of nodes)
+        if (!entered.has(n.id) && out.has(n.id)) visit(n.id);
+      for (const n of nodes) visit(n.id);
+      // Each element takes its unit's number, read off the spans the phases
+      // recorded. A group's own elements never look their unit up: they sit
+      // under `afterGroups`, first as they always were, so the frame is
+      // standing before anything drawn inside it appears.
+      const ranks: number[] = [];
+      let e = 0;
+      let s = 0;
+      for (let k = 0; k < children.length; k++) {
+        if (k < afterEdges && k >= afterGroups)
+          while ((edgeEnds[e] as number) <= k) e++;
+        if (k >= afterEdges && k < afterShapes)
+          while ((shapeEnds[s] as { end: number }).end <= k) s++;
+        ranks.push(
+          k < afterGroups
+            ? 0
+            : k < afterEdges
+              ? (edgeSeq[e] as number)
+              : k < afterShapes
+                ? (nodeSeq.get((shapeEnds[s] as { id: string }).id) as number)
+                : next,
+        );
+      }
+      return (k: number) => ranks[k] as number;
+    };
+    const rank = options.order === 'flow' ? flow() : hand;
     const sorted = children
       .map((el, k) => ({ el, k, r: rank(k) }))
       // Within a rank the pen's own emission order stands: it is already hand

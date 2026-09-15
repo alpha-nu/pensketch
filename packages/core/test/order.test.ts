@@ -472,3 +472,158 @@ describe('a bare pen is untouched', () => {
     ).toEqual([]);
   });
 });
+
+describe('the order the story runs in', () => {
+  /** A fresh `<svg>` drawn at a fixed seed with the flow stamping. */
+  const flowStamped = (diagram: Diagram): SVGSVGElement => {
+    const svg = makeSvg();
+    draw(svg, diagram, { seed: 7, theme: THEME, order: 'flow' });
+    return svg;
+  };
+
+  /**
+   * Every piece of text in stamp order. Labels ride their units - a node's
+   * words land with the node, an edge's with the edge - so the words read
+   * back in stamp order ARE the walk, and every expectation below is a
+   * story rather than an inequality soup.
+   */
+  const story = (svg: SVGSVGElement): (string | null)[] =>
+    textsOf(svg)
+      .map((t) => ({ text: t.textContent, at: fractionOf(t) }))
+      .sort((a, b) => a.at - b.at)
+      .map(({ text }) => text);
+
+  // Declared against the flow on purpose: `nodes` runs c, b, a while the
+  // story runs a, b, c, so phase order and flow order disagree everywhere
+  // they can.
+  const CHAIN: Diagram = {
+    nodes: [
+      { id: 'c', shape: 'box', x: 420, y: 20, w: 80, h: 40, lines: ['c'] },
+      { id: 'b', shape: 'box', x: 220, y: 20, w: 80, h: 40, lines: ['b'] },
+      { id: 'a', shape: 'box', x: 20, y: 20, w: 80, h: 40, lines: ['a'] },
+    ],
+    edges: [
+      { from: ['a', 'r'], to: ['b', 'l'], label: 'ab', lx: 160, ly: 30 },
+      { from: ['b', 'r'], to: ['c', 'l'], label: 'bc', lx: 360, ly: 30 },
+    ],
+  };
+
+  it('walks the graph from its root, wherever the declarations put it', () => {
+    expect(story(flowStamped(CHAIN))).toEqual(['a', 'ab', 'b', 'bc', 'c']);
+  });
+
+  it('stamps different numbers from the hand order on the same bytes', () => {
+    const hand = stamped(CHAIN);
+    const flow = flowStamped(CHAIN);
+    // Same elements in the same document order, byte for byte...
+    expect(pathsOf(flow).map((p) => attr(p, 'd'))).toEqual(
+      pathsOf(hand).map((p) => attr(p, 'd')),
+    );
+    // ...and a different count over them: hand order letters this diagram
+    // shapes-then-connectors, flow order interleaves them.
+    expect(story(hand)).toEqual(['c', 'b', 'a', 'ab', 'bc']);
+    expect(story(flow)).toEqual(['a', 'ab', 'b', 'bc', 'c']);
+  });
+
+  it('follows one branch to its end before the next, in edges order', () => {
+    const svg = flowStamped({
+      nodes: [
+        { id: 'a', shape: 'box', x: 20, y: 90, w: 80, h: 40, lines: ['a'] },
+        { id: 'b', shape: 'box', x: 220, y: 20, w: 80, h: 40, lines: ['b'] },
+        { id: 'c', shape: 'box', x: 220, y: 160, w: 80, h: 40, lines: ['c'] },
+        { id: 'd', shape: 'box', x: 420, y: 20, w: 80, h: 40, lines: ['d'] },
+      ],
+      edges: [
+        { from: ['a', 'r'], to: ['b', 'l'], label: 'one', lx: 160, ly: 60 },
+        { from: ['a', 'b'], to: ['c', 'l'], label: 'two', lx: 160, ly: 170 },
+        { from: ['b', 'r'], to: ['d', 'l'], label: 'deep', lx: 360, ly: 30 },
+      ],
+    });
+    // Depth-first: the first branch's whole subtree - b and everything b
+    // opens - draws before the second branch's edge is picked up.
+    expect(story(svg)).toEqual(['a', 'one', 'b', 'deep', 'd', 'two', 'c']);
+  });
+
+  it('starts a cycle at its first declared node, and a lone self-loop at its own', () => {
+    const cycle = flowStamped({
+      nodes: [
+        { id: 'x', shape: 'box', x: 20, y: 20, w: 80, h: 40, lines: ['x'] },
+        { id: 'y', shape: 'box', x: 220, y: 20, w: 80, h: 40, lines: ['y'] },
+      ],
+      edges: [
+        { from: ['x', 'r'], to: ['y', 'l'], label: 'xy', lx: 160, ly: 10 },
+        { from: ['y', 'b'], to: ['x', 'b'], label: 'yx', lx: 160, ly: 110 },
+      ],
+    });
+    // No root - each enters the other - so the walk opens at the first
+    // declaration, and the edge back into visited ground is stamped without
+    // re-entering it.
+    expect(story(cycle)).toEqual(['x', 'xy', 'y', 'yx']);
+
+    // A self-transition counts as leaving, not entering: the node it
+    // decorates is still a root, and the loop draws right after it.
+    const loop = flowStamped({
+      nodes: [
+        { id: 's', shape: 'box', x: 20, y: 20, w: 100, h: 50, lines: ['s'] },
+      ],
+      edges: [
+        { from: ['s', 'b'], to: ['s', 'b'], label: 'again', lx: 70, ly: 120 },
+      ],
+    });
+    expect(story(loop)).toEqual(['s', 'again']);
+  });
+
+  it('lets scenery keep its declared place rather than jumping the queue', () => {
+    const svg = flowStamped({
+      nodes: [
+        { id: 'a', shape: 'box', x: 20, y: 20, w: 80, h: 40, lines: ['a'] },
+        { id: 'b', shape: 'box', x: 220, y: 20, w: 80, h: 40, lines: ['b'] },
+        // An island: no edge in, none out. It is not a start of anything,
+        // so it draws where it is declared - after the story it decorates.
+        {
+          id: 'legend',
+          shape: 'box',
+          x: 20,
+          y: 160,
+          w: 120,
+          h: 40,
+          lines: ['legend'],
+        },
+      ],
+      edges: [
+        { from: ['a', 'r'], to: ['b', 'l'], label: 'ab', lx: 160, ly: 30 },
+      ],
+    });
+    expect(story(svg)).toEqual(['a', 'ab', 'b', 'legend']);
+  });
+
+  it('keeps the group frames first and the annotations last', () => {
+    const svg = flowStamped(EVERY_PHASE);
+    const spoken = story(svg);
+    expect(spoken[0]).toBe('group');
+    expect(spoken.slice(-3)).toEqual(['brace', 'note', 'raw']);
+    // The frame's stroke still counts from zero, before anything inside it.
+    expect(fractionOf(nth(childrenOf(svg), 0))).toBe(0);
+    const annotations = annotationsOf(svg);
+    const drawn = inked(svg, INK);
+    expect(Math.min(...annotations)).toBeGreaterThan(Math.max(...drawn));
+  });
+
+  it('moves nothing in the document and shares each gesture pair', () => {
+    const plain = makeSvg();
+    draw(plain, EVERY_PHASE, { seed: 7, theme: THEME });
+    const svg = flowStamped(EVERY_PHASE);
+    expect(tagsOf(svg)).toEqual(tagsOf(plain));
+    expect(pathsOf(svg).map((p) => attr(p, 'd'))).toEqual(
+      pathsOf(plain).map((p) => attr(p, 'd')),
+    );
+    // Both passes of one stroke still share a number: units hold whole
+    // gestures, so the pairing survives any ranking.
+    const paths = pathsOf(svg);
+    for (let i = 0; i < paths.length; i += 2)
+      expect(fractionOf(nth(paths, i))).toBe(fractionOf(nth(paths, i + 1)));
+    const fractions = childrenOf(svg).map(fractionOf);
+    expect(Math.min(...fractions)).toBe(0);
+    expect(Math.max(...fractions)).toBeLessThan(1);
+  });
+});

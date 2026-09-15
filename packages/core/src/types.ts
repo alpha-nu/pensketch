@@ -648,6 +648,24 @@ export interface DrawOptions extends PenOptions {
    * themselves are what they were; only the number differs from document
    * order. A `pen` driven by hand is uninstrumented - the index is a property
    * of `draw`'s phases, and a pen has none.
+   *
+   * `'flow'` stamps the same numbers in a different order: instead of every
+   * shape and then every connector, the count walks the graph - a node with
+   * its label, each edge it leaves by, the node that edge reaches - so a
+   * flowchart draws itself in the order its story runs rather than scenery
+   * first and plot after. Group frames still count first and braces, notes
+   * and `raw` still count last; between them the walk starts at the roots -
+   * the nodes no edge enters and at least one leaves, a self-transition
+   * counting as leaving and not as entering - in `nodes` order, and runs
+   * depth-first, each node's outgoing edges in `edges` order, an edge before
+   * the subtree it opens, so one path is followed to its end before the walk
+   * returns for the next branch. An edge into a node already drawn is
+   * stamped without re-entering it, and whatever the walk never reached - a
+   * cycle, an island, a legend box with nothing attached - joins where its
+   * declaration falls in `nodes` order, so scenery draws in its place rather
+   * than jumping the queue for having no arrows. Every tie is broken by
+   * declaration order and none by geometry, so the same data stamps the same
+   * numbers. `true` keeps the hand order above, byte for byte.
    */
-  order?: boolean;
+  order?: boolean | 'flow';
 }

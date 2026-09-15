@@ -461,11 +461,17 @@ export function registerTools(server: McpServer): void {
             .describe(
               'The CSS easing every stroke takes, as an <easing-function>. Requires animate. Default ease-out.',
             ),
+          sequence: z
+            .enum(['hand', 'flow'])
+            .optional()
+            .describe(
+              "Which order the drawing draws itself in. 'hand', the default, is the order a hand would lay the picture down: each region, each shape with its label, then the connectors, then the annotations. 'flow' walks the graph instead - a start node, each edge it leaves by, the node that edge reaches, one path to its end before the next branch - so a flowchart draws in the order its story runs. Start nodes are the ones no edge enters and at least one leaves, in nodes order; whatever the walk never reaches - a cycle, a legend box with no arrows - joins where it is declared, and every tie follows declaration order, so the same data animates the same way every time. Requires animate.",
+            ),
         },
         refuses(
           'render_diagram',
           'argument',
-          'a diagram, a viewBox, and an optional seed, hops, extrude, depth, label, animate, duration, stroke and easing',
+          'a diagram, a viewBox, and an optional seed, hops, extrude, depth, label, animate, duration, stroke, easing and sequence',
         ),
       ),
     },
@@ -481,6 +487,7 @@ export function registerTools(server: McpServer): void {
       duration,
       stroke,
       easing,
+      sequence,
     }) => {
       // Named rather than ignored, the same rule `render_png` holds `animate`
       // to: a timing argument on a still drawing would be accepted and do
@@ -490,13 +497,14 @@ export function registerTools(server: McpServer): void {
           ['duration', duration],
           ['stroke', stroke],
           ['easing', easing],
+          ['sequence', sequence],
         ] as const
       )
         .filter(([, value]) => value !== undefined)
         .map(([name]) => `\`${name}\``);
       if (timed.length && !animate)
         return failed(
-          `render_diagram was given ${timed.join(', ')} without \`animate: true\`. The three time an animation, and a still drawing has no animation to time: pass animate: true, or drop ${timed.length > 1 ? 'them' : 'it'}.`,
+          `render_diagram was given ${timed.join(', ')} without \`animate: true\`. Each shapes an animation - its timing, or the order it draws in - and a still drawing has none to shape: pass animate: true, or drop ${timed.length > 1 ? 'them' : 'it'}.`,
         );
       const refusal = refuseDiagram(d);
       if (refusal) return failed(refusal);
@@ -511,6 +519,7 @@ export function registerTools(server: McpServer): void {
           duration,
           stroke,
           easing,
+          sequence,
         });
         // The findings for the drawing just made, not for a neighbouring one:
         // the same viewBox, the same extrude and the same depth, which are
@@ -539,7 +548,9 @@ export function registerTools(server: McpServer): void {
             { type: 'text' as const, text: svg },
             {
               type: 'text' as const,
-              text: animate ? `${animatedLine(svg)}\n${report}` : report,
+              text: animate
+                ? `${animatedLine(svg, sequence)}\n${report}`
+                : report,
             },
           ],
         };
@@ -607,6 +618,8 @@ export interface SvgOptions {
   stroke?: number | undefined;
   /** The easing every stroke takes. Read with `animate`. */
   easing?: string | undefined;
+  /** Hand order or the graph walked in story order. Read with `animate`. */
+  sequence?: 'hand' | 'flow' | undefined;
 }
 
 /**
@@ -640,13 +653,22 @@ const scaledDuration = (gestures: number): number =>
  * The one-line account of an animation the caller cannot watch, read off the
  * markup rather than recomputed: the gesture count from the stamps, the
  * duration from the resolved `--ps-dur` the stylesheet carries. If the two
- * ever disagreed with what plays, the markup would be lying too.
+ * ever disagreed with what plays, the markup would be lying too. The order
+ * clause alone comes from the argument, because the stamps carry numbers and
+ * not the walk that assigned them.
  */
-export const animatedLine = (svg: string): string => {
+export const animatedLine = (
+  svg: string,
+  sequence?: 'hand' | 'flow',
+): string => {
   const gestures = gesturesIn(svg);
   const ms = Number(/--ps-dur:([\d.]+)ms/.exec(svg)?.[1] ?? Number.NaN);
   const seconds = Number.isNaN(ms) ? '2' : String(ms / 1000);
-  return `animated: ${gestures} strokes over ${seconds}s, in hand order - each region, each shape with its label, then connectors, then annotations. Plays where @scope is understood (Chrome 118+, Safari 17.4+, Firefox 128+); elsewhere the file opens finished and still.`;
+  const order =
+    sequence === 'flow'
+      ? 'in flow order - each region first, then the graph walked from its start: a node with its label, each edge it leaves by, the node it reaches; annotations last'
+      : 'in hand order - each region, each shape with its label, then connectors, then annotations';
+  return `animated: ${gestures} strokes over ${seconds}s, ${order}. Plays where @scope is understood (Chrome 118+, Safari 17.4+, Firefox 128+); elsewhere the file opens finished and still.`;
 };
 
 /**
@@ -674,6 +696,7 @@ export function svgFor(
     duration,
     stroke,
     easing,
+    sequence,
   }: SvgOptions = {},
 ): string {
   // The rasterizer resolves no CSS custom properties, so it is given the
@@ -686,8 +709,12 @@ export function svgFor(
     ...(depth === undefined ? {} : { depth }),
     ...(forRaster ? { theme: RASTER_THEME } : {}),
     // Only when asked for, so the bytes of an unanimated render are the bytes
-    // they always were: no `--ps-i`, no `pathLength`, nothing moved.
-    ...(animate ? { order: true } : {}),
+    // they always were: no `--ps-i`, no `pathLength`, nothing moved. The
+    // sequence rides the same switch: it names which stamping, and there is
+    // no stamping to name on a still drawing.
+    ...(animate
+      ? { order: sequence === 'flow' ? ('flow' as const) : true }
+      : {}),
   });
   const font = forRaster
     ? ` style="font-family:'${EMBEDDED_FAMILY}'"`

@@ -161,6 +161,13 @@ draw(svg, diagram, { order: true });
 animate(svg, { duration: 3000 });
 ```
 
+`order: 'flow'` stamps the same numbers along the graph instead of by phase —
+a start node with its label, each edge it leaves by, the node that edge
+reaches, one branch to its end before the next — so a flowchart draws itself
+in the order its story runs. Roots are the nodes no edge enters and at least
+one leaves, in `nodes` order; every tie follows declaration order, so the
+same data animates the same way every time.
+
 In React it is one prop:
 
 ```tsx
@@ -575,7 +582,7 @@ already have - none of which is true of code that draws.
 | You supply | A diagram object: nodes, edges, braces, notes | Drawing calls you compose yourself |
 | It draws | Boxes, pills, diamonds, groups, arrows, labels, hatching | Any shape: lines, curves, arcs, paths, fills |
 | Renders to | SVG | SVG and Canvas |
-| Size, min+gzip | **5761 B** | 8919 B |
+| Size, min+gzip | **6054 B** | 8919 B |
 | Dependencies | **none** | four |
 | Seeding | `seed` per diagram, and a patch release renders byte-identical output by policy | `seed` per shape, plus `rough.newSeed()` |
 | Theming | `var(--ps-*)` references, so a page restyles a diagram already on screen | Per-call options, with instance defaults |

@@ -193,8 +193,10 @@ draw(svg: SVGSVGElement, diagram: Diagram, options?: {
                               // group never extrudes whatever it carries
   depth?: number;             // how deep, px, for every extruded node carrying
                               // no depth of its own. Default 12
-  order?: boolean;            // default false — stamp every element with how far
-                              // through the drawing it is, so it can be animated
+  order?: boolean | 'flow';   // default false — stamp every element with how far
+                              // through the drawing it is, so it can be animated.
+                              // 'flow' counts along the graph - node, its edge,
+                              // the node it reaches - instead of by phase
   theme?: Partial<Theme>;
   label?: string;             // sets role="img" + aria-label
 }): void;
@@ -612,6 +614,21 @@ lighter pass is what reads as pressure — share a single index, so a pair draws
 as the one gesture it is, and the count staggered over is gestures rather than
 paths.
 
+`order: 'flow'` stamps the same numbers in a different order: the count walks
+the graph — a node with its label, each edge it leaves by, the node that edge
+reaches — so a flowchart draws itself in the order its story runs rather than
+scenery first and plot after. Group frames still count first and braces,
+notes and `raw` still count last. The walk starts at the roots — the nodes no
+edge enters and at least one leaves, a self-transition counting as leaving
+and not entering — in `nodes` order, and runs depth-first, each node's
+outgoing edges in `edges` order, an edge before the subtree it opens, so one
+branch runs to its end before the next begins. An edge into a node already
+drawn is stamped without re-entering it, and whatever the walk never reaches
+— a cycle, an island, a legend box with no arrows — joins where its
+declaration falls. Every tie is broken by declaration order and none by
+geometry, so the same data stamps the same numbers; `order: true` keeps the
+hand order, byte for byte.
+
 Every path carrying no `stroke-dasharray` also gains `pathLength="1"`, which
 normalises it so one set of keyframes serves every stroke, and `--ps-len`, its
 gesture's length as a fraction of the drawing's longest — the stylesheet
@@ -644,8 +661,10 @@ proportionally less, floored at a tenth; default 500), both in milliseconds,
 and `easing` (any CSS `<easing-function>`, default `ease-out`). Anything left
 out keeps the stylesheet's own default, so the defaults have exactly one home.
 
-Over MCP, `render_diagram` takes the same three beside `animate`, refuses them
-by name without it, and writes the resolved values into the file — a
+Over MCP, `render_diagram` takes the same three beside `animate` — and a
+fourth, `sequence: "flow"`, which is `order: 'flow'` above by its tool name —
+refuses each by name without it, and writes the resolved values into the
+file — a
 standalone `.svg` has no parent document to set a custom property on, so a
 knob only a host page could turn would be no knob at all. Its default
 `duration` scales with the drawing: 70 ms of cadence per stroke, held between

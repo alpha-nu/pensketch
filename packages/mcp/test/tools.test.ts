@@ -496,6 +496,47 @@ describe('render_diagram, animated', () => {
     expect(svg).toContain('--ps-ease:linear');
   });
 
+  it('refuses a sequence on a still drawing, by name', async () => {
+    const result = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      sequence: 'flow',
+    });
+    expect(result.isError).toBe(true);
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('`sequence`');
+    expect(text).toContain('animate: true');
+  });
+
+  it('stamps flow order when asked, and says so in the account', async () => {
+    const hand = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      animate: true,
+    });
+    const flow = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      animate: true,
+      sequence: 'flow',
+    });
+    // Same drawing, different count over it: FLOW's connector draws between
+    // its two nodes in flow order and after both in hand order, so the
+    // stamps cannot agree.
+    expect(flow.content[0]?.text).not.toBe(hand.content[0]?.text);
+    expect(hand.content[1]?.text).toContain('in hand order');
+    expect(flow.content[1]?.text).toContain('in flow order');
+    // Spelling out the default is the same animation as leaving it out.
+    const spelled = await callTool('render_diagram', {
+      diagram: FLOW,
+      viewBox: VIEW_BOX,
+      animate: true,
+      sequence: 'hand',
+    });
+    expect(spelled.content[0]?.text).toBe(hand.content[0]?.text);
+    expect(spelled.content[1]?.text).toContain('in hand order');
+  });
+
   it('accounts for the animation beside the findings', async () => {
     const result = await callTool('render_diagram', {
       diagram: FLOW,
