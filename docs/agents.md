@@ -124,7 +124,8 @@ interface DiagramEdge {
   span?: number;           // loop only: how far apart its anchors sit, default 40
   via?: Point[];           // corners, used verbatim; never with bow, never on a
                            // loop, but [] is accepted anywhere
-  bow?: number;            // px off the straight line, right of travel positive
+  bow?: number;            // px off the straight line, right of travel
+                           // positive - resolved per axis at brace depth below
   dotted?: boolean;        // dashes it and recolours it to --ps-accent
   hop?: boolean;           // this one goes over: the line it crosses is broken
                            // where they meet, and this one runs through. Only a
@@ -139,7 +140,14 @@ interface DiagramBrace {   // a span marked and named, always --ps-pen
   from: Point; to: Point;  // the span, in your own coordinates
   depth?: number;          // px from the midpoint to the tip, right of travel
                            // positive, default 26; past half the span plus 13
-                           // the arms overshoot the span's own two ends
+                           // the arms overshoot the span's own two ends.
+                           // "Right of travel" on a y-down axis, resolved so
+                           // nobody re-derives it: travelling down throws a
+                           // positive tip WEST, up throws it east, rightward
+                           // south, leftward north. The same rule reads an
+                           // edge's or a note pointer's bow, and check
+                           // reports a brace whose tip points away from its
+                           // own label (brace-opens-away)
   kind?: 'curly' | 'square';   // default 'curly'; 'square' is a bracket
   lines?: string[];        // REQUIRES lx and ly, as an edge's label does
   lx?: number; ly?: number;
