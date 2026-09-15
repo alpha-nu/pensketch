@@ -1,5 +1,70 @@
 # @pensketch/mcp
 
+## 0.12.0
+
+### Minor Changes
+
+- 093d499: One mistake draws one sentence. A number where an edge side belongs used to
+  draw two complaints — `from[1] must be string` and `from[1] must be one of
+"t", "b", "l", "r"` — because the slot fails its type and its enum at once.
+  The enum sentence subsumes the type one (nothing satisfies the list without
+  being a string), so the type line is dropped wherever an enum names the
+  same path. Only that exact pairing collapses: a type error on a path no
+  enum names, like a bare id slot or a whole tuple, keeps its voice, and the
+  tuple-level hint ("an edge end is [\"nodeId\", \"side\"]") is untouched.
+- c7e2aff: A clean report says `0 errors, 0 warnings` — the same sentence a dirty one
+  starts with — instead of `No findings.`. Two tools that alternate between
+  two spellings of the same answer teach a parser to branch on a special
+  case; one format parses uniformly whatever the outcome, and a tool result
+  is read by parsers more often than by people. Callers matching the old
+  string exactly should match the leading counts instead.
+- f29d5c9: Two new checker rules, both warnings, both born from a probe that drew a
+  defective picture and got "No findings." back.
+
+  `clipped-ink` is the near-miss band of `out-of-bounds`: every finding
+  measures ideal geometry, but ink is jittered around it — up to half the
+  wobble amplitude sideways, and a box's sides overrun their corners — so a
+  node that stops within the pen's own reach of the frame (5.3 px, read off
+  the constants that set it) draws strokes the frame clips while the ideal
+  box reads as inside. It measures the swept box, so a slab extruding into
+  the band is caught too, and a node already past the frame stays
+  `out-of-bounds` alone.
+
+  `brace-opens-away` reads direction where every other rule reads distance:
+  which side a brace's tip lands on is the sign of `depth`, so one cross
+  product tells whether the label sits with the tip or across the span from
+  it — a brace opening away from its own words is geometrically valid and
+  visually backwards. A label on the span itself takes no side.
+
+  `RuleId` grows by two; a `default` arm that ignores unknown ids reads this
+  release as it read the last one. `@pensketch/mcp` is named because its
+  findings output changes for diagrams these rules catch.
+
+- 02bf898: `touching-ink`, a warning under `node-overlap` the way `clipped-ink` sits
+  under `out-of-bounds`: the error measures ideal boxes, but a stroke lays
+  down a band about 4.2 px wide — `WIDTH` plus the `AMP` the jitter moves it
+  across, the same figure `HOP_GAP` has always been priced on — centred on a
+  side that itself wobbles. Two boxes clearing by less than that band can
+  have touching ink while the error stays rightly silent. Swept boxes are
+  measured, so a pair the flat render clears can extrude into the band.
+  `RuleId` grows to thirteen; a `default` arm reads this release as it read
+  the last.
+- 6726b4a: The server names its own build where a model can see it. `serverInfo` has
+  carried the version since the first release and most clients hide it, so a
+  probe suite spent eight fixed calls deducing which build served an endpoint
+  — stale deployments and live ones answer alike until something says which
+  they are. Two strings now say it: the `get_schema` description ("this build
+  is @pensketch/mcp x.y.z"), readable at discovery without a call, and the
+  refusal footer, so any rejected diagram identifies the build that rejected
+  it. Both are substituted at build time from the manifest; nothing new for
+  the version pin to maintain.
+
+### Patch Changes
+
+- Updated dependencies [f29d5c9]
+- Updated dependencies [02bf898]
+  - @pensketch/core@0.10.0
+
 ## 0.11.0
 
 ### Minor Changes

@@ -1,4 +1,4 @@
-import { createGuardedHandler } from 'npm:@pensketch/mcp@0.11.0/http';
+import { createGuardedHandler } from 'npm:@pensketch/mcp@0.12.0/http';
 
 // The Deno Deploy entrypoint: `deno serve` and Deno Deploy both take a default
 // export with a `fetch` on it, which is the shape `createGuardedHandler`
