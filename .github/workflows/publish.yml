@@ -253,6 +253,33 @@ jobs:
             exit 1
           fi
 
+          # The registry verifies ownership by fetching the *published*
+          # package, and npm serves a just-published version only after a
+          # finalization lag - measured at one to eight minutes across the
+          # three releases that each lost their first dispatch to exactly
+          # this race (0.11.0, 0.12.0, 0.13.0; the last finalized 12:20:22
+          # against a step that gave up at 12:18). So the fetch the registry
+          # is about to make is rehearsed here first, against npm itself,
+          # for up to ten minutes at fifteen-second intervals - past every
+          # lag observed, and forty cheap probes against a re-run somebody
+          # has to notice, time and dispatch by hand. `|| echo 000` because
+          # a transient network failure during the wait is a reason to keep
+          # waiting, not to fail a step whose work has not started.
+          npmAt="https://registry.npmjs.org/@pensketch%2fmcp/${version}"
+          ready=000
+          for attempt in $(seq 1 40); do
+            ready=$(curl -sS -o /dev/null -w '%{http_code}' "$npmAt" || echo 000)
+            if [ "$ready" = "200" ]; then break; fi
+            echo "npm answers ${ready} for @pensketch/mcp@${version}; waiting (${attempt}/40)"
+            sleep 15
+          done
+          if [ "$ready" != "200" ]; then
+            echo "::error::npm still answers ${ready} for @pensketch/mcp@${version} after ten minutes."
+            echo "The release itself is published and tagged; only the listing is"
+            echo "outstanding. Re-run this workflow once npm serves the version."
+            exit 1
+          fi
+
           curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" \
             | tar xz -C "$RUNNER_TEMP" mcp-publisher
 
