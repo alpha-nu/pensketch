@@ -963,3 +963,52 @@ export function check(diagram: Diagram, options: CheckOptions = {}): Finding[] {
       a.at[1] - b.at[1],
   );
 }
+
+/**
+ * Where each edge's drawn line begins and ends, resolved to numbers: one
+ * entry per edge, in `edges` order, each the two points the renderer will
+ * actually attach ink to. This is the arithmetic a caller who cannot see the
+ * picture needs in order to verify geometry without rendering it — is the
+ * label clear of the line, does the via corner sit where it was meant to —
+ * and it is exactly the arithmetic the library does on their behalf: a side's
+ * fraction walked, an extruded node's anchor carried onto the silhouette, a
+ * self-transition's two ends spread `span` apart along the side.
+ *
+ * The ends come off `edgePath`, the same line every rule here measures, so
+ * the numbers agree with the findings by construction. Hand it the `extrude`
+ * and `depth` the render will use, as `check` takes them, or the points are
+ * for a drawing you are not making. A bow's ends arrive through the arc's own
+ * trigonometry and can sit an ulp off the anchor; anyone printing these
+ * rounds anyway, and the serialized drawing itself carries two decimals.
+ *
+ * `null` where there is no drawn line to have ends: an edge naming a node the
+ * diagram does not define, an anchor fraction `draw` refuses, a loop whose
+ * ends disagree, a path that samples to nothing. `draw` throws on each by
+ * name, and a point invented for one here would be a number about no ink.
+ *
+ * @example
+ * ```js
+ * import { anchors } from '@pensketch/core/check';
+ *
+ * anchors(diagram, { extrude: true, depth: 12 });
+ * // [{ from: [212, 61], to: [387, 191] }, null, ...]
+ * ```
+ */
+export function anchors(
+  diagram: Diagram,
+  options: Pick<DrawOptions, 'extrude' | 'depth'> = {},
+): ({ from: Point; to: Point } | null)[] {
+  // First id wins, as `check`'s own map reads: `duplicate-id` is that rule's
+  // finding, and no other reader has to survive it twice.
+  const byId = new Map<string, DiagramNode>();
+  for (const n of diagram.nodes || []) if (!byId.has(n.id)) byId.set(n.id, n);
+  return (diagram.edges || []).map((e) => {
+    const path = edgePath(e, byId, options);
+    return path?.length
+      ? {
+          from: path[0] as Point,
+          to: path[path.length - 1] as Point,
+        }
+      : null;
+  });
+}

@@ -135,6 +135,57 @@ describe('check_diagram', () => {
     });
     expect(result.isError).toBe(true);
   });
+
+  // The numbers a caller with no picture verifies a layout against: worked
+  // out by hand, as check.test.ts works its own - 0.25 along `a`'s right
+  // side is (200, 70), carried by the extrusion vector (12, -9). The lines
+  // land under the findings, so the head keeps its one spelling and a parser
+  // that stops there is untouched.
+  it('appends the resolved anchors when asked, and only then', async () => {
+    const diagram = {
+      nodes: [
+        { id: 'a', shape: 'box', x: 40, y: 60, w: 160, h: 40 },
+        { id: 'b', shape: 'box', x: 300, y: 200, w: 100, h: 60 },
+      ],
+      edges: [
+        { from: ['a', 'r', 0.25], to: ['b', 't'] },
+        { from: ['a', 'r'], to: ['ghost', 'l'] },
+        // A fraction whose product is not exact in floats, so the two-decimal
+        // rounding below is exercised rather than coasted past.
+        { from: ['a', 'r', 0.333], to: ['b', 'l'] },
+      ],
+    };
+
+    const without = await callTool('check_diagram', { diagram });
+    expect(without.content[0]?.text).not.toContain('anchors:');
+
+    const result = await callTool('check_diagram', {
+      diagram,
+      anchors: true,
+      extrude: true,
+      depth: 12,
+    });
+    const text = result.content[0]?.text ?? '';
+    expect(text).toMatch(/^0 errors, 0 warnings\n/);
+    expect(text).toContain('anchors:');
+    expect(text).toContain(
+      'edge 0: from "a" r at (212, 61) to "b" t at (362, 191)',
+    );
+    // No rule reports the unknown node, and the listing must not silently
+    // renumber around it either.
+    expect(text).toContain('edge 1: no drawn line to resolve');
+    expect(text).toContain('edge 2: from "a" r at (212, 64.32)');
+  });
+
+  it('says plainly that there are no edges to resolve', async () => {
+    const result = await callTool('check_diagram', {
+      diagram: { nodes: [{ id: 'a', x: 0, y: 0, w: 10, h: 10 }] },
+      anchors: true,
+    });
+    expect(result.content[0]?.text).toContain(
+      'anchors: none - the diagram has no edges',
+    );
+  });
 });
 
 describe('render_diagram', () => {

@@ -534,6 +534,27 @@ depth's form and never its cost: `check` passes `depth: 20000` on a one-box
 diagram outright, where `draw` on the same diagram emits **1.2 MB** of
 markup.
 
+The same entry exports the numbers to verify a layout against without
+rendering it. `anchors(diagram, { extrude, depth })` returns, per edge in
+`edges` order, the two points its drawn line actually begins and ends at —
+a side fraction walked, an extruded anchor carried onto the silhouette, a
+self-transition's two ends spread `span` apart — and `null` where there is no
+drawn line to have ends: an unknown node, an anchor or a path `draw` refuses.
+You cannot see the picture, but you can do arithmetic on these: whether a
+label clears the line it names, whether a via corner sits where it was meant
+to.
+
+```js
+import { anchors } from '@pensketch/core/check';
+
+anchors(diagram, { extrude: true, depth: 12 });
+// [{ from: [212, 61], to: [387, 191] }, null, ...]
+```
+
+Over MCP, `check_diagram` takes `anchors: true` and appends the same numbers
+to its report, one line per edge, rounded to the two decimals the drawing
+itself is serialized at.
+
 Findings arrive sorted by severity, then rule, then position, so the array is
 stable enough to snapshot. `at` is a point in the diagram's own coordinates,
 the place to look. One kind of finding is about the **call** rather than about

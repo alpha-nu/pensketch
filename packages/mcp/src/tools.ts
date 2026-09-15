@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { animateMarkup } from '@pensketch/animation';
 import { constants } from '@pensketch/core';
-import { check } from '@pensketch/core/check';
+import { check, anchors as resolveAnchors } from '@pensketch/core/check';
 import { renderToString } from '@pensketch/core/server';
 import { z } from 'zod';
 
@@ -254,6 +254,41 @@ const report = (findings: Parameters<typeof line>[0][]) => {
 };
 
 /**
+ * The resolved end points of every edge, as one block of text under the
+ * findings: the arithmetic a caller who cannot see the picture needs in order
+ * to verify a layout - where a fraction landed, where an extruded anchor
+ * moved to, where a loop's two ends sit. One line per edge in `edges` order,
+ * rounded to the two decimals the drawing itself is serialized at, so the
+ * numbers here are the numbers in the markup rather than trigonometric noise
+ * an ulp off them. An edge with no drawn line to have ends - an unknown node,
+ * an anchor or a path `draw` refuses - says so in place, so the listing never
+ * silently renumbers.
+ */
+const anchorLines = (
+  diagram: Parameters<typeof check>[0],
+  extrude?: boolean,
+  depth?: number,
+): string => {
+  const edges = diagram.edges ?? [];
+  if (!edges.length) return 'anchors: none - the diagram has no edges';
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const at = ([x, y]: [number, number]) => `(${r2(x)}, ${r2(y)})`;
+  const ends = resolveAnchors(diagram, {
+    ...(extrude === undefined ? {} : { extrude }),
+    ...(depth === undefined ? {} : { depth }),
+  });
+  return [
+    'anchors:',
+    ...ends.map((a, i) => {
+      const e = edges[i];
+      return a && e
+        ? `edge ${i}: from "${e.from[0]}" ${e.from[1]} at ${at(a.from)} to "${e.to[0]}" ${e.to[1]} at ${at(a.to)}`
+        : `edge ${i}: no drawn line to resolve - it names an unknown node, or an anchor or path the renderer refuses`;
+    }),
+  ].join('\n');
+};
+
+/**
  * The findings for a drawing already made, as text, or a note that they could
  * not be taken.
  *
@@ -309,7 +344,7 @@ export function registerTools(server: McpServer): void {
       // on each because the default reads as false when absent (T-111,
       // owner-ruled 2026-08-26).
       annotations: { readOnlyHint: true },
-      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding - though where a hop breaks the very line a \`label-collision\` names, the finding stands and the sentence naming that edge does not - and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. \`render_diagram\` reports these same findings for the drawing it just made, so reach for this one when you want findings without markup, or before spending a \`render_png\` - stdio transport only; over HTTP there is no raster - on a diagram you have not checked.`,
+      description: `Reports what neither the types nor the schema can see: overlapping boxes, a label a connector will be drawn through, text too wide for its box, a node half out of its lane, a node no edge names, a depth the renderer would refuse. Draws nothing. ${TRAPS.coordinates} ${TRAPS.text} It takes extrude and depth, where it refuses hops: hops change no finding - though where a hop breaks the very line a \`label-collision\` names, the finding stands and the sentence naming that edge does not - and depth changes the geometry every finding measures - an extruded node is measured over the box its slab sweeps, so a slab that crosses the frame or its neighbour is reported here rather than seen in the picture. Pass the pair you will render with, or the findings are for a drawing you are not making. Pass \`anchors: true\` and the report ends with the numeric points every edge end resolved to - the arithmetic for verifying a layout you cannot look at. \`render_diagram\` reports these same findings for the drawing it just made, so reach for this one when you want findings without markup, or before spending a \`render_png\` - stdio transport only; over HTTP there is no raster - on a diagram you have not checked.`,
       inputSchema: z.strictObject(
         {
           diagram,
@@ -324,15 +359,21 @@ export function registerTools(server: McpServer): void {
             ),
           extrude,
           depth,
+          anchors: z
+            .boolean()
+            .optional()
+            .describe(
+              "Append the resolved end points of every edge to the report, one line each: the two points its drawn line actually begins and ends at - a side fraction walked, an extruded anchor carried onto the silhouette, a self-transition's ends spread span apart - rounded to the two decimals the drawing itself is serialized at. This is how to verify geometry arithmetically without seeing the picture. Default false, so the default report stays lean.",
+            ),
         },
         refuses(
           'check_diagram',
           'argument',
-          'a diagram and an optional viewBox, extrude and depth',
+          'a diagram and an optional viewBox, extrude, depth and anchors',
         ),
       ),
     },
-    async ({ diagram: d, viewBox: box, extrude, depth }) => {
+    async ({ diagram: d, viewBox: box, extrude, depth, anchors }) => {
       const refusal = refuseDiagram(d);
       if (refusal) return failed(refusal);
       try {
@@ -345,8 +386,14 @@ export function registerTools(server: McpServer): void {
           ...(extrude === undefined ? {} : { extrude }),
           ...(depth === undefined ? {} : { depth }),
         });
+        // Under the findings rather than woven into them: the head keeps its
+        // one spelling for every outcome, and a parser that stops at the
+        // findings is untouched by the block a caller asked for.
+        const text = anchors
+          ? `${report(findings)}\n${anchorLines(d as Parameters<typeof check>[0], extrude, depth)}`
+          : report(findings);
         return {
-          content: [{ type: 'text' as const, text: report(findings) }],
+          content: [{ type: 'text' as const, text }],
         };
       } catch (error) {
         return failed(error);

@@ -35,7 +35,7 @@ const ENTRIES = [
     // Everything else in the checker's API is a type, and types are erased
     // before this can see them. They are held to their contract by the suite,
     // which only typechecks while each one is exported.
-    surface: ['check'],
+    surface: ['anchors', 'check'],
   },
   {
     name: '@pensketch/core/server',

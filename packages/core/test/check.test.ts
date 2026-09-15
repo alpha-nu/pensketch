@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as subpath from '../src/check';
 import {
+  anchors,
   type CheckOptions,
   check,
   type RuleId,
@@ -32,8 +33,8 @@ describe('check', () => {
   // api.test.ts: a helper exported by accident is as much a breach as a
   // missing one, and only the package can take it back once it has shipped.
   // The built artifact is held to this same list by `npm run exports`.
-  it('exports exactly one runtime name', () => {
-    expect(Object.keys(subpath)).toEqual(['check']);
+  it('exports exactly two runtime names', () => {
+    expect(Object.keys(subpath).sort()).toEqual(['anchors', 'check']);
   });
 
   it('reports nothing about a diagram with nothing in it', () => {
@@ -2612,5 +2613,89 @@ describe('an empty lines array is not a label', () => {
         ),
       ),
     ).toEqual(['text-collision', 'text-overflow']);
+  });
+});
+
+// The other export of this entry: the two points each edge's drawn line
+// begins and ends at, which is the arithmetic a caller with no picture needs
+// in order to verify a layout. Every expectation is worked out by hand, as
+// geometry.test.ts works its anchors out, so a drift in which end reads which
+// number dies against a literal rather than against the code's own answer.
+describe('anchors', () => {
+  // 'a' right is (200, 80); 'b' top is (350, 200).
+  const NODES: DiagramNode[] = [
+    { id: 'a', shape: 'box', x: 40, y: 60, w: 160, h: 40 },
+    { id: 'b', shape: 'box', x: 300, y: 200, w: 100, h: 60 },
+  ];
+
+  it('resolves each edge to the points its drawn line begins and ends at', () => {
+    expect(
+      anchors({
+        nodes: NODES,
+        edges: [
+          { from: ['a', 'r'], to: ['b', 't'] },
+          // A via moves nothing here: corners are the caller's own numbers,
+          // and the ends are still the anchors.
+          { from: ['a', 'b'], to: ['b', 'l'], via: [[120, 230]] },
+        ],
+      }),
+    ).toEqual([
+      { from: [200, 80], to: [350, 200] },
+      { from: [120, 100], to: [300, 230] },
+    ]);
+  });
+
+  it('resolves the moved, fractional and loop anchors the renderer draws from', () => {
+    // By hand: 0.25 along `a`'s right side is (200, 70), carried by the
+    // extrusion vector (12, -9) to (212, 61); `b`'s top moves to (362, 191).
+    expect(
+      anchors(
+        {
+          nodes: NODES,
+          edges: [{ from: ['a', 'r', 0.25], to: ['b', 't'] }],
+        },
+        { extrude: true, depth: 12 },
+      ),
+    ).toEqual([{ from: [212, 61], to: [362, 191] }]);
+
+    // A loop's ends sit LOOP_SPAN / 2 = 20 either side of the side's
+    // midpoint - two distinct points from one named anchor, which is exactly
+    // what a caller cannot get from the data without this.
+    expect(
+      anchors({
+        nodes: NODES,
+        edges: [{ from: ['a', 'r'], to: ['a', 'r'] }],
+      }),
+    ).toEqual([{ from: [200, 60], to: [200, 100] }]);
+  });
+
+  it('rides the bow to within rounding of the anchors', () => {
+    const [end] = anchors({
+      nodes: NODES,
+      edges: [{ from: ['a', 'r'], to: ['b', 't'], bow: 40 }],
+    });
+    expect(end?.from[0]).toBeCloseTo(200);
+    expect(end?.from[1]).toBeCloseTo(80);
+    expect(end?.to[0]).toBeCloseTo(350);
+    expect(end?.to[1]).toBeCloseTo(200);
+  });
+
+  it('answers null in place where there is no drawn line to have ends', () => {
+    expect(
+      anchors({
+        nodes: NODES,
+        edges: [
+          { from: ['a', 'r'], to: ['ghost', 'l'] },
+          { from: ['a', 'r', 1.5], to: ['b', 't'] },
+          { from: ['a', 'r', 0.3], to: ['a', 'r', 0.7] },
+          { from: ['a', 'r'], to: ['b', 't'] },
+        ],
+      }),
+    ).toEqual([null, null, null, { from: [200, 80], to: [350, 200] }]);
+  });
+
+  it('answers one entry per edge, and none for none', () => {
+    expect(anchors({})).toEqual([]);
+    expect(anchors({ nodes: NODES })).toEqual([]);
   });
 });
