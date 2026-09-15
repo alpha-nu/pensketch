@@ -76,18 +76,19 @@ header.top {
    as documentation. */
 .lede { max-width: 76ch; }
 
-/* The way out to the source, riding every slide: fixed, muted until
-   wanted, and small enough that no drawing has to design around it. */
+/* The way out to the source, riding every slide: fixed to the middle of
+   the right edge, muted until wanted. */
 .github {
   position: fixed;
   right: 22px;
-  bottom: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 10;
   color: var(--ps-muted);
   opacity: 0.65;
 }
 .github:hover, .github:focus-visible { color: var(--ps-pen); opacity: 1; }
-.github svg { display: block; width: 26px; height: 26px; fill: currentColor; }
+.github svg { display: block; width: 39px; height: 39px; fill: currentColor; }
 
 header.top h1 {
   margin: 0 0 12px;
@@ -293,7 +294,7 @@ code .comment { color: var(--ps-muted); }
    the emphasis. */
 .scroll-cue {
   position: absolute;
-  bottom: 28px;
+  bottom: 48px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -301,20 +302,20 @@ code .comment { color: var(--ps-muted); }
   align-items: center;
 }
 .scroll-cue span {
-  width: 18px;
-  height: 18px;
-  border-right: 3px solid var(--ps-muted);
-  border-bottom: 3px solid var(--ps-muted);
+  width: 27px;
+  height: 27px;
+  border-right: 4.5px solid var(--ps-muted);
+  border-bottom: 4.5px solid var(--ps-muted);
   transform: rotate(45deg);
   animation: cue 2.6s ease-in-out infinite;
 }
-.scroll-cue span + span { margin-top: -12px; }
+.scroll-cue span + span { margin-top: -18px; }
 .scroll-cue span:nth-child(1) { --cue-k: 0.4; }
 .scroll-cue span:nth-child(2) { --cue-k: 0.65; animation-delay: 0.18s; }
 .scroll-cue span:nth-child(3) { --cue-k: 1; animation-delay: 0.36s; }
 @keyframes cue {
   0%, 100% { opacity: calc(0.12 * var(--cue-k, 1)); transform: translateY(0) rotate(45deg); }
-  50% { opacity: calc(0.72 * var(--cue-k, 1)); transform: translateY(5px) rotate(45deg); }
+  50% { opacity: calc(0.72 * var(--cue-k, 1)); transform: translateY(8px) rotate(45deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   .scroll-cue span { animation: none; opacity: calc(0.5 * var(--cue-k, 1)); }
