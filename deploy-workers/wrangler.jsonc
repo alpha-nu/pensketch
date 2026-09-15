@@ -6,8 +6,8 @@
   "name": "pensketch",
   "main": "worker.mjs",
   "compatibility_date": "2026-09-01",
-  // Empty admits nothing: the rebinding guard serves only the names it is
-  // given. The first deploy prints the workers.dev hostname - put it here
-  // and deploy again.
-  "vars": { "ALLOWED_HOSTS": "" }
+  // The rebinding guard serves only the names it is given - this is the
+  // deployed hostname, so a rename in the dashboard (the subdomain is
+  // account-wide) has to land here too or every request is refused 403.
+  "vars": { "ALLOWED_HOSTS": "pensketch.alpha-nu.workers.dev" }
 }
