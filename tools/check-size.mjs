@@ -193,9 +193,16 @@ const PACKAGES = [
     // is 4265, taken up to the next multiple of 64. The raise rides its
     // own commit ahead of the code that needs it, the depth change's 1.3
     // precedent.
+    //
+    // 4416 from 4288 for touching-ink, the overlap error's near-miss band,
+    // 2026-09-14 later the same day: the 4288 raise was priced on the two
+    // probe-E rules alone and this entry rehearses at 4299 with the third -
+    // 11 B past a budget taken this morning, which is what pricing to the
+    // named work and not to the day costs. 4299 plus the conventional 100
+    // is 4399, taken up to the next multiple of 64.
     name: '@pensketch/core/check',
     entry: 'packages/core/dist/check.js',
-    budget: 4288,
+    budget: 4416,
   },
   {
     // The renderer again, plus a DOM the size of what it touches. It carries
