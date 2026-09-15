@@ -1,5 +1,66 @@
 # @pensketch/core
 
+## 0.11.0
+
+### Minor Changes
+
+- c2e7e78: An edge end takes an optional third member: where along its side the anchor
+  sits, as a fraction. `["a", "r"]` still names the right side's midpoint —
+  byte-identical to every drawing already made — and `["a", "r", 0.25]` attaches
+  a quarter of the way along, `0` and `1` being the corners, so a corner anchor
+  is a fraction rather than a fifth side name. What it buys is fan-in and
+  fan-out: two arrows arriving at one side used to stack their heads on its
+  midpoint, and now each names its own point.
+
+  The fraction runs from the corner the box is written from, rides the whole
+  extrusion vector on a side that depth moves, and centres a self-transition's
+  loop — which is how two loops share one side, and why both ends must name the
+  same fraction. `draw` refuses anything outside `[0, 1]` naming the edge and
+  the end; the published schema carries the same bound, so a caller sending
+  JSON is refused at the boundary in the schema's own words. `check` measures
+  every rule from the fractional anchors, exactly as it measures from moved
+  ones.
+
+  `@pensketch/mcp` is named because the schema it publishes and precompiles
+  grew the third member, and its refusals now speak the fraction's bounds.
+
+- f85f10f: `@pensketch/core/check` exports a second name. `anchors(diagram, { extrude,
+depth })` returns, per edge, the two points its drawn line actually begins
+  and ends at - a side fraction walked, an extruded anchor carried onto the
+  silhouette, a self-transition's two ends spread `span` apart - and `null`
+  where there is no drawn line to have ends. The ends come off the same
+  `edgePath` every rule measures, so the numbers agree with the findings by
+  construction. A caller who cannot see the picture can now verify its
+  geometry by arithmetic instead of by faith.
+
+  Over MCP, `check_diagram` takes `anchors: true` and appends the same numbers
+  to its report, one line per edge in order, rounded to the two decimals the
+  drawing itself is serialized at; an edge with no line to resolve says so in
+  place, so the listing never silently renumbers. Off by default - the default
+  report's bytes are exactly what they were.
+
+- 4cdda2c: `order` takes a second value. `order: 'flow'` stamps the same `--ps-i`
+  numbers in a different order: instead of every shape and then every
+  connector, the count walks the graph - a start node with its label, each
+  edge it leaves by, the node that edge reaches, one branch to its end before
+  the next - so a flowchart draws itself in the order its story runs rather
+  than scenery first and plot after. Group frames still count first,
+  annotations still count last, and nothing in the document moves: the
+  z-order, the seeded sequence and the bytes of `order: true` are exactly
+  what they were.
+
+  The walk is deterministic by construction: roots are the nodes no edge
+  enters and at least one leaves - a self-transition counts as leaving, not
+  entering - in `nodes` order; the walk is depth-first with outgoing edges in
+  `edges` order; an edge into a node already drawn is stamped without
+  re-entering it; and whatever a cycle or an island keeps from the walk joins
+  where its declaration falls. Same data, same numbers, no geometry in any
+  tie.
+
+  Over MCP, `render_diagram` takes `sequence: "flow"` beside `animate`,
+  refuses it by name on a still drawing as it refuses the timing arguments,
+  and the animated account line says which order the file draws in.
+
 ## 0.10.0
 
 ### Minor Changes
