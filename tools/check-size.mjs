@@ -54,9 +54,20 @@ const PACKAGES = [
     // ride its phase - the animation feedback's three structural fixes
     // (docs/pensketch-feedback-animation-2.md), +130 B after a golf pass
     // took 55 back. 5570 + 100 = 5670, up to the next multiple of 64.
+    //
+    // 5888 from 5696 for the anchor fraction, 2026-09-14: an edge end takes
+    // an optional third member placing it along its side. Built and
+    // measured, not estimated - the fraction walk in `anchor`, the per-end
+    // refusal and the loop-centre rule in the edge pass land this entry at
+    // 5761, 65 past the budget, with all 700 tests green and the goldens
+    // byte-identical (w * 0.5 is w / 2 in IEEE). 5761 + 100 = 5861, up to
+    // the next multiple of 64. `./check` gains the same feature's guard in
+    // `edgePath` and lands at 4396 against its 4416 - 20 B free, ten times
+    // the measured noise, standing under the one rule at the head of this
+    // list until a rule of its own next needs room.
     name: '@pensketch/core',
     entry: 'packages/core/dist/index.js',
-    budget: 5696,
+    budget: 5888,
   },
   {
     // Its own entry and its own budget. The root entry measured 2562 B before
@@ -341,9 +352,13 @@ const PACKAGES = [
     // 5696 from 5440, with the root entry and for its reason: gestures,
     // lengths and labels-in-phase cost this copy 116 B. 5556 + 100 = 5656,
     // up to 5696.
+    //
+    // 5888 from 5696, with the root entry and for its reason: the bundled
+    // copy of the renderer pays the same fraction walk and the same
+    // refusals, measured at 5752. 5752 + 100 = 5852, up to 5888.
     name: '@pensketch/core/server',
     entry: 'packages/core/dist/server.js',
-    budget: 5696,
+    budget: 5888,
   },
   {
     name: '@pensketch/react',
