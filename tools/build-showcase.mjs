@@ -42,7 +42,7 @@ const ORDER = [
   [
     'pipeline',
     'A CI pipeline',
-    'What the extrusion is for: a flat drawing and a stack of slabs are the same data and one option apart.',
+    'What the extrusion is for: a flat drawing and a stack of slabs are the same data and one option apart. The one figure here drawn in flow order - it follows the story from the push instead of laying every box down first.',
   ],
   [
     'lifecycle',
@@ -237,20 +237,22 @@ if (orphans.length)
  * `order: true`, because these figures animate: it stamps the `--ps-i`
  * fraction the animation rules read, and `animateMarkup` puts those rules
  * inside each wrapper, where their implicit `@scope` binds to that drawing
- * alone. The page then holds every element paused until its figure scrolls
+ * alone. A diagram that names its own `order` keeps it - `'flow'` is a
+ * different animation, and overriding it here is the dropped-option failure
+ * the KNOWN tripwire above exists to prevent. The page then holds every element paused until its figure scrolls
  * into view - the gate and its reasons live beside the `.js` rule in the
  * stylesheet below. `label` goes on the wrapper as the accessible name,
  * which is where it belongs and not in the drawing.
  */
 const svgFor = ({ diagram, viewBox, options }, name) => {
   const [minX, minY, width, height] = viewBox;
-  const { seed, extrude, depth, hops } = options ?? {};
+  const { seed, extrude, depth, hops, order } = options ?? {};
   const inner = renderToString(diagram, {
     ...(seed === undefined ? {} : { seed }),
     ...(extrude === undefined ? {} : { extrude }),
     ...(depth === undefined ? {} : { depth }),
     ...(hops === undefined ? {} : { hops }),
-    order: true,
+    order: order ?? true,
   });
   // The data's own label where there is one - five of the eleven carry it -
   // and this page's title for the rest. A figure with no accessible name is
