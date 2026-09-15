@@ -67,19 +67,14 @@ if (!entry)
     `${SERVER_JSON} lists no npm package with identifier "@pensketch/mcp", so there is nothing for this tool to pin and nothing for a client to install.`,
   );
 
-// `deploy/main.ts` is here for the same reason the READMEs are: it names a
-// published version, and a version written by hand is a fact with a
-// release-long life. It imports `npm:@pensketch/mcp@<version>/http`, which the
-// pin below matches without disturbing the specifier around it.
-//
-// The showcase carries the install line too, twice over: the page that is
+// The showcase carries the install line twice over: the page that is
 // served and the generator that can rewrite it. Both are pinned, or a
 // regeneration after a release would resurrect the version the page had
-// just been corrected away from.
+// just been corrected away from. (`deploy/main.ts` was a fifth home until
+// the hosted deployment was retired with its account, 2026-09-15.)
 const FILES = [
   'README.md',
   'packages/mcp/README.md',
-  'deploy/main.ts',
   'docs/showcase/index.html',
   'tools/build-showcase.mjs',
 ];

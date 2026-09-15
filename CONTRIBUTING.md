@@ -86,8 +86,8 @@ root unless told otherwise.
   is the first thing held to them.
 - `npm run pin` - rewrites every version this repository states to someone
   installing the server, from the version `@pensketch/mcp` carries: the pin in
-  both READMEs, the deploy entrypoint, the showcase's install slide and the
-  generator behind it, and the two in `packages/mcp/server.json`, which is what
+  both READMEs, the showcase's install slide and the generator behind it, and
+  the two in `packages/mcp/server.json`, which is what
   `mcp-publisher` sends to the MCP registry. It also asserts that manifest's
   server name matches the `mcpName` in the package, the pair the registry
   checks to verify ownership. `git diff` must be clean afterwards. The pin is
@@ -166,107 +166,22 @@ and `--system-font` may well cover it.
 
 ## Deploying the HTTP server
 
-`deploy/main.ts` is the Deno Deploy entrypoint. It imports the **published**
-package rather than the workspace, so what runs there is what an npm consumer
-gets, and its version is a pin that `npm run pin` maintains — the same gate
-that holds every install line this repository states.
+There is currently no hosted deployment. The Deno Deploy app this section
+used to operate was suspended by its free tier and its account deleted
+(2026-09-15), and everything that served it went with it in one commit:
+`deploy/`, the `deploy`, `deploy:create` and `predeploy` scripts, the `deno`
+devDependency, and the deploy half of `npm run pin`. The operating knowledge
+that section carried - the console-stored entrypoint, the workspace-shadowing
+trap, the CLI's double-forwarding bug - lives in this file's history at that
+commit, where it can be read without being mistaken for instructions.
 
-Create the app once, from a terminal:
-
-```sh
-npm run deploy:create
-```
-
-An interactive wizard: organization, app name, source *local*, no framework
-preset, runtime mode *dynamic*. Run it from a real terminal — the browser
-login puts a token in the system keyring, and the wizard prompts for the
-rest. `node_modules` is excluded from the upload by default.
-
-`deploy/deno.json` carries the `org` and `app` the directory deploys to — a
-`deploy` block that exists is parsed as a complete one, coordinates included
-— and a `runtime` block that documents what the console must hold.
-Documents, not decides: a CLI deploy makes exactly one call,
-`apps.initiateCliRevision`, carrying the org, the app, the production flag
-and a file manifest, and the build then runs with the app's *stored*
-configuration. The entrypoint is therefore set once in the console — the
-app's build configuration, entrypoint `./main.ts`, runtime mode dynamic —
-and the local `runtime` block only keeps the repository honest about it.
-This was learned the hard way: the stored entrypoint was seeded at create
-time from a config that has since moved, and two deploys failed against the
-stale value while the uploaded `deno.json` said the right thing, because
-nothing in the revision protocol carries it. The docs' claim that source
-configuration takes precedence over the dashboard is not true of CLI
-revisions; it was read out of the CLI's own source.
-
-What is uploaded is `deploy/` alone, and that is load-bearing rather than
-tidy. Uploading the repository root was tried and failed in a way worth
-remembering: the root `package.json` declares `packages/*` as npm
-workspaces, and Deno resolves an `npm:` specifier to a matching workspace
-member in preference to the registry. The entrypoint's import of the
-published package silently became an import of `packages/mcp/dist/http.js`
-— build output the upload correctly excluded — and the build died with a
-module-not-found for a file the registry serves fine. With `deploy/` as the
-root there is no `package.json` above the entrypoint, so `npm:` can only
-mean npm.
-
-The script `cd`s into `deploy/` rather than passing the directory as the
-CLI's `[root-path]`, and that too was learned by failing: config discovery
-is anchored to the working directory, not the upload root. Scoping the
-upload by argument uploaded the right tree but sent the app's stored
-entrypoint — `./deploy/main.ts`, a path from before the move — because no
-config existed at the working directory to override it, and the build
-looked for a file the tar did not hold. Run from inside `deploy/`, the CLI
-finds `deno.json` and the upload root in the same place, which is the
-single-directory flow it is built around.
-
-Both scripts invoke `jsr:@deno/deploy` directly rather than through the
-`deno deploy` subcommand, and that is forced rather than chosen. On Deno
-2.9.6 the subcommand forwards everything after `deploy` twice, so any
-trailing token breaks it — a flag is refused as occurring twice, and even
-the bare wizard dies after its last prompt, because the duplicated `create`
-is consumed as the `[root-path]` positional:
-
-    deno deploy create
-    ✗ No such file or directory (os error 2): readdir 'create'
-
-Only the zero-argument `deno deploy` parses. Invoked directly, the same CLI
-receives its arguments once and all of them work — including the documented
-non-interactive mode (`DENO_DEPLOY_TOKEN` plus `--json --non-interactive`),
-so CI is not blocked, only the shim is. The version is pinned in the script
-because `deno.lock`, which would otherwise pin it, is not tracked.
-
-After each release:
-
-```sh
-npm run deploy
-```
-
-By hand rather than on push. The deployed bytes change only when the pinned
-version does, so a deploy per commit would republish identical output for every
-change to this repository, and the one event that matters — a release — is
-already a manual dispatch. The script passes `--prod`, because without it a
-revision lands in a non-production context — one whose environment variables
-are not Production's, so `ALLOWED_HOSTS` would be missing and the entrypoint
-would refuse to boot, by its own design.
-
-`deno` is a devDependency, so there is nothing to install globally; the
-deploy CLI is fetched from JSR at the version the scripts pin. Deno Deploy
-Classic and its `deployctl` were shut down on 2026-07-20 and are not what
-this uses.
-
-Set `ALLOWED_HOSTS` in the app's environment variables — in the Deno Deploy
-console, under the app's settings, applied to the Production context — to the
-hostname it answers on. Leaving it at the default means the rebinding guard
-answers 403 to every request, which reads as a broken server rather than a
-misconfigured one.
-
-`npm run deploy` refuses before uploading anything if the version pinned in
-`deploy/main.ts` is not on npm, or is on npm without a `./http` export. That
-is not hypothetical: the pin is derived from the manifest, which carries the
-*last released* version, so between adding the HTTP transport and releasing it
-the pin is correct by its own rule and names a tarball that cannot serve. The
-failure without this check is a module resolution error in a build log, on a
-hostname that then serves nothing.
+What remains is the portable half, and it is the whole point:
+`@pensketch/mcp/http` exports a web-standard `fetch` handler with no Node
+built-in in reach, and `npm run edge` holds it to that. Any worker runtime
+takes it with an adapter of a dozen lines - Cloudflare Workers is the
+measured front-runner for the next host, verified against `workerd` locally
+with byte-identical output - and nothing in core or the server changes when
+one is chosen.
 
 ## Releasing
 

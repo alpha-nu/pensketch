@@ -27,9 +27,6 @@
     "stdio": "node tools/check-stdio.mjs",
     "http": "node tools/check-http.mjs",
     "edge": "node tools/check-edge.mjs",
-    "predeploy": "node tools/check-deploy.mjs",
-    "deploy": "cd deploy && deno run -A jsr:@deno/deploy@0.0.9904 --prod",
-    "deploy:create": "deno run -A jsr:@deno/deploy@0.0.9904 create",
     "bump": "changeset version && npm run pin"
   },
   "devDependencies": {
@@ -41,7 +38,6 @@
     "@types/react-dom": "^19.2.4",
     "@vitest/coverage-v8": "^4.1.10",
     "ajv": "^8.20.0",
-    "deno": "^2.9.6",
     "esbuild": "0.27.7",
     "jsdom": "^27.0.1",
     "playwright-core": "^1.62.1",
