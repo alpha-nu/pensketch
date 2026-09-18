@@ -344,19 +344,27 @@ const star = (cx, cy, r, waist, per = 7) => {
 };
 
 /**
- * The mark the assistant is asked for by: the four-pointed star the
- * industry has settled on for "ask the model", drawn by the library this
- * page exists to show rather than imported as a font icon or copied off a
- * design system.
+ * The mark the assistant is asked for by, drawn by the library this page
+ * exists to show rather than imported as a font icon or copied off a design
+ * system.
+ *
+ * A speech bubble around the four-pointed star the industry has settled on
+ * for "ask the model", so the mark says both halves of what the control
+ * does instead of only the second. The bubble is a `rect` and a
+ * three-point tail: `rect` draws its four sides independently, each
+ * overshooting its corners, and that overshoot is the whole reason this
+ * reads as drawn rather than as a rounded div. The tail is left open at
+ * the top, because the bubble's own bottom edge closes it and two
+ * hand-drawn lines crossing is what a hand does.
  *
  * It is the same renderer, the same seeded sequence and the same default
  * theme as every figure below it, which is why it carries no colours of its
- * own: `defaultTheme` writes `var(--ps-pen, #2B5B8A)` into the stroke, so
- * the glyph follows the page into dark mode with nothing added here. A mark
- * for this page that was not drawn by this library would have been the one
- * picture on it making a claim the repository cannot back.
+ * own: the theme writes the `--ps-ink` and `--ps-pen` references into the
+ * strokes, so the glyph follows the page into dark mode with nothing added
+ * here. A mark for this page that was not drawn by this library would have
+ * been the one picture on it making a claim the repository cannot back.
  *
- * Wider and shakier than a figure would be drawn, deliberately: at 39px a
+ * Wider and shakier than a figure would be drawn, deliberately: at 40px a
  * 1.6px stroke with the default wobble resolves to a clean vector curve,
  * and the hand this page is selling disappears exactly where a reader first
  * meets it.
@@ -365,15 +373,24 @@ const SPARK_BODY = renderToString(
   {
     raw: [
       (pen) => {
-        pen.stroke(star(60, 41, 36, 0.1), {
+        pen.rect(8, 8, 84, 66, { color: defaultTheme.ink, width: 2.4 });
+        pen.stroke(
+          [
+            [30, 74],
+            [26, 92],
+            [50, 74],
+          ],
+          { color: defaultTheme.ink, width: 2.4, amplitude: 2.2 },
+        );
+        pen.stroke(star(55, 36.5, 18, 0.1), {
           color: defaultTheme.pen,
-          width: 3,
-          amplitude: 3.4,
+          width: 2.6,
+          amplitude: 2.94,
         });
-        pen.stroke(star(24, 77, 18, 0.1), {
+        pen.stroke(star(37, 54.5, 9, 0.1), {
           color: defaultTheme.pen,
-          width: 2.76,
-          amplitude: 2.38,
+          width: 2.39,
+          amplitude: 2.05,
         });
       },
     ],
@@ -752,7 +769,7 @@ code .comment { color: var(--ps-muted); }
 }
 .js .chat-launch { display: block; }
 .chat-launch:hover, .chat-launch:focus-visible { opacity: 1; }
-.chat-launch svg { display: block; width: 44px; height: 44px; }
+.chat-launch svg { display: block; width: 40px; height: 40px; }
 
 /* A native dialog opened modally, so the focus trap, the Esc key and the
    inertness of the deck behind it are the platform's rather than ours.
