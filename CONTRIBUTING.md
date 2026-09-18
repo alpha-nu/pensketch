@@ -46,14 +46,21 @@ root unless told otherwise.
   therefore stops the build until someone decides where it goes, which is the
   only way a generated page stays curated.
 
-  One value on that page comes from the environment rather than the
-  repository: `STEWARD_PK`, the assistant widget's publishable key, is read
-  at build time and written into the page, because the page is static and
-  nothing can set it at run time. The generator warns when it is unset and
-  builds anyway. The consequence for the clean-diff rule above is that the
-  committed page carries whatever key was set when it was last built, so
-  regenerate with the same value in the environment or expect that one line
-  to differ. The key is publishable by definition; a secret would not belong
+  One value on that page is not in the repository: `STEWARD_PK`, the
+  assistant widget's publishable key. The page is static, so nothing can
+  fetch it at run time, and it is filled in twice over. The generator reads
+  it from the environment, which is what makes a local build of the page
+  work; unset, it warns and builds anyway, leaving
+  `window.STEWARD_PK = ""`. The deployed page gets it from the `STEWARD_PK`
+  repository variable, substituted into the artefact by `pages.yml` on the
+  way to Pages rather than regenerated in, because that workflow deploys
+  the committed bytes.
+
+  So the committed page must carry the empty placeholder, and `pages.yml`
+  refuses to deploy one that does not. Do not commit a page you built with
+  the key in your environment: run `npm run showcase` without it before
+  committing, which is also what keeps the clean-diff rule above true for
+  everyone. The key is publishable by definition; a secret would not belong
   in a file this repository serves.
 - `npm run http` - spawns the built HTTP server the way a deployment spawns
   it and completes a real round trip over a socket: initialize, list the

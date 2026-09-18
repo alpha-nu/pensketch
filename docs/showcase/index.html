@@ -866,6 +866,13 @@ chat.addEventListener('click', (event) => {
 // `panel-shadow` - and the four `svg-grad-*` keys are what turn the
 // widget's own star from its brand gold to this page's pen.
 //
+// That check has to be run per component, which the first pass of it was
+// not: the widget nests a `<steward-input>` with its own shadow root and
+// its own stylesheet, and four of the names it reads are invisible from
+// the outer one. `signature-hover` and `focus-rgb` were dropped as inert
+// on the outer evidence and are live in there; `border-radius-sm` and
+// `on-signature` were never seen at all.
+//
 // Not everything reachable: a few inner shadows are written into the
 // widget's CSS with literal values and no token in front of them, and its
 // header carries a theme toggle this page does not want. Neither is
@@ -912,17 +919,25 @@ chat.addEventListener('click', (event) => {
       'text-secondary': muted,
       'header-text': muted,
       border: tok('--rule'),
-      // The pen, on everything the widget treats as its own colour.
+      // The pen, on everything the widget treats as its own colour. The
+      // hover holds the same hue rather than lightening it, as the marks
+      // on the rail do.
       signature,
+      'signature-hover': signature,
+      'on-signature': tok('--paper'),
       'user-bg': signature,
       'assistant-bg': wash,
       'halo-rgb': hexTriplet(signature),
+      'focus-rgb': hexTriplet(signature),
       'svg-grad-left-edge': signature,
       'svg-grad-left-mid': signature,
       'svg-grad-right-edge': signature,
       'svg-grad-right-mid': signature,
-      // One radius token for the whole widget, and the header's two.
+      // One radius token for the whole widget, the header's two, and the
+      // composer's, which is read by the nested input rather than the
+      // panel and would otherwise have kept the vendor's curve.
       'border-radius': '2px',
+      'border-radius-sm': '2px',
       'header-btn-radius': '2px',
       'header-group-radius': '2px',
       'font-family': 'Charter, "Iowan Old Style", Georgia, serif',
@@ -959,6 +974,59 @@ chat.addEventListener('click', (event) => {
   widget.addEventListener('steward-open-change', (event) => {
     if (!event.detail.open) dialog.close();
   });
+})();
+</script>
+<script>
+// A taller composer: four lines rather than one.
+//
+// This one is not a token. The textarea sits inside a nested
+// `<steward-input>` element with a shadow root of its own, so no override
+// names it and no CSS on this page reaches it. A stylesheet handed to that
+// root does reach it, which is the same door the widget's own palette goes
+// through.
+//
+// Adopted rather than appended as a `<style>`, which was the first attempt
+// and did nothing: the widget's own rule for the textarea is itself in an
+// adopted sheet, and adopted sheets are ordered after a shadow tree's own,
+// so theirs won the tie. Adopting after theirs wins it back without an
+// `!important` anywhere.
+//
+// It is also the one piece of this integration reaching past the supported
+// surface, and worth knowing as such: `textarea` is about the most stable
+// selector there is, but the bundle is served from a CDN and can change
+// without this repository hearing about it. The failure is quiet by
+// construction - a rule that matches nothing does nothing, and the composer
+// keeps the widget's own 40px floor.
+//
+// The numbers: it measured 44px of visible height, so four of it is 176.
+// The ceiling goes to 320 because the widget's own 120px maximum would
+// otherwise sit below the new floor, and a floor above a ceiling is a box
+// that cannot grow at all.
+(async () => {
+  await customElements.whenDefined('steward-chat');
+  const widget = document.querySelector('steward-chat');
+  const dialog = document.querySelector('.chat-scrim');
+  const styled = new WeakSet();
+
+  const styleComposer = async () => {
+    await widget.updateComplete;
+    const input = widget.shadowRoot?.querySelector('steward-input');
+    await input?.updateComplete;
+    const root = input?.shadowRoot;
+    if (!root || styled.has(root)) return;
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync('textarea { min-height: 176px; max-height: 320px; }');
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    styled.add(root);
+  };
+
+  // Re-applied on every open: the panel only exists while the widget is
+  // open, so closing it takes the nested input away and the next open
+  // builds a new one.
+  new MutationObserver(() => dialog.open && styleComposer()).observe(dialog, {
+    attributeFilter: ['open'],
+  });
+  if (dialog.open) styleComposer();
 })();
 </script>
 </body>

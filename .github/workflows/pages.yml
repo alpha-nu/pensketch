@@ -4,7 +4,9 @@ name: Pages
 #
 # It deploys what is committed, and nothing regenerates it. The page is
 # hand-maintained and independent of tools/build-showcase.mjs, so the
-# committed file is the artefact rather than a copy of one.
+# committed file is the artefact rather than a copy of one. One value is
+# substituted on the way past, the assistant's publishable key, which is not
+# in the repository to commit.
 #
 # That reasoning only holds if CI's verdict actually gates this, and the first
 # draft of this file claimed it did while triggering on `push` - a sibling of
@@ -62,6 +64,50 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - uses: actions/configure-pages@v6
+
+      # The assistant's publishable key, which is the one value the
+      # committed page cannot carry: it lives in a repository variable, and
+      # the page is static, so nothing can fetch it at run time.
+      #
+      # Substituted into the artefact rather than regenerated into it. This
+      # workflow deploys what is committed, and running the generator here
+      # would replace a hand-maintained page with generator output and
+      # resurrect whatever an owner edit removed. One line changes; the rest
+      # of the file is the committed bytes.
+      #
+      # Every step of it fails loudly, because the quiet versions are all
+      # worse than a red deploy: a page serving an empty key, a page whose
+      # placeholder moved and was silently not replaced, or a value carrying
+      # a quote or a `</script>` that ends the block early and takes the
+      # rest of the page with it. The character class is what makes the
+      # substitution safe to do with `sed` at all.
+      #
+      # It also requires the committed page to be keyless, which is the
+      # tripwire for someone building it locally with STEWARD_PK set and
+      # committing the result: the placeholder would already be filled and
+      # this step would refuse.
+      - name: Bake the publishable key
+        env:
+          STEWARD_PK: ${{ vars.STEWARD_PK }}
+        run: |
+          page=docs/showcase/index.html
+          grep -q 'window.STEWARD_PK = ""' "$page" || {
+            echo "::error::$page carries no empty STEWARD_PK placeholder to fill"
+            exit 1
+          }
+          [ -n "$STEWARD_PK" ] || {
+            echo "::error::the STEWARD_PK repository variable is empty, so the assistant would deploy unable to authenticate"
+            exit 1
+          }
+          case "$STEWARD_PK" in *[!A-Za-z0-9_.-]*)
+            echo "::error::STEWARD_PK holds characters that cannot be embedded in an inline script"
+            exit 1
+          esac
+          sed -i "s|window.STEWARD_PK = \"\"|window.STEWARD_PK = \"$STEWARD_PK\"|" "$page"
+          grep -q "window.STEWARD_PK = \"$STEWARD_PK\"" "$page" || {
+            echo "::error::the key substitution did not take"
+            exit 1
+          }
 
       # The directory, not the repository: the page is self-contained, so
       # nothing else needs to travel with it.
