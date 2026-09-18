@@ -23,6 +23,14 @@
   --ps-wash: rgba(43, 91, 138, .05);
   --serif: Charter, "Iowan Old Style", Georgia, serif;
   --mono: Menlo, ui-monospace, monospace;
+  /* The one colour on this page that is not from the palette, and
+     deliberately so: the chat scrim is not a palette role, it is a shade
+     cast over the deck, and it has to be dark in both themes. Mixed from
+     --ps-ink it would have been, in the dark theme, a light haze poured
+     over a dark page - a scrim that lightens is not a scrim. Warm rather
+     than neutral, so on the cream paper it reads as shade and not as
+     dirt. */
+  --scrim: rgba(30, 26, 20, .46);
 }
 
 /* The palette the repository's own examples already carry for a dark
@@ -38,6 +46,7 @@
     --ps-accent: #DB8570;
     --ps-muted: #93A0AD;
     --ps-wash: rgba(127, 169, 219, .07);
+    --scrim: rgba(3, 5, 8, .66);
   }
 }
 
@@ -319,6 +328,206 @@ code .comment { color: var(--ps-muted); }
 }
 @media (prefers-reduced-motion: reduce) {
   .scroll-cue span { animation: none; opacity: calc(0.5 * var(--cue-k, 1)); }
+}
+
+/* The assistant: a launcher, and the box a chat widget mounts into.
+
+   Two pieces and no more. The embed takes its size, its type and its
+   palette from the box, so all three are declared here and nothing about
+   the conversation is - what sits below the panel header is an empty
+   state, and the widget replaces it on mount. */
+
+/* The launcher rides the same right edge as the way out to the source, one
+   glyph below it. Both marks are 39px, so 65px between centres is one
+   glyph and a 26px gap, and the github CTA keeps the position it was given
+   rather than being shifted by a group that now has two members.
+   Script-gated, like the reveal: without script the dialog cannot open,
+   and a control that does nothing is worse than no control at all. */
+.chat-launch {
+  display: none;
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  transform: translateY(calc(-50% + 65px));
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ps-muted);
+  opacity: 0.65;
+  cursor: pointer;
+}
+.js .chat-launch { display: block; }
+.chat-launch:hover, .chat-launch:focus-visible { color: var(--ps-accent); opacity: 1; }
+.chat-launch svg { display: block; width: 39px; height: 39px; fill: currentColor; }
+
+/* A native dialog opened modally, so the focus trap, the Esc key and the
+   inertness of the deck behind it are the platform's rather than ours.
+
+   The dialog element is the scrim and the panel is its child, which looks
+   like one div too many until you try the obvious thing: a gradient on
+   ::backdrop needs the custom properties to inherit into it, that
+   inheritance only arrived in 2023, and where it has not landed the whole
+   declaration fails and the scrim disappears. Painted here it resolves
+   everywhere.
+
+   The scrim is a halo, not a blind. It holds full strength out to roughly
+   the panel's own edge and is gone before the corners, so the deck stays
+   visible as context instead of being switched off, and the panel gets its
+   separation from the darkest part of the gradient rather than from a
+   shadow this page does not use. The first draft put the peak at dead
+   centre, where the panel covers it, and spent the whole falloff on the
+   part a reader can see: a wide grey smear, weakest exactly where the edge
+   needed it. */
+.chat-scrim {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: radial-gradient(40rem 38rem at 50% 50%,
+    var(--scrim) 0%,
+    var(--scrim) 48%,
+    color-mix(in srgb, var(--scrim) 40%, transparent) 72%,
+    transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease, display 0.2s allow-discrete, overlay 0.2s allow-discrete;
+}
+.chat-scrim::backdrop { background: none; }
+/* `display` belongs to the open rule and to no other: a dialog is
+   display:none until it opens, and a bare `display: flex` on the element
+   overrides that and leaves the panel sitting on the page from load. */
+.chat-scrim[open] { display: flex; align-items: center; justify-content: center; opacity: 1; }
+/* The deck behind is scroll-snapped, and a mandatory snap left running
+   under a modal pulls the page out from under the reader on the first
+   wheel event. */
+html:has(.chat-scrim[open]) { overflow: hidden; }
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, calc(100vw - 44px));
+  height: min(680px, calc(100svh - 96px));
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ps-ink);
+  overflow: hidden;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+.chat-head h2 {
+  flex: 1;
+  margin: 0;
+  font: 400 12px/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ps-muted);
+}
+.chat-head .mark { display: block; width: 15px; height: 15px; fill: var(--ps-accent); }
+.chat-close {
+  display: block;
+  margin: -6px;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: var(--ps-muted);
+  opacity: 0.7;
+  cursor: pointer;
+}
+.chat-close:hover, .chat-close:focus-visible { color: var(--ps-accent); opacity: 1; }
+.chat-close svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+/* What the embed is handed: the rest of the panel as a column, its own
+   scroll, and the page's serif and palette to inherit. */
+.chat-mount {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  font: 400 16px/1.6 var(--serif);
+}
+
+/* The empty state: the widget's box at rest, with a line of invitation
+   where the conversation will be and a composer where the composer will
+   be, so the proportions read before there is anything to say. The bar is
+   a drawing of a control, not a control, and is hidden from anything that
+   would offer it as one. */
+.chat-idle { display: flex; flex-direction: column; height: 100%; }
+.chat-idle .greet {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+.chat-idle .greet svg { display: block; width: 34px; height: 34px; fill: var(--ps-accent); opacity: 0.5; }
+.chat-idle .greet p { max-width: 34ch; margin: 0; color: var(--ps-muted); }
+.chat-compose {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 18px 18px;
+  padding: 11px 11px 11px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--ps-wash);
+  color: var(--ps-muted);
+}
+.chat-compose .send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ps-accent);
+}
+.chat-compose .send svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.6;
+}
+
+/* On a phone the panel is the screen, less a margin wide enough to show
+   that something is behind it. */
+@media (max-width: 720px) {
+  .chat-panel { width: calc(100vw - 20px); height: calc(100svh - 40px); }
+}
+
+@starting-style {
+  .chat-scrim[open] { opacity: 0; }
+  .chat-scrim[open] .chat-panel { opacity: 0; transform: translateY(10px) scale(0.985); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-scrim, .chat-panel { transition-duration: 0.01s; }
+  .chat-scrim[open] .chat-panel { transform: none; }
 }
 </style>
 <script>document.documentElement.classList.add('js')</script>
@@ -654,6 +863,32 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 <a class="github" href="https://github.com/alpha-nu/pensketch" aria-label="pensketch on GitHub">
   <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
 </a>
+<button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch"><svg class="" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 .8 Q10.2 6 15.4 6.6 Q10.2 7.2 9.6 12.4 Q9 7.2 3.8 6.6 Q9 6 9.6 .8 Z M4.2 9.2 Q4.5 11.9 7.2 12.2 Q4.5 12.5 4.2 15.2 Q3.9 12.5 1.2 12.2 Q3.9 11.9 4.2 9.2 Z"/></svg></button>
+<dialog class="chat-scrim" aria-labelledby="chat-title">
+  <div class="chat-panel">
+    <header class="chat-head">
+      <svg class="mark" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 .8 Q10.2 6 15.4 6.6 Q10.2 7.2 9.6 12.4 Q9 7.2 3.8 6.6 Q9 6 9.6 .8 Z M4.2 9.2 Q4.5 11.9 7.2 12.2 Q4.5 12.5 4.2 15.2 Q3.9 12.5 1.2 12.2 Q3.9 11.9 4.2 9.2 Z"/></svg>
+      <h2 id="chat-title">Ask pensketch</h2>
+      <button class="chat-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4 L12 12 M12 4 L4 12" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <!-- Where the embed mounts. It inherits this box - size, surface, type
+         and palette - and replaces the empty state inside it. -->
+    <div class="chat-mount" id="pensketch-chat">
+      <div class="chat-idle">
+        <div class="greet">
+          <svg class="" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 .8 Q10.2 6 15.4 6.6 Q10.2 7.2 9.6 12.4 Q9 7.2 3.8 6.6 Q9 6 9.6 .8 Z M4.2 9.2 Q4.5 11.9 7.2 12.2 Q4.5 12.5 4.2 15.2 Q3.9 12.5 1.2 12.2 Q3.9 11.9 4.2 9.2 Z"/></svg>
+          <p>Ask about the data model, the draw options, or any figure on this page.</p>
+        </div>
+        <div class="chat-compose" aria-hidden="true">
+          <span>Message pensketch</span>
+          <span class="send"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12.6 L8 3.9 M4.3 7.6 L8 3.9 L11.7 7.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
 <script>
 // One-shot: a figure once seen stays seen, so scrolling back up never
 // resets a drawing to blank. Threshold 0 with a bottom margin rather than a
@@ -671,6 +906,22 @@ const seen = new IntersectionObserver(
   { rootMargin: '0px 0px -12% 0px' },
 );
 for (const fig of document.querySelectorAll('.fig')) seen.observe(fig);
+
+// The assistant. showModal() rather than an open attribute, because the
+// focus trap, the Esc key and the inertness of the deck behind the panel
+// all come with it and none of them is worth hand-writing. A click that
+// lands on the dialog itself landed on the scrim: the panel is what fills
+// the middle of it, and a click there stops at the panel.
+const chat = document.querySelector('.chat-scrim');
+document
+  .querySelector('.chat-launch')
+  .addEventListener('click', () => chat.showModal());
+chat
+  .querySelector('.chat-close')
+  .addEventListener('click', () => chat.close());
+chat.addEventListener('click', (event) => {
+  if (event.target === chat) chat.close();
+});
 </script>
 </body>
 </html>
