@@ -332,13 +332,18 @@ code .comment { color: var(--ps-muted); }
 
 /* The assistant: a launcher, and the box a chat widget mounts into.
 
-   Two pieces and no more. The embed takes its size, its type and its
-   palette from the box, so all three are declared here and nothing about
-   the conversation is - what sits below the panel header is an empty
-   state, and the widget replaces it on mount. */
+   Two pieces and no more. The embed takes its size, its surface, its type
+   and its palette from the box, so those are declared here and nothing
+   else is. Below the panel header this page draws nothing at all: the
+   widget is the chat surface, and a drawn imitation of one would only be
+   something to delete on the day it arrives.
+
+   The marks on this rail are the page's, not a vendor's, so they take the
+   pen rather than the accent. The accent numbers the figures; the pen is
+   what every link on this page is already drawn in. */
 
 /* The launcher rides the same right edge as the way out to the source, one
-   glyph below it. Both marks are 39px, so 65px between centres is one
+   glyph above it. Both marks are 39px, so 65px between centres is one
    glyph and a 26px gap, and the github CTA keeps the position it was given
    rather than being shifted by a group that now has two members.
    Script-gated, like the reveal: without script the dialog cannot open,
@@ -348,7 +353,7 @@ code .comment { color: var(--ps-muted); }
   position: fixed;
   right: 22px;
   top: 50%;
-  transform: translateY(calc(-50% + 65px));
+  transform: translateY(calc(-50% - 65px));
   z-index: 10;
   margin: 0;
   padding: 0;
@@ -359,7 +364,7 @@ code .comment { color: var(--ps-muted); }
   cursor: pointer;
 }
 .js .chat-launch { display: block; }
-.chat-launch:hover, .chat-launch:focus-visible { color: var(--ps-accent); opacity: 1; }
+.chat-launch:hover, .chat-launch:focus-visible { color: var(--ps-pen); opacity: 1; }
 .chat-launch svg { display: block; width: 39px; height: 39px; fill: currentColor; }
 
 /* A native dialog opened modally, so the focus trap, the Esc key and the
@@ -435,7 +440,7 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   text-transform: uppercase;
   color: var(--ps-muted);
 }
-.chat-head .mark { display: block; width: 15px; height: 15px; fill: var(--ps-accent); }
+.chat-head .mark { display: block; width: 15px; height: 15px; fill: var(--ps-pen); }
 .chat-close {
   display: block;
   margin: -6px;
@@ -446,7 +451,7 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   opacity: 0.7;
   cursor: pointer;
 }
-.chat-close:hover, .chat-close:focus-visible { color: var(--ps-accent); opacity: 1; }
+.chat-close:hover, .chat-close:focus-visible { color: var(--ps-pen); opacity: 1; }
 .chat-close svg {
   display: block;
   width: 15px;
@@ -456,8 +461,11 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   stroke-width: 1.5;
 }
 
-/* What the embed is handed: the rest of the panel as a column, its own
-   scroll, and the page's serif and palette to inherit. */
+/* What the embed is handed, and the whole of it: the rest of the panel as
+   a column, a scroll of its own, and the page's serif and palette to
+   inherit. It is empty on purpose. The widget is the chat surface, and a
+   drawn one here would be a second thing to keep in step with it until the
+   day it was deleted. */
 .chat-mount {
   display: flex;
   flex-direction: column;
@@ -465,54 +473,6 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   min-height: 0;
   overflow: hidden;
   font: 400 16px/1.6 var(--serif);
-}
-
-/* The empty state: the widget's box at rest, with a line of invitation
-   where the conversation will be and a composer where the composer will
-   be, so the proportions read before there is anything to say. The bar is
-   a drawing of a control, not a control, and is hidden from anything that
-   would offer it as one. */
-.chat-idle { display: flex; flex-direction: column; height: 100%; }
-.chat-idle .greet {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px;
-  text-align: center;
-}
-.chat-idle .greet svg { display: block; width: 34px; height: 34px; fill: var(--ps-accent); opacity: 0.5; }
-.chat-idle .greet p { max-width: 34ch; margin: 0; color: var(--ps-muted); }
-.chat-compose {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 18px 18px;
-  padding: 11px 11px 11px 16px;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  background: var(--ps-wash);
-  color: var(--ps-muted);
-}
-.chat-compose .send {
-  display: grid;
-  flex: none;
-  place-items: center;
-  margin-left: auto;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--ps-accent);
-}
-.chat-compose .send svg {
-  display: block;
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: var(--paper);
-  stroke-width: 1.6;
 }
 
 /* On a phone the panel is the screen, less a margin wide enough to show
@@ -873,20 +833,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4 L12 12 M12 4 L4 12" stroke-linecap="round"/></svg>
       </button>
     </header>
-    <!-- Where the embed mounts. It inherits this box - size, surface, type
-         and palette - and replaces the empty state inside it. -->
-    <div class="chat-mount" id="pensketch-chat">
-      <div class="chat-idle">
-        <div class="greet">
-          <svg class="" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 .8 Q10.2 6 15.4 6.6 Q10.2 7.2 9.6 12.4 Q9 7.2 3.8 6.6 Q9 6 9.6 .8 Z M4.2 9.2 Q4.5 11.9 7.2 12.2 Q4.5 12.5 4.2 15.2 Q3.9 12.5 1.2 12.2 Q3.9 11.9 4.2 9.2 Z"/></svg>
-          <p>Ask about the data model, the draw options, or any figure on this page.</p>
-        </div>
-        <div class="chat-compose" aria-hidden="true">
-          <span>Message pensketch</span>
-          <span class="send"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12.6 L8 3.9 M4.3 7.6 L8 3.9 L11.7 7.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </div>
-      </div>
-    </div>
+    <!-- Where the embed mounts, and empty until it does. It inherits this
+         box: size, surface, type and palette. -->
+    <div class="chat-mount" id="pensketch-chat"></div>
   </div>
 </dialog>
 <script>
