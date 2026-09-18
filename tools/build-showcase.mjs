@@ -431,8 +431,7 @@ const SPARK_BODY = renderToString(
   { seed: 3 },
 );
 
-const SPARK = (cls) =>
-  `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true">${SPARK_BODY}</svg>`;
+const SPARK = `<svg viewBox="0 0 100 100" aria-hidden="true">${SPARK_BODY}</svg>`;
 
 const page = `<!doctype html>
 <html lang="en">
@@ -848,6 +847,15 @@ code .comment { color: var(--ps-muted); }
    wheel event. */
 html:has(.chat-scrim[open]) { overflow: hidden; }
 
+/* The container, and everything this page has to say about the assistant:
+   a box of a stated size, on the page's surface, in the page's type and
+   palette. It has no header and no close control because the widget draws
+   its own, and it has no drawn chat surface because the widget *is* the
+   chat surface. There was a panel and a mount inside it until the chrome
+   came off; with nothing between them they were one box described twice.
+
+   Esc and a click on the scrim close it. Both are the dialog's, and both
+   work with nothing focusable inside. */
 .chat-panel {
   display: flex;
   flex-direction: column;
@@ -857,59 +865,11 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   border-radius: 2px;
   background: var(--paper);
   color: var(--ps-ink);
+  font: 400 16px/1.6 var(--serif);
   overflow: hidden;
   opacity: 1;
   transform: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.chat-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--rule);
-}
-.chat-head h2 {
-  flex: 1;
-  margin: 0;
-  font: 400 12px/1 var(--mono);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--ps-muted);
-}
-.chat-head .mark { display: block; width: 19px; height: 19px; }
-.chat-close {
-  display: block;
-  margin: -6px;
-  padding: 6px;
-  border: 0;
-  background: none;
-  color: var(--ps-muted);
-  opacity: 0.7;
-  cursor: pointer;
-}
-.chat-close:hover, .chat-close:focus-visible { color: var(--ps-pen); opacity: 1; }
-.chat-close svg {
-  display: block;
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-}
-
-/* What the embed is handed, and the whole of it: the rest of the panel as
-   a column, a scroll of its own, and the page's serif and palette to
-   inherit. It is empty on purpose. The widget is the chat surface, and a
-   drawn one here would be a second thing to keep in step with it until the
-   day it was deleted. */
-.chat-mount {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  font: 400 16px/1.6 var(--serif);
 }
 
 /* On a phone the panel is the screen, less a margin wide enough to show
@@ -976,20 +936,11 @@ ${figures}
 <a class="github" href="https://github.com/alpha-nu/pensketch" aria-label="pensketch on GitHub">
   <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
 </a>
-<button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch">${SPARK('')}</button>
-<dialog class="chat-scrim" aria-labelledby="chat-title">
-  <div class="chat-panel">
-    <header class="chat-head">
-      ${SPARK('mark')}
-      <h2 id="chat-title">Ask pensketch</h2>
-      <button class="chat-close" type="button" aria-label="Close">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4 L12 12 M12 4 L4 12" stroke-linecap="round"/></svg>
-      </button>
-    </header>
-    <!-- Where the embed mounts, and empty until it does. It inherits this
-         box: size, surface, type and palette. -->
-    <div class="chat-mount" id="pensketch-chat"></div>
-  </div>
+<button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch">${SPARK}</button>
+<dialog class="chat-scrim" aria-label="Ask pensketch">
+  <!-- Where the embed mounts, and empty until it does. It inherits this
+       box: size, surface, type and palette. -->
+  <div class="chat-panel" id="pensketch-chat"></div>
 </dialog>
 <script>
 // One-shot: a figure once seen stays seen, so scrolling back up never
@@ -1011,16 +962,17 @@ for (const fig of document.querySelectorAll('.fig')) seen.observe(fig);
 
 // The assistant. showModal() rather than an open attribute, because the
 // focus trap, the Esc key and the inertness of the deck behind the panel
-// all come with it and none of them is worth hand-writing. A click that
-// lands on the dialog itself landed on the scrim: the panel is what fills
-// the middle of it, and a click there stops at the panel.
+// all come with it and none of them is worth hand-writing. With nothing
+// focusable inside, focus lands on the dialog itself, which is what keeps
+// Esc working - so the container needs no close control of its own until
+// the widget brings one.
+//
+// A click that lands on the dialog itself landed on the scrim: the panel
+// is what fills the middle of it, and a click there stops at the panel.
 const chat = document.querySelector('.chat-scrim');
 document
   .querySelector('.chat-launch')
   .addEventListener('click', () => chat.showModal());
-chat
-  .querySelector('.chat-close')
-  .addEventListener('click', () => chat.close());
 chat.addEventListener('click', (event) => {
   if (event.target === chat) chat.close();
 });

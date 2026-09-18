@@ -412,6 +412,15 @@ code .comment { color: var(--ps-muted); }
    wheel event. */
 html:has(.chat-scrim[open]) { overflow: hidden; }
 
+/* The container, and everything this page has to say about the assistant:
+   a box of a stated size, on the page's surface, in the page's type and
+   palette. It has no header and no close control because the widget draws
+   its own, and it has no drawn chat surface because the widget *is* the
+   chat surface. There was a panel and a mount inside it until the chrome
+   came off; with nothing between them they were one box described twice.
+
+   Esc and a click on the scrim close it. Both are the dialog's, and both
+   work with nothing focusable inside. */
 .chat-panel {
   display: flex;
   flex-direction: column;
@@ -421,59 +430,11 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   border-radius: 2px;
   background: var(--paper);
   color: var(--ps-ink);
+  font: 400 16px/1.6 var(--serif);
   overflow: hidden;
   opacity: 1;
   transform: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.chat-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--rule);
-}
-.chat-head h2 {
-  flex: 1;
-  margin: 0;
-  font: 400 12px/1 var(--mono);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--ps-muted);
-}
-.chat-head .mark { display: block; width: 19px; height: 19px; }
-.chat-close {
-  display: block;
-  margin: -6px;
-  padding: 6px;
-  border: 0;
-  background: none;
-  color: var(--ps-muted);
-  opacity: 0.7;
-  cursor: pointer;
-}
-.chat-close:hover, .chat-close:focus-visible { color: var(--ps-pen); opacity: 1; }
-.chat-close svg {
-  display: block;
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-}
-
-/* What the embed is handed, and the whole of it: the rest of the panel as
-   a column, a scroll of its own, and the page's serif and palette to
-   inherit. It is empty on purpose. The widget is the chat surface, and a
-   drawn one here would be a second thing to keep in step with it until the
-   day it was deleted. */
-.chat-mount {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  font: 400 16px/1.6 var(--serif);
 }
 
 /* On a phone the panel is the screen, less a margin wide enough to show
@@ -824,20 +785,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 <a class="github" href="https://github.com/alpha-nu/pensketch" aria-label="pensketch on GitHub">
   <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
 </a>
-<button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch"><svg class="" viewBox="0 0 100 100" aria-hidden="true"><path d="M5.57 6.8 L34.89 6.89 L65.68 7.95 L94.99 7.65" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M4.38 8.14 L34.21 6.92 L65.56 7.94 L95.31 8.39" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M91.54 5.5 L91.45 29.45 L92.07 53.86 L92.04 76.49" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M92.98 4.51 L93.14 29.7 L91.79 53.56 L91.64 76.86" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M95.58 72.7 L71.22 73.94 L50.38 74.11 L38.47 83.74 L26.09 92.09" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M93.88 73.67 L72.58 74.88 L49.91 73.96 L37.99 83.18 L26.29 92.37" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M26.43 91.67 L28.49 83.52 L29.96 74.5 L18.49 74.55 L5.18 74.47" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M26.69 90.85 L26.87 83.1 L30.38 73.84 L17.6 73.45 L4.96 74.05" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M8.2 76.72 L8.67 52.15 L9.18 29.37 L8.26 5.28" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M6.86 76.77 L7.1 53.5 L8.71 29.32 L8.51 5.51" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M56.41 18.74 L56.54 21.99 L56.18 22.62 L56.88 26.01 L57.08 26.7 L57.14 28.55 L59.24 29.45 L61.59 29.7 L62.17 31.83 L63.12 34.45 L64.36 34.5 L65.63 34.37 L69.25 35.72 L69.89 34.64 L72.6 36.67 L71.22 37.87 L68.89 37.67 L65.69 37.1 L64.48 38.83 L63.85 39.92 L62.03 40.47 L61.8 40.78 L59.73 42.9 L57.85 44.83 L57.13 46.48 L55.85 48.79 L55.23 50.12 L56.23 51.85 L54.94 54.35 L56.03 51.09 L53.73 49.79 L52.4 49.37 L53.11 46.82 L51.47 43.56 L50.62 42.98 L48.45 40.88 L48.14 40.37 L45.25 39.83 L45.04 38.57 L44.56 39.17 L41.81 37.06 L38.65 36.26 L36.65 36.81 L37.73 35.2 L41.19 36.26 L42.65 35.19 L44.69 34.41 L47.58 31.9 L48.81 32.09 L48.31 29.6 L50.79 29.95 L52.88 28.28 L52.88 27.02 L53.88 25.8 L54.62 22.95 L53.9 20.89 L55.54 18.52" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.6"/><path d="M54.12 17.52 L55.56 19.82 L55.95 23.26 L55.56 25.61 L57.4 26.37 L57.41 29.38 L59.46 29.68 L61.61 30.79 L62.14 32.25 L62.89 34.12 L64.78 34.5 L65.98 35.77 L68.61 35.91 L72.1 37.21 L73.41 36.38 L69.99 35.61 L68.32 37.52 L67.21 39.34 L64.64 38.96 L62.63 40.76 L61.45 40.65 L60.87 42.97 L59.52 42.76 L59.21 44.05 L57.67 46.84 L57.13 48.96 L55.71 49.66 L54.62 52.58 L55.05 54.54 L54.94 51.05 L54.66 50.4 L53.81 49.29 L53.31 46.98 L53.24 45.85 L50.26 43.18 L49.65 40.79 L48.34 40.78 L47.68 40.42 L44.78 38.77 L43.28 37.02 L40.86 37.14 L39.89 36.37 L36.87 36.6 L39.21 35.09 L40.84 35.56 L41.85 34.49 L44.63 34.1 L46.28 34.1 L48.13 32.58 L49.41 32.48 L51.34 29.92 L52.7 29 L53.15 26.9 L53.31 26.08 L53.93 22.68 L54.22 20.01 L55.31 18.85" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.95"/><path d="M36.8 45.6 L36.99 46.4 L37.03 47.48 L37.63 49.15 L38.28 49.89 L38.62 49.47 L39.32 50.87 L39.73 51.68 L40.47 52.44 L41.41 52.29 L42.24 53.26 L42.56 54.19 L43.5 53.91 L45.66 53.86 L46.29 54.4 L45.05 53.7 L43.53 54.61 L42.78 55.63 L41.59 55.41 L41.48 56.67 L40.26 56.42 L39.27 56.34 L38.69 57.75 L39.52 58.22 L37.73 59.16 L37.14 60.72 L37.43 61.07 L37.26 61.69 L36.63 63.16 L35.79 62.25 L36.85 60.99 L36.5 59.72 L36.13 59.19 L34.54 59.37 L34.8 57.74 L35.01 57.95 L33.87 56.45 L33.22 56.66 L31.79 55.4 L32.07 55.52 L30.45 55.07 L28.89 55.05 L27.95 54.34 L28.56 55.08 L30.23 53.73 L30.32 53.65 L32.2 53.56 L32.68 53.38 L33.39 52.63 L34.1 50.76 L35.14 50.83 L35.47 51.11 L35.94 49.49 L36.24 49.61 L36.51 47.37 L36.64 45.94 L36.62 45.57" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.39"/><path d="M36.13 45.79 L36.39 46.87 L37.35 47.8 L37.71 48.43 L38.12 49.72 L39.45 49.4 L38.82 51.32 L39.62 51.57 L40.41 52.37 L41.28 53.61 L41.64 53.68 L43.01 53.09 L44.15 54.48 L45.43 54.26 L46.04 54.28 L44.61 53.99 L43.55 54.97 L43.15 55.95 L42.24 55.27 L41.63 56.03 L40.24 56.27 L39.83 57.98 L39.05 57.86 L37.71 59.51 L38.29 59.75 L37.53 60.25 L37.47 61.68 L36.44 62.56 L37.05 63.23 L36.32 63.02 L36.6 61.17 L37.25 59.99 L36.25 59.15 L36.13 57.85 L34.91 57.63 L33.34 56.57 L33.47 56.3 L32.43 56.52 L31.89 55.48 L30.93 55.91 L29.91 55.28 L28.71 55.23 L28.02 54.69 L29.94 54.67 L30.44 53.92 L32 54.23 L32.15 53.49 L33.42 51.98 L33.8 52.51 L34.73 50.75 L34.83 51.02 L35.81 50.64 L35.6 49.69 L36.2 48.43 L36.52 47.28 L37.81 46.14 L36.88 45.73" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.79"/></svg></button>
-<dialog class="chat-scrim" aria-labelledby="chat-title">
-  <div class="chat-panel">
-    <header class="chat-head">
-      <svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><path d="M5.57 6.8 L34.89 6.89 L65.68 7.95 L94.99 7.65" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M4.38 8.14 L34.21 6.92 L65.56 7.94 L95.31 8.39" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M91.54 5.5 L91.45 29.45 L92.07 53.86 L92.04 76.49" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M92.98 4.51 L93.14 29.7 L91.79 53.56 L91.64 76.86" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M95.58 72.7 L71.22 73.94 L50.38 74.11 L38.47 83.74 L26.09 92.09" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M93.88 73.67 L72.58 74.88 L49.91 73.96 L37.99 83.18 L26.29 92.37" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M26.43 91.67 L28.49 83.52 L29.96 74.5 L18.49 74.55 L5.18 74.47" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M26.69 90.85 L26.87 83.1 L30.38 73.84 L17.6 73.45 L4.96 74.05" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M8.2 76.72 L8.67 52.15 L9.18 29.37 L8.26 5.28" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M6.86 76.77 L7.1 53.5 L8.71 29.32 L8.51 5.51" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M56.41 18.74 L56.54 21.99 L56.18 22.62 L56.88 26.01 L57.08 26.7 L57.14 28.55 L59.24 29.45 L61.59 29.7 L62.17 31.83 L63.12 34.45 L64.36 34.5 L65.63 34.37 L69.25 35.72 L69.89 34.64 L72.6 36.67 L71.22 37.87 L68.89 37.67 L65.69 37.1 L64.48 38.83 L63.85 39.92 L62.03 40.47 L61.8 40.78 L59.73 42.9 L57.85 44.83 L57.13 46.48 L55.85 48.79 L55.23 50.12 L56.23 51.85 L54.94 54.35 L56.03 51.09 L53.73 49.79 L52.4 49.37 L53.11 46.82 L51.47 43.56 L50.62 42.98 L48.45 40.88 L48.14 40.37 L45.25 39.83 L45.04 38.57 L44.56 39.17 L41.81 37.06 L38.65 36.26 L36.65 36.81 L37.73 35.2 L41.19 36.26 L42.65 35.19 L44.69 34.41 L47.58 31.9 L48.81 32.09 L48.31 29.6 L50.79 29.95 L52.88 28.28 L52.88 27.02 L53.88 25.8 L54.62 22.95 L53.9 20.89 L55.54 18.52" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.6"/><path d="M54.12 17.52 L55.56 19.82 L55.95 23.26 L55.56 25.61 L57.4 26.37 L57.41 29.38 L59.46 29.68 L61.61 30.79 L62.14 32.25 L62.89 34.12 L64.78 34.5 L65.98 35.77 L68.61 35.91 L72.1 37.21 L73.41 36.38 L69.99 35.61 L68.32 37.52 L67.21 39.34 L64.64 38.96 L62.63 40.76 L61.45 40.65 L60.87 42.97 L59.52 42.76 L59.21 44.05 L57.67 46.84 L57.13 48.96 L55.71 49.66 L54.62 52.58 L55.05 54.54 L54.94 51.05 L54.66 50.4 L53.81 49.29 L53.31 46.98 L53.24 45.85 L50.26 43.18 L49.65 40.79 L48.34 40.78 L47.68 40.42 L44.78 38.77 L43.28 37.02 L40.86 37.14 L39.89 36.37 L36.87 36.6 L39.21 35.09 L40.84 35.56 L41.85 34.49 L44.63 34.1 L46.28 34.1 L48.13 32.58 L49.41 32.48 L51.34 29.92 L52.7 29 L53.15 26.9 L53.31 26.08 L53.93 22.68 L54.22 20.01 L55.31 18.85" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.95"/><path d="M36.8 45.6 L36.99 46.4 L37.03 47.48 L37.63 49.15 L38.28 49.89 L38.62 49.47 L39.32 50.87 L39.73 51.68 L40.47 52.44 L41.41 52.29 L42.24 53.26 L42.56 54.19 L43.5 53.91 L45.66 53.86 L46.29 54.4 L45.05 53.7 L43.53 54.61 L42.78 55.63 L41.59 55.41 L41.48 56.67 L40.26 56.42 L39.27 56.34 L38.69 57.75 L39.52 58.22 L37.73 59.16 L37.14 60.72 L37.43 61.07 L37.26 61.69 L36.63 63.16 L35.79 62.25 L36.85 60.99 L36.5 59.72 L36.13 59.19 L34.54 59.37 L34.8 57.74 L35.01 57.95 L33.87 56.45 L33.22 56.66 L31.79 55.4 L32.07 55.52 L30.45 55.07 L28.89 55.05 L27.95 54.34 L28.56 55.08 L30.23 53.73 L30.32 53.65 L32.2 53.56 L32.68 53.38 L33.39 52.63 L34.1 50.76 L35.14 50.83 L35.47 51.11 L35.94 49.49 L36.24 49.61 L36.51 47.37 L36.64 45.94 L36.62 45.57" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.39"/><path d="M36.13 45.79 L36.39 46.87 L37.35 47.8 L37.71 48.43 L38.12 49.72 L39.45 49.4 L38.82 51.32 L39.62 51.57 L40.41 52.37 L41.28 53.61 L41.64 53.68 L43.01 53.09 L44.15 54.48 L45.43 54.26 L46.04 54.28 L44.61 53.99 L43.55 54.97 L43.15 55.95 L42.24 55.27 L41.63 56.03 L40.24 56.27 L39.83 57.98 L39.05 57.86 L37.71 59.51 L38.29 59.75 L37.53 60.25 L37.47 61.68 L36.44 62.56 L37.05 63.23 L36.32 63.02 L36.6 61.17 L37.25 59.99 L36.25 59.15 L36.13 57.85 L34.91 57.63 L33.34 56.57 L33.47 56.3 L32.43 56.52 L31.89 55.48 L30.93 55.91 L29.91 55.28 L28.71 55.23 L28.02 54.69 L29.94 54.67 L30.44 53.92 L32 54.23 L32.15 53.49 L33.42 51.98 L33.8 52.51 L34.73 50.75 L34.83 51.02 L35.81 50.64 L35.6 49.69 L36.2 48.43 L36.52 47.28 L37.81 46.14 L36.88 45.73" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.79"/></svg>
-      <h2 id="chat-title">Ask pensketch</h2>
-      <button class="chat-close" type="button" aria-label="Close">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4 L12 12 M12 4 L4 12" stroke-linecap="round"/></svg>
-      </button>
-    </header>
-    <!-- Where the embed mounts, and empty until it does. It inherits this
-         box: size, surface, type and palette. -->
-    <div class="chat-mount" id="pensketch-chat"></div>
-  </div>
+<button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M5.57 6.8 L34.89 6.89 L65.68 7.95 L94.99 7.65" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M4.38 8.14 L34.21 6.92 L65.56 7.94 L95.31 8.39" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M91.54 5.5 L91.45 29.45 L92.07 53.86 L92.04 76.49" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M92.98 4.51 L93.14 29.7 L91.79 53.56 L91.64 76.86" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M95.58 72.7 L71.22 73.94 L50.38 74.11 L38.47 83.74 L26.09 92.09" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M93.88 73.67 L72.58 74.88 L49.91 73.96 L37.99 83.18 L26.29 92.37" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M26.43 91.67 L28.49 83.52 L29.96 74.5 L18.49 74.55 L5.18 74.47" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M26.69 90.85 L26.87 83.1 L30.38 73.84 L17.6 73.45 L4.96 74.05" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M8.2 76.72 L8.67 52.15 L9.18 29.37 L8.26 5.28" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M6.86 76.77 L7.1 53.5 L8.71 29.32 L8.51 5.51" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M56.41 18.74 L56.54 21.99 L56.18 22.62 L56.88 26.01 L57.08 26.7 L57.14 28.55 L59.24 29.45 L61.59 29.7 L62.17 31.83 L63.12 34.45 L64.36 34.5 L65.63 34.37 L69.25 35.72 L69.89 34.64 L72.6 36.67 L71.22 37.87 L68.89 37.67 L65.69 37.1 L64.48 38.83 L63.85 39.92 L62.03 40.47 L61.8 40.78 L59.73 42.9 L57.85 44.83 L57.13 46.48 L55.85 48.79 L55.23 50.12 L56.23 51.85 L54.94 54.35 L56.03 51.09 L53.73 49.79 L52.4 49.37 L53.11 46.82 L51.47 43.56 L50.62 42.98 L48.45 40.88 L48.14 40.37 L45.25 39.83 L45.04 38.57 L44.56 39.17 L41.81 37.06 L38.65 36.26 L36.65 36.81 L37.73 35.2 L41.19 36.26 L42.65 35.19 L44.69 34.41 L47.58 31.9 L48.81 32.09 L48.31 29.6 L50.79 29.95 L52.88 28.28 L52.88 27.02 L53.88 25.8 L54.62 22.95 L53.9 20.89 L55.54 18.52" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.6"/><path d="M54.12 17.52 L55.56 19.82 L55.95 23.26 L55.56 25.61 L57.4 26.37 L57.41 29.38 L59.46 29.68 L61.61 30.79 L62.14 32.25 L62.89 34.12 L64.78 34.5 L65.98 35.77 L68.61 35.91 L72.1 37.21 L73.41 36.38 L69.99 35.61 L68.32 37.52 L67.21 39.34 L64.64 38.96 L62.63 40.76 L61.45 40.65 L60.87 42.97 L59.52 42.76 L59.21 44.05 L57.67 46.84 L57.13 48.96 L55.71 49.66 L54.62 52.58 L55.05 54.54 L54.94 51.05 L54.66 50.4 L53.81 49.29 L53.31 46.98 L53.24 45.85 L50.26 43.18 L49.65 40.79 L48.34 40.78 L47.68 40.42 L44.78 38.77 L43.28 37.02 L40.86 37.14 L39.89 36.37 L36.87 36.6 L39.21 35.09 L40.84 35.56 L41.85 34.49 L44.63 34.1 L46.28 34.1 L48.13 32.58 L49.41 32.48 L51.34 29.92 L52.7 29 L53.15 26.9 L53.31 26.08 L53.93 22.68 L54.22 20.01 L55.31 18.85" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.95"/><path d="M36.8 45.6 L36.99 46.4 L37.03 47.48 L37.63 49.15 L38.28 49.89 L38.62 49.47 L39.32 50.87 L39.73 51.68 L40.47 52.44 L41.41 52.29 L42.24 53.26 L42.56 54.19 L43.5 53.91 L45.66 53.86 L46.29 54.4 L45.05 53.7 L43.53 54.61 L42.78 55.63 L41.59 55.41 L41.48 56.67 L40.26 56.42 L39.27 56.34 L38.69 57.75 L39.52 58.22 L37.73 59.16 L37.14 60.72 L37.43 61.07 L37.26 61.69 L36.63 63.16 L35.79 62.25 L36.85 60.99 L36.5 59.72 L36.13 59.19 L34.54 59.37 L34.8 57.74 L35.01 57.95 L33.87 56.45 L33.22 56.66 L31.79 55.4 L32.07 55.52 L30.45 55.07 L28.89 55.05 L27.95 54.34 L28.56 55.08 L30.23 53.73 L30.32 53.65 L32.2 53.56 L32.68 53.38 L33.39 52.63 L34.1 50.76 L35.14 50.83 L35.47 51.11 L35.94 49.49 L36.24 49.61 L36.51 47.37 L36.64 45.94 L36.62 45.57" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.39"/><path d="M36.13 45.79 L36.39 46.87 L37.35 47.8 L37.71 48.43 L38.12 49.72 L39.45 49.4 L38.82 51.32 L39.62 51.57 L40.41 52.37 L41.28 53.61 L41.64 53.68 L43.01 53.09 L44.15 54.48 L45.43 54.26 L46.04 54.28 L44.61 53.99 L43.55 54.97 L43.15 55.95 L42.24 55.27 L41.63 56.03 L40.24 56.27 L39.83 57.98 L39.05 57.86 L37.71 59.51 L38.29 59.75 L37.53 60.25 L37.47 61.68 L36.44 62.56 L37.05 63.23 L36.32 63.02 L36.6 61.17 L37.25 59.99 L36.25 59.15 L36.13 57.85 L34.91 57.63 L33.34 56.57 L33.47 56.3 L32.43 56.52 L31.89 55.48 L30.93 55.91 L29.91 55.28 L28.71 55.23 L28.02 54.69 L29.94 54.67 L30.44 53.92 L32 54.23 L32.15 53.49 L33.42 51.98 L33.8 52.51 L34.73 50.75 L34.83 51.02 L35.81 50.64 L35.6 49.69 L36.2 48.43 L36.52 47.28 L37.81 46.14 L36.88 45.73" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.79"/></svg></button>
+<dialog class="chat-scrim" aria-label="Ask pensketch">
+  <!-- Where the embed mounts, and empty until it does. It inherits this
+       box: size, surface, type and palette. -->
+  <div class="chat-panel" id="pensketch-chat"></div>
 </dialog>
 <script>
 // One-shot: a figure once seen stays seen, so scrolling back up never
@@ -859,16 +811,17 @@ for (const fig of document.querySelectorAll('.fig')) seen.observe(fig);
 
 // The assistant. showModal() rather than an open attribute, because the
 // focus trap, the Esc key and the inertness of the deck behind the panel
-// all come with it and none of them is worth hand-writing. A click that
-// lands on the dialog itself landed on the scrim: the panel is what fills
-// the middle of it, and a click there stops at the panel.
+// all come with it and none of them is worth hand-writing. With nothing
+// focusable inside, focus lands on the dialog itself, which is what keeps
+// Esc working - so the container needs no close control of its own until
+// the widget brings one.
+//
+// A click that lands on the dialog itself landed on the scrim: the panel
+// is what fills the middle of it, and a click there stops at the panel.
 const chat = document.querySelector('.chat-scrim');
 document
   .querySelector('.chat-launch')
   .addEventListener('click', () => chat.showModal());
-chat
-  .querySelector('.chat-close')
-  .addEventListener('click', () => chat.close());
 chat.addEventListener('click', (event) => {
   if (event.target === chat) chat.close();
 });
