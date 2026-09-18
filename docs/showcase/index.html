@@ -437,6 +437,11 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
+/* The embed, filling the container it was handed. It sets no size of its
+   own in embedded mode, which is why this says the size twice: the panel
+   has the definite height, and the element resolves against it. */
+steward-chat { display: block; width: 100%; height: 100%; }
+
 /* On a phone the panel is the screen, less a margin wide enough to show
    that something is behind it. */
 @media (max-width: 720px) {
@@ -787,9 +792,21 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 </a>
 <button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M5.57 6.8 L34.89 6.89 L65.68 7.95 L94.99 7.65" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M4.38 8.14 L34.21 6.92 L65.56 7.94 L95.31 8.39" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M91.54 5.5 L91.45 29.45 L92.07 53.86 L92.04 76.49" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M92.98 4.51 L93.14 29.7 L91.79 53.56 L91.64 76.86" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M95.58 72.7 L71.22 73.94 L50.38 74.11 L38.47 83.74 L26.09 92.09" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M93.88 73.67 L72.58 74.88 L49.91 73.96 L37.99 83.18 L26.29 92.37" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M26.43 91.67 L28.49 83.52 L29.96 74.5 L18.49 74.55 L5.18 74.47" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M26.69 90.85 L26.87 83.1 L30.38 73.84 L17.6 73.45 L4.96 74.05" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M8.2 76.72 L8.67 52.15 L9.18 29.37 L8.26 5.28" fill="none" opacity="0.92" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="2.4"/><path d="M6.86 76.77 L7.1 53.5 L8.71 29.32 L8.51 5.51" fill="none" opacity="0.5" stroke="var(--ps-ink, #232B36)" stroke-linecap="round" stroke-width="1.8"/><path d="M56.41 18.74 L56.54 21.99 L56.18 22.62 L56.88 26.01 L57.08 26.7 L57.14 28.55 L59.24 29.45 L61.59 29.7 L62.17 31.83 L63.12 34.45 L64.36 34.5 L65.63 34.37 L69.25 35.72 L69.89 34.64 L72.6 36.67 L71.22 37.87 L68.89 37.67 L65.69 37.1 L64.48 38.83 L63.85 39.92 L62.03 40.47 L61.8 40.78 L59.73 42.9 L57.85 44.83 L57.13 46.48 L55.85 48.79 L55.23 50.12 L56.23 51.85 L54.94 54.35 L56.03 51.09 L53.73 49.79 L52.4 49.37 L53.11 46.82 L51.47 43.56 L50.62 42.98 L48.45 40.88 L48.14 40.37 L45.25 39.83 L45.04 38.57 L44.56 39.17 L41.81 37.06 L38.65 36.26 L36.65 36.81 L37.73 35.2 L41.19 36.26 L42.65 35.19 L44.69 34.41 L47.58 31.9 L48.81 32.09 L48.31 29.6 L50.79 29.95 L52.88 28.28 L52.88 27.02 L53.88 25.8 L54.62 22.95 L53.9 20.89 L55.54 18.52" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.6"/><path d="M54.12 17.52 L55.56 19.82 L55.95 23.26 L55.56 25.61 L57.4 26.37 L57.41 29.38 L59.46 29.68 L61.61 30.79 L62.14 32.25 L62.89 34.12 L64.78 34.5 L65.98 35.77 L68.61 35.91 L72.1 37.21 L73.41 36.38 L69.99 35.61 L68.32 37.52 L67.21 39.34 L64.64 38.96 L62.63 40.76 L61.45 40.65 L60.87 42.97 L59.52 42.76 L59.21 44.05 L57.67 46.84 L57.13 48.96 L55.71 49.66 L54.62 52.58 L55.05 54.54 L54.94 51.05 L54.66 50.4 L53.81 49.29 L53.31 46.98 L53.24 45.85 L50.26 43.18 L49.65 40.79 L48.34 40.78 L47.68 40.42 L44.78 38.77 L43.28 37.02 L40.86 37.14 L39.89 36.37 L36.87 36.6 L39.21 35.09 L40.84 35.56 L41.85 34.49 L44.63 34.1 L46.28 34.1 L48.13 32.58 L49.41 32.48 L51.34 29.92 L52.7 29 L53.15 26.9 L53.31 26.08 L53.93 22.68 L54.22 20.01 L55.31 18.85" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.95"/><path d="M36.8 45.6 L36.99 46.4 L37.03 47.48 L37.63 49.15 L38.28 49.89 L38.62 49.47 L39.32 50.87 L39.73 51.68 L40.47 52.44 L41.41 52.29 L42.24 53.26 L42.56 54.19 L43.5 53.91 L45.66 53.86 L46.29 54.4 L45.05 53.7 L43.53 54.61 L42.78 55.63 L41.59 55.41 L41.48 56.67 L40.26 56.42 L39.27 56.34 L38.69 57.75 L39.52 58.22 L37.73 59.16 L37.14 60.72 L37.43 61.07 L37.26 61.69 L36.63 63.16 L35.79 62.25 L36.85 60.99 L36.5 59.72 L36.13 59.19 L34.54 59.37 L34.8 57.74 L35.01 57.95 L33.87 56.45 L33.22 56.66 L31.79 55.4 L32.07 55.52 L30.45 55.07 L28.89 55.05 L27.95 54.34 L28.56 55.08 L30.23 53.73 L30.32 53.65 L32.2 53.56 L32.68 53.38 L33.39 52.63 L34.1 50.76 L35.14 50.83 L35.47 51.11 L35.94 49.49 L36.24 49.61 L36.51 47.37 L36.64 45.94 L36.62 45.57" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.39"/><path d="M36.13 45.79 L36.39 46.87 L37.35 47.8 L37.71 48.43 L38.12 49.72 L39.45 49.4 L38.82 51.32 L39.62 51.57 L40.41 52.37 L41.28 53.61 L41.64 53.68 L43.01 53.09 L44.15 54.48 L45.43 54.26 L46.04 54.28 L44.61 53.99 L43.55 54.97 L43.15 55.95 L42.24 55.27 L41.63 56.03 L40.24 56.27 L39.83 57.98 L39.05 57.86 L37.71 59.51 L38.29 59.75 L37.53 60.25 L37.47 61.68 L36.44 62.56 L37.05 63.23 L36.32 63.02 L36.6 61.17 L37.25 59.99 L36.25 59.15 L36.13 57.85 L34.91 57.63 L33.34 56.57 L33.47 56.3 L32.43 56.52 L31.89 55.48 L30.93 55.91 L29.91 55.28 L28.71 55.23 L28.02 54.69 L29.94 54.67 L30.44 53.92 L32 54.23 L32.15 53.49 L33.42 51.98 L33.8 52.51 L34.73 50.75 L34.83 51.02 L35.81 50.64 L35.6 49.69 L36.2 48.43 L36.52 47.28 L37.81 46.14 L36.88 45.73" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="1.79"/></svg></button>
 <dialog class="chat-scrim" aria-label="Ask pensketch">
-  <!-- Where the embed mounts, and empty until it does. It inherits this
-       box: size, surface, type and palette. -->
-  <div class="chat-panel" id="pensketch-chat"></div>
+  <!-- The container the embed fills, and the only thing this page draws
+       for the assistant. mode="embedded" is what stops the widget adding
+       a launcher and positioning of its own: the rail already has one.
+       theme="auto" follows the OS, as the page does. The title and tagline
+       are set because the defaults name the vendor rather than this page,
+       and a reader who clicked a pensketch mark should not be greeted by
+       somebody else's product. -->
+  <div class="chat-panel" id="pensketch-chat">
+    <steward-chat
+      mode="embedded"
+      theme="auto"
+      widget-title="Ask pensketch"
+      tagline="Ask about the data model, the draw options, or any figure on this page."
+    ></steward-chat>
+  </div>
 </dialog>
 <script>
 // One-shot: a figure once seen stays seen, so scrolling back up never
@@ -825,6 +842,124 @@ document
 chat.addEventListener('click', (event) => {
   if (event.target === chat) chat.close();
 });
+</script>
+<script>window.STEWARD_PK = ""</script>
+<script src="https://cdn.steward.link/steward-chat.min.js"></script>
+<script>
+// The assistant's styling, handed over as tokens rather than as CSS: the
+// widget renders into a shadow tree, so the page's cascade does not reach
+// inside it and every value it needs has to be passed in. Each key becomes
+// `--steward-<key>` on the widget's host.
+//
+// Read off the document rather than written out here, because the palette
+// already exists on it and a second copy of seven colours is the drift the
+// tokens module exists to prevent. Reading them resolved is also what makes
+// one map serve both themes: the same names come back light or dark.
+//
+// Every key below is one the widget's own stylesheet reads, checked against
+// it rather than taken on trust. That check was worth running: the first
+// draft of this map set `surface`, `muted`, four `radius-*`, four
+// `shadow-*` and three `send-*` keys, all of which the widget writes to its
+// host and none of which its CSS ever reads. It looked configured and was
+// inert. The live names are different - the panel colour is `bg` behind a
+// `panel-bg-alpha`, the radius is one `border-radius`, the shadow is one
+// `panel-shadow` - and the four `svg-grad-*` keys are what turn the
+// widget's own star from its brand gold to this page's pen.
+//
+// Not everything reachable: a few inner shadows are written into the
+// widget's CSS with literal values and no token in front of them, and its
+// header carries a theme toggle this page does not want. Neither is
+// addressable from out here.
+(async () => {
+  await customElements.whenDefined('steward-chat');
+  const widget = document.querySelector('steward-chat');
+  widget.apiKey = window.STEWARD_PK;
+
+  const tok = (name) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const hexTriplet = (hex) => {
+    const h = hex.replace('#', '');
+    return [h.slice(0, 2), h.slice(2, 4), h.slice(4, 6)]
+      .map((p) => parseInt(p, 16))
+      .join(', ');
+  };
+
+  const applyOverrides = () => {
+    const ink = tok('--ps-ink');
+    const muted = tok('--ps-muted');
+    const signature = tok('--ps-pen');
+    const wash = tok('--ps-wash');
+
+    widget.overrides = {
+      // Surfaces. The panel colour is mixed from `bg` by an alpha, and the
+      // alpha with the two blurs is the widget's glass: at 1 and 0px the
+      // panel is paper rather than frosted glass over the deck behind it,
+      // which is a look this page does not have anywhere else.
+      bg: tok('--paper'),
+      'bg-secondary': wash,
+      'panel-bg-alpha': '1',
+      'panel-blur': '0px',
+      'chip-bg-alpha': '1',
+      'chip-blur': '0px',
+      'bubble-bg-alpha': '1',
+      // No shadows, and no inset white edge faking a lit one.
+      'panel-shadow': 'none',
+      'glass-edge-light': '0',
+      'shadow-rgb': hexTriplet(ink),
+      // Text.
+      text: ink,
+      primary: ink,
+      'text-secondary': muted,
+      'header-text': muted,
+      border: tok('--rule'),
+      // The pen, on everything the widget treats as its own colour.
+      signature,
+      'user-bg': signature,
+      'assistant-bg': wash,
+      'halo-rgb': hexTriplet(signature),
+      'svg-grad-left-edge': signature,
+      'svg-grad-left-mid': signature,
+      'svg-grad-right-edge': signature,
+      'svg-grad-right-mid': signature,
+      // One radius token for the whole widget, and the header's two.
+      'border-radius': '2px',
+      'header-btn-radius': '2px',
+      'header-group-radius': '2px',
+      'font-family': 'Charter, "Iowan Old Style", Georgia, serif',
+      'font-size': '16px',
+      'line-height': '1.6',
+    };
+  };
+
+  applyOverrides();
+  // The tokens are read already resolved, so a scheme change cannot be
+  // recomputed from what was read before: it has to be read again.
+  matchMedia('(prefers-color-scheme: dark)').addEventListener(
+    'change',
+    applyOverrides,
+  );
+
+  // The rail is the widget's launcher, so its open state follows the
+  // dialog's. Both halves of that are needed: embedded mode draws no
+  // launcher of its own, and the widget draws no panel at all until it is
+  // opened, which is why the container came up empty before this.
+  //
+  // Watched rather than wired to the button, so it holds however the
+  // dialog was opened or closed - Esc, a click on the scrim, or a call
+  // from anywhere else - and does not depend on which of two scripts
+  // registered its click listener first.
+  const dialog = document.querySelector('.chat-scrim');
+  const sync = () => (dialog.open ? widget.open() : widget.close());
+  new MutationObserver(sync).observe(dialog, { attributeFilter: ['open'] });
+  sync();
+
+  // And the other direction: the widget's header has a close control of its
+  // own, which only closes the widget. Left alone it emptied the container
+  // and left the scrim up over a blank box.
+  widget.addEventListener('steward-open-change', (event) => {
+    if (!event.detail.open) dialog.close();
+  });
+})();
 </script>
 </body>
 </html>

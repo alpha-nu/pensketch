@@ -14,7 +14,15 @@ import { DARK, FACE, FACE_LICENCE, MONO, P, SERIF } from './tokens.mjs';
 //
 // Self-contained on purpose: the CSS is inline, the hand face is a data: URI,
 // every `<svg>` is in the document. A reader opening it from a file:// URL
-// sees what a visitor sees, and no request leaves the page.
+// sees every figure drawn exactly as a visitor sees it.
+//
+// One exception, and it is the only request this page makes: the assistant's
+// bundle, from a third-party CDN. Until 2026-09-18 the sentence above ended
+// "and no request leaves the page", which the chat widget made false. The
+// figures are still untouched by it - they draw with no network at all, so
+// the file:// reader loses the assistant and nothing else. Self-hosting the
+// bundle beside this file would restore the stronger claim and is a one-line
+// change to STEWARD_SRC below.
 //
 // Run: `npm run showcase`. Needs `npm run build` first - it renders through
 // `packages/core/dist`, the published entry, rather than through the source.
@@ -432,6 +440,28 @@ const SPARK_BODY = renderToString(
 );
 
 const SPARK = `<svg viewBox="0 0 100 100" aria-hidden="true">${SPARK_BODY}</svg>`;
+
+/**
+ * Where the assistant's bundle comes from. The one URL this page fetches,
+ * and the whole of the "no request leaves the page" exception in the header
+ * above: point it at a copy beside this file and the exception goes away.
+ */
+const STEWARD_SRC = 'https://cdn.steward.link/steward-chat.min.js';
+
+/**
+ * The publishable key, baked in at build time because there is no server
+ * here to set it at run time. Absent, the page still builds and the
+ * assistant still renders; it just cannot authenticate, which the build
+ * says out loud rather than leaving to be discovered in a console.
+ *
+ * `<` is escaped even though a key has no business containing one: the
+ * value lands inside a `<script>` element, where a literal `</script>` in
+ * any string ends the block early and takes the rest of the page with it.
+ */
+const STEWARD_PK = JSON.stringify(process.env.STEWARD_PK ?? '').replace(
+  /</g,
+  '\\u003c',
+);
 
 const page = `<!doctype html>
 <html lang="en">
@@ -872,6 +902,11 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
+/* The embed, filling the container it was handed. It sets no size of its
+   own in embedded mode, which is why this says the size twice: the panel
+   has the definite height, and the element resolves against it. */
+steward-chat { display: block; width: 100%; height: 100%; }
+
 /* On a phone the panel is the screen, less a margin wide enough to show
    that something is behind it. */
 @media (max-width: 720px) {
@@ -938,9 +973,21 @@ ${figures}
 </a>
 <button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch">${SPARK}</button>
 <dialog class="chat-scrim" aria-label="Ask pensketch">
-  <!-- Where the embed mounts, and empty until it does. It inherits this
-       box: size, surface, type and palette. -->
-  <div class="chat-panel" id="pensketch-chat"></div>
+  <!-- The container the embed fills, and the only thing this page draws
+       for the assistant. mode="embedded" is what stops the widget adding
+       a launcher and positioning of its own: the rail already has one.
+       theme="auto" follows the OS, as the page does. The title and tagline
+       are set because the defaults name the vendor rather than this page,
+       and a reader who clicked a pensketch mark should not be greeted by
+       somebody else's product. -->
+  <div class="chat-panel" id="pensketch-chat">
+    <steward-chat
+      mode="embedded"
+      theme="auto"
+      widget-title="Ask pensketch"
+      tagline="Ask about the data model, the draw options, or any figure on this page."
+    ></steward-chat>
+  </div>
 </dialog>
 <script>
 // One-shot: a figure once seen stays seen, so scrolling back up never
@@ -977,6 +1024,124 @@ chat.addEventListener('click', (event) => {
   if (event.target === chat) chat.close();
 });
 </script>
+<script>window.STEWARD_PK = ${STEWARD_PK}</script>
+<script src="${STEWARD_SRC}"></script>
+<script>
+// The assistant's styling, handed over as tokens rather than as CSS: the
+// widget renders into a shadow tree, so the page's cascade does not reach
+// inside it and every value it needs has to be passed in. Each key becomes
+// \`--steward-<key>\` on the widget's host.
+//
+// Read off the document rather than written out here, because the palette
+// already exists on it and a second copy of seven colours is the drift the
+// tokens module exists to prevent. Reading them resolved is also what makes
+// one map serve both themes: the same names come back light or dark.
+//
+// Every key below is one the widget's own stylesheet reads, checked against
+// it rather than taken on trust. That check was worth running: the first
+// draft of this map set \`surface\`, \`muted\`, four \`radius-*\`, four
+// \`shadow-*\` and three \`send-*\` keys, all of which the widget writes to its
+// host and none of which its CSS ever reads. It looked configured and was
+// inert. The live names are different - the panel colour is \`bg\` behind a
+// \`panel-bg-alpha\`, the radius is one \`border-radius\`, the shadow is one
+// \`panel-shadow\` - and the four \`svg-grad-*\` keys are what turn the
+// widget's own star from its brand gold to this page's pen.
+//
+// Not everything reachable: a few inner shadows are written into the
+// widget's CSS with literal values and no token in front of them, and its
+// header carries a theme toggle this page does not want. Neither is
+// addressable from out here.
+(async () => {
+  await customElements.whenDefined('steward-chat');
+  const widget = document.querySelector('steward-chat');
+  widget.apiKey = window.STEWARD_PK;
+
+  const tok = (name) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const hexTriplet = (hex) => {
+    const h = hex.replace('#', '');
+    return [h.slice(0, 2), h.slice(2, 4), h.slice(4, 6)]
+      .map((p) => parseInt(p, 16))
+      .join(', ');
+  };
+
+  const applyOverrides = () => {
+    const ink = tok('--ps-ink');
+    const muted = tok('--ps-muted');
+    const signature = tok('--ps-pen');
+    const wash = tok('--ps-wash');
+
+    widget.overrides = {
+      // Surfaces. The panel colour is mixed from \`bg\` by an alpha, and the
+      // alpha with the two blurs is the widget's glass: at 1 and 0px the
+      // panel is paper rather than frosted glass over the deck behind it,
+      // which is a look this page does not have anywhere else.
+      bg: tok('--paper'),
+      'bg-secondary': wash,
+      'panel-bg-alpha': '1',
+      'panel-blur': '0px',
+      'chip-bg-alpha': '1',
+      'chip-blur': '0px',
+      'bubble-bg-alpha': '1',
+      // No shadows, and no inset white edge faking a lit one.
+      'panel-shadow': 'none',
+      'glass-edge-light': '0',
+      'shadow-rgb': hexTriplet(ink),
+      // Text.
+      text: ink,
+      primary: ink,
+      'text-secondary': muted,
+      'header-text': muted,
+      border: tok('--rule'),
+      // The pen, on everything the widget treats as its own colour.
+      signature,
+      'user-bg': signature,
+      'assistant-bg': wash,
+      'halo-rgb': hexTriplet(signature),
+      'svg-grad-left-edge': signature,
+      'svg-grad-left-mid': signature,
+      'svg-grad-right-edge': signature,
+      'svg-grad-right-mid': signature,
+      // One radius token for the whole widget, and the header's two.
+      'border-radius': '2px',
+      'header-btn-radius': '2px',
+      'header-group-radius': '2px',
+      'font-family': 'Charter, "Iowan Old Style", Georgia, serif',
+      'font-size': '16px',
+      'line-height': '1.6',
+    };
+  };
+
+  applyOverrides();
+  // The tokens are read already resolved, so a scheme change cannot be
+  // recomputed from what was read before: it has to be read again.
+  matchMedia('(prefers-color-scheme: dark)').addEventListener(
+    'change',
+    applyOverrides,
+  );
+
+  // The rail is the widget's launcher, so its open state follows the
+  // dialog's. Both halves of that are needed: embedded mode draws no
+  // launcher of its own, and the widget draws no panel at all until it is
+  // opened, which is why the container came up empty before this.
+  //
+  // Watched rather than wired to the button, so it holds however the
+  // dialog was opened or closed - Esc, a click on the scrim, or a call
+  // from anywhere else - and does not depend on which of two scripts
+  // registered its click listener first.
+  const dialog = document.querySelector('.chat-scrim');
+  const sync = () => (dialog.open ? widget.open() : widget.close());
+  new MutationObserver(sync).observe(dialog, { attributeFilter: ['open'] });
+  sync();
+
+  // And the other direction: the widget's header has a close control of its
+  // own, which only closes the widget. Left alone it emptied the container
+  // and left the scrim up over a blank box.
+  widget.addEventListener('steward-open-change', (event) => {
+    if (!event.detail.open) dialog.close();
+  });
+})();
+</script>
 </body>
 </html>
 `;
@@ -986,3 +1151,11 @@ writeFileSync(out, page);
 console.log(
   `PASS showcase: ${ORDER.length} figures, ${(page.length / 1024).toFixed(0)} KB, ${out.pathname.replace(root.pathname, '')}`,
 );
+// A page built without the key is a page whose assistant cannot
+// authenticate. Said here rather than left to a console on the deployed
+// site, and a warning rather than a failure: every other reason to run
+// this generator is unrelated to the chat.
+if (!process.env.STEWARD_PK)
+  console.warn(
+    'WARN showcase: STEWARD_PK is unset, so the assistant will load and fail to authenticate. Set it in the environment that builds the page.',
+  );

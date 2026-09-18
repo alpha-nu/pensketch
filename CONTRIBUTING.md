@@ -45,6 +45,16 @@ root unless told otherwise.
   `shippedDiagrams()` returns that the page does not place. Adding an example
   therefore stops the build until someone decides where it goes, which is the
   only way a generated page stays curated.
+
+  One value on that page comes from the environment rather than the
+  repository: `STEWARD_PK`, the assistant widget's publishable key, is read
+  at build time and written into the page, because the page is static and
+  nothing can set it at run time. The generator warns when it is unset and
+  builds anyway. The consequence for the clean-diff rule above is that the
+  committed page carries whatever key was set when it was last built, so
+  regenerate with the same value in the environment or expect that one line
+  to differ. The key is publishable by definition; a secret would not belong
+  in a file this repository serves.
 - `npm run http` - spawns the built HTTP server the way a deployment spawns
   it and completes a real round trip over a socket: initialize, list the
   tools, call one. The suite drives the same handler through `fetch` with no
