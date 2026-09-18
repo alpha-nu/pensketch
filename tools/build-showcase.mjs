@@ -350,12 +350,16 @@ const star = (cx, cy, r, waist, per = 7) => {
  *
  * A speech bubble around the four-pointed star the industry has settled on
  * for "ask the model", so the mark says both halves of what the control
- * does instead of only the second. The bubble is a `rect` and a
- * three-point tail: `rect` draws its four sides independently, each
- * overshooting its corners, and that overshoot is the whole reason this
- * reads as drawn rather than as a rounded div. The tail is left open at
- * the top, because the bubble's own bottom edge closes it and two
- * hand-drawn lines crossing is what a hand does.
+ * does instead of only the second.
+ *
+ * Drawn as five strokes rather than as a `rect` and a tail, because the
+ * bottom edge has to be open where the tail leaves it. Closed, the tail
+ * was a triangle parked under a box; open, the outline runs out of the
+ * bottom edge, down to the point and back, which is the one line that
+ * makes a bubble a bubble. The two bottom strokes each carry half the
+ * tail for that reason, and every stroke overshoots its corner by about
+ * 3px, which is what `rect` does for itself and the whole reason this
+ * reads as drawn rather than as a div with a radius.
  *
  * It is the same renderer, the same seeded sequence and the same default
  * theme as every figure below it, which is why it carries no colours of its
@@ -373,14 +377,43 @@ const SPARK_BODY = renderToString(
   {
     raw: [
       (pen) => {
-        pen.rect(8, 8, 84, 66, { color: defaultTheme.ink, width: 2.4 });
+        const frame = { color: defaultTheme.ink, width: 2.4 };
         pen.stroke(
           [
-            [30, 74],
-            [26, 92],
-            [50, 74],
+            [5, 8],
+            [95, 8],
           ],
-          { color: defaultTheme.ink, width: 2.4, amplitude: 2.2 },
+          frame,
+        );
+        pen.stroke(
+          [
+            [92, 5],
+            [92, 77],
+          ],
+          frame,
+        );
+        pen.stroke(
+          [
+            [95, 74],
+            [50, 74],
+            [26, 92],
+          ],
+          frame,
+        );
+        pen.stroke(
+          [
+            [26, 92],
+            [30, 74],
+            [5, 74],
+          ],
+          frame,
+        );
+        pen.stroke(
+          [
+            [8, 77],
+            [8, 5],
+          ],
+          frame,
         );
         pen.stroke(star(55, 36.5, 18, 0.1), {
           color: defaultTheme.pen,
@@ -769,7 +802,7 @@ code .comment { color: var(--ps-muted); }
 }
 .js .chat-launch { display: block; }
 .chat-launch:hover, .chat-launch:focus-visible { opacity: 1; }
-.chat-launch svg { display: block; width: 40px; height: 40px; }
+.chat-launch svg { display: block; width: 44px; height: 44px; }
 
 /* A native dialog opened modally, so the focus trap, the Esc key and the
    inertness of the deck behind it are the platform's rather than ours.
@@ -844,7 +877,7 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   text-transform: uppercase;
   color: var(--ps-muted);
 }
-.chat-head .mark { display: block; width: 17px; height: 17px; }
+.chat-head .mark { display: block; width: 19px; height: 19px; }
 .chat-close {
   display: block;
   margin: -6px;
