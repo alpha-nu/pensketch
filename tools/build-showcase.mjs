@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { animateMarkup } from '../packages/animation/dist/index.js';
+import { defaultTheme } from '../packages/core/dist/index.js';
 import { renderToString } from '../packages/core/dist/server.js';
 import { shippedDiagrams } from './shipped-diagrams.mjs';
 import { DARK, FACE, FACE_LICENCE, MONO, P, SERIF } from './tokens.mjs';
@@ -304,13 +305,84 @@ claude mcp add pensketch -- npx -y @pensketch/mcp@0.13.0
 claude mcp add --transport http pensketch https://pensketch.alpha-nu.workers.dev</code></pre>`;
 
 /**
- * The four-pointed star the industry has settled on for "ask the model",
- * drawn rather than imported: one big mark and its small companion, each
- * four quadratic arcs bowed toward their own centre so the points read as
- * points. A glyph, so it takes `currentColor` and whatever box it is given.
+ * A four-pointed star as a closed polyline: four tips, and between each
+ * neighbouring pair a quadratic bowed toward the centre, sampled into
+ * points. `waist` is how far in the control point sits as a fraction of the
+ * radius, and it is the whole character of the mark: at 0.1 the sides are
+ * deeply concave and the points are points; by 0.16 the thing has puffed
+ * into a cushion.
+ *
+ * Sampled rather than curved because the pen draws polylines. It jitters
+ * every point it is given, so a curve handed over as a curve could not
+ * wobble.
  */
+const star = (cx, cy, r, waist, per = 7) => {
+  const tips = [
+    [cx, cy - r],
+    [cx + r, cy],
+    [cx, cy + r],
+    [cx - r, cy],
+  ];
+  const pts = [];
+  for (let i = 0; i < 4; i++) {
+    const a = tips[i];
+    const b = tips[(i + 1) % 4];
+    const c = [
+      cx + ((a[0] + b[0]) / 2 - cx) * waist * 2,
+      cy + ((a[1] + b[1]) / 2 - cy) * waist * 2,
+    ];
+    for (let s = 0; s < per; s++) {
+      const t = s / per;
+      const u = 1 - t;
+      pts.push([
+        u * u * a[0] + 2 * u * t * c[0] + t * t * b[0],
+        u * u * a[1] + 2 * u * t * c[1] + t * t * b[1],
+      ]);
+    }
+  }
+  return [...pts, pts[0]];
+};
+
+/**
+ * The mark the assistant is asked for by: the four-pointed star the
+ * industry has settled on for "ask the model", drawn by the library this
+ * page exists to show rather than imported as a font icon or copied off a
+ * design system.
+ *
+ * It is the same renderer, the same seeded sequence and the same default
+ * theme as every figure below it, which is why it carries no colours of its
+ * own: `defaultTheme` writes `var(--ps-pen, #2B5B8A)` into the stroke, so
+ * the glyph follows the page into dark mode with nothing added here. A mark
+ * for this page that was not drawn by this library would have been the one
+ * picture on it making a claim the repository cannot back.
+ *
+ * Wider and shakier than a figure would be drawn, deliberately: at 39px a
+ * 1.6px stroke with the default wobble resolves to a clean vector curve,
+ * and the hand this page is selling disappears exactly where a reader first
+ * meets it.
+ */
+const SPARK_BODY = renderToString(
+  {
+    raw: [
+      (pen) => {
+        pen.stroke(star(60, 41, 36, 0.1), {
+          color: defaultTheme.pen,
+          width: 3,
+          amplitude: 3.4,
+        });
+        pen.stroke(star(24, 77, 18, 0.1), {
+          color: defaultTheme.pen,
+          width: 2.76,
+          amplitude: 2.38,
+        });
+      },
+    ],
+  },
+  { seed: 3 },
+);
+
 const SPARK = (cls) =>
-  `<svg class="${cls}" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 .8 Q10.2 6 15.4 6.6 Q10.2 7.2 9.6 12.4 Q9 7.2 3.8 6.6 Q9 6 9.6 .8 Z M4.2 9.2 Q4.5 11.9 7.2 12.2 Q4.5 12.5 4.2 15.2 Q3.9 12.5 1.2 12.2 Q3.9 11.9 4.2 9.2 Z"/></svg>`;
+  `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true">${SPARK_BODY}</svg>`;
 
 const page = `<!doctype html>
 <html lang="en">
@@ -652,9 +724,11 @@ code .comment { color: var(--ps-muted); }
    widget is the chat surface, and a drawn imitation of one would only be
    something to delete on the day it arrives.
 
-   The marks on this rail are the page's, not a vendor's, so they take the
-   pen rather than the accent. The accent numbers the figures; the pen is
-   what every link on this page is already drawn in. */
+   The star is drawn by the library rather than styled here, so it carries
+   its own colour: the default theme writes the same --ps-pen reference into
+   its stroke that every figure below is drawn with, and it follows the page
+   into dark mode for free. Nothing on this rail sets a fill, and the hover
+   is opacity alone. */
 
 /* The launcher rides the same right edge as the way out to the source, one
    glyph above it. Both marks are 39px, so 65px between centres is one
@@ -673,13 +747,12 @@ code .comment { color: var(--ps-muted); }
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ps-muted);
-  opacity: 0.65;
+  opacity: 0.62;
   cursor: pointer;
 }
 .js .chat-launch { display: block; }
-.chat-launch:hover, .chat-launch:focus-visible { color: var(--ps-pen); opacity: 1; }
-.chat-launch svg { display: block; width: 39px; height: 39px; fill: currentColor; }
+.chat-launch:hover, .chat-launch:focus-visible { opacity: 1; }
+.chat-launch svg { display: block; width: 44px; height: 44px; }
 
 /* A native dialog opened modally, so the focus trap, the Esc key and the
    inertness of the deck behind it are the platform's rather than ours.
@@ -754,7 +827,7 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   text-transform: uppercase;
   color: var(--ps-muted);
 }
-.chat-head .mark { display: block; width: 15px; height: 15px; fill: var(--ps-pen); }
+.chat-head .mark { display: block; width: 17px; height: 17px; }
 .chat-close {
   display: block;
   margin: -6px;

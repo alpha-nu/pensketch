@@ -338,9 +338,11 @@ code .comment { color: var(--ps-muted); }
    widget is the chat surface, and a drawn imitation of one would only be
    something to delete on the day it arrives.
 
-   The marks on this rail are the page's, not a vendor's, so they take the
-   pen rather than the accent. The accent numbers the figures; the pen is
-   what every link on this page is already drawn in. */
+   The star is drawn by the library rather than styled here, so it carries
+   its own colour: the default theme writes the same --ps-pen reference into
+   its stroke that every figure below is drawn with, and it follows the page
+   into dark mode for free. Nothing on this rail sets a fill, and the hover
+   is opacity alone. */
 
 /* The launcher rides the same right edge as the way out to the source, one
    glyph above it. Both marks are 39px, so 65px between centres is one
@@ -359,13 +361,12 @@ code .comment { color: var(--ps-muted); }
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ps-muted);
-  opacity: 0.65;
+  opacity: 0.62;
   cursor: pointer;
 }
 .js .chat-launch { display: block; }
-.chat-launch:hover, .chat-launch:focus-visible { color: var(--ps-pen); opacity: 1; }
-.chat-launch svg { display: block; width: 39px; height: 39px; fill: currentColor; }
+.chat-launch:hover, .chat-launch:focus-visible { opacity: 1; }
+.chat-launch svg { display: block; width: 44px; height: 44px; }
 
 /* A native dialog opened modally, so the focus trap, the Esc key and the
    inertness of the deck behind it are the platform's rather than ours.
@@ -440,7 +441,7 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   text-transform: uppercase;
   color: var(--ps-muted);
 }
-.chat-head .mark { display: block; width: 15px; height: 15px; fill: var(--ps-pen); }
+.chat-head .mark { display: block; width: 17px; height: 17px; }
 .chat-close {
   display: block;
   margin: -6px;
@@ -823,11 +824,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 <a class="github" href="https://github.com/alpha-nu/pensketch" aria-label="pensketch on GitHub">
   <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
 </a>
-<button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch"><svg class="" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 .8 Q10.2 6 15.4 6.6 Q10.2 7.2 9.6 12.4 Q9 7.2 3.8 6.6 Q9 6 9.6 .8 Z M4.2 9.2 Q4.5 11.9 7.2 12.2 Q4.5 12.5 4.2 15.2 Q3.9 12.5 1.2 12.2 Q3.9 11.9 4.2 9.2 Z"/></svg></button>
+<button class="chat-launch" type="button" aria-haspopup="dialog" aria-label="Ask pensketch"><svg class="" viewBox="0 0 100 100" aria-hidden="true"><path d="M60.75 3.43 L60.66 7.89 L61.97 13.64 L62.97 16.27 L64.09 21.23 L65.35 22.91 L68.67 27.45 L71.95 31.34 L73.28 32.88 L75.95 35.19 L79.87 37.04 L83.72 36.33 L87.84 39.13 L93.15 41.11 L95.89 41.29 L90.49 41.36 L87.63 41.94 L81.91 43.94 L80.33 45.55 L77.3 48.37 L73.63 49.49 L69.49 51.51 L68.42 54.98 L66.1 57.56 L64.4 60.93 L63.95 65.79 L61.84 68.16 L61.45 73.34 L59.95 77.65 L60.49 73.39 L58.62 68.95 L57.89 63.08 L55 60.89 L54.85 57.15 L51.68 54.23 L48.93 52.12 L46.59 49.23 L44.19 46.28 L40.78 45.6 L37.27 44.93 L32.07 42.5 L27.16 42.46 L24.37 41.16 L29.99 41.86 L33.32 39.5 L37.73 39.52 L40.59 36.34 L43.75 36.12 L46.33 32.76 L47.83 30.5 L51.69 27.15 L54.9 22.79 L56.07 20.6 L56.73 18.74 L57.74 13.9 L57.84 8.61 L60.67 5.03" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="3"/><path d="M58.91 3.32 L59.65 9.84 L61.79 14.12 L63.65 18.46 L63.9 20.75 L65.13 24.69 L68.61 27.59 L71.72 29.44 L74.13 32.07 L78.26 33.57 L79.68 36.59 L83.37 38.16 L87.03 39.62 L90.01 40.07 L96.38 40.78 L91.49 41.36 L88 42.04 L82.23 42.94 L79.33 45.91 L77.6 48.55 L73.36 48.78 L70.39 51.13 L67.88 54.01 L66.09 56.76 L63.75 60.9 L62.89 64.19 L62.24 68.87 L62.18 71.95 L59.76 76.7 L58.18 73.57 L57.72 67.91 L56.57 66.23 L55.33 60.93 L52.47 58 L52.05 53.87 L50.7 51.31 L45.92 48.71 L43.25 48.01 L40.66 45.46 L36.66 45.27 L32.85 43.12 L29.57 42.15 L23.68 41.1 L29.9 40.25 L32.26 38.93 L36.6 37.01 L40.32 37.08 L42.23 35.65 L46.71 32.38 L48.14 31.46 L51.94 27.41 L54.93 24.05 L56.03 21.1 L56.47 18.35 L58.22 13.9 L58.26 10.23 L59.93 5.25" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.25"/><path d="M25.03 59.9 L25.24 60.93 L24.54 62.92 L24.8 65.64 L26.34 67.51 L26.63 69.18 L27.96 70.58 L28.84 71.45 L30.89 73.14 L33.02 72.79 L34.25 74.54 L36.73 76.34 L37.87 76.41 L39.63 75.57 L41.75 77.08 L39.94 77.48 L37.78 77.39 L36.73 78.99 L34.02 79.53 L33.37 81.33 L31.22 81.52 L28.36 82.32 L28.23 83.38 L27.39 85.53 L26.53 87.15 L24.9 88.93 L24.83 90.35 L23.43 92.5 L24.23 94.83 L23.34 93.03 L23.21 90.34 L21.49 88.53 L21.36 86.75 L19.89 84.94 L19.69 84.02 L18.3 83.02 L17.2 81.66 L16.73 80.55 L14.37 79.48 L12.93 79.15 L10.28 78.25 L7.64 77.09 L5.88 76.79 L8.8 77.3 L10.24 76.24 L11.96 75.28 L13.65 74.57 L15.52 74.44 L17.45 73.22 L18.55 70.53 L20.07 69.95 L20.8 68.57 L21.9 67.12 L22.77 64.5 L23.52 63.17 L23.21 61.68 L23.61 58.79" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.76"/><path d="M24.86 58.49 L25.24 60.87 L24.87 62.87 L24.63 64.37 L26.15 67.26 L26.12 68.11 L28.33 70.5 L29.14 71.01 L30.54 72.4 L31.17 73.44 L34.34 74.59 L34.72 74.64 L37.38 76.34 L39.91 75.84 L42.03 76.66 L38.75 76.4 L37.2 77.73 L36.53 77.52 L34.03 78.89 L33 79.42 L30.36 81.51 L29.15 82.06 L28.54 84.09 L27.91 84.91 L26.38 87.18 L24.77 88.19 L25.25 90.79 L25.22 93.31 L23.91 95.16 L23.45 92.38 L22.95 91.03 L22.68 87.74 L21.43 86.87 L21.27 85.81 L19.74 83.98 L17.86 83.12 L17.17 80.72 L16.35 79.36 L14.11 79.57 L12.32 78.37 L10.33 78.28 L7.93 76.55 L5.93 76.7 L7.07 76.8 L9.93 76.32 L11.27 75.83 L14.02 74.95 L15.61 73.6 L17.27 73.01 L19.52 70.45 L19.5 70.47 L20.66 68.44 L21.83 67.04 L22.62 66.03 L22.83 63.67 L23.73 60.4 L24.36 59.44" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.07"/></svg></button>
 <dialog class="chat-scrim" aria-labelledby="chat-title">
   <div class="chat-panel">
     <header class="chat-head">
-      <svg class="mark" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 .8 Q10.2 6 15.4 6.6 Q10.2 7.2 9.6 12.4 Q9 7.2 3.8 6.6 Q9 6 9.6 .8 Z M4.2 9.2 Q4.5 11.9 7.2 12.2 Q4.5 12.5 4.2 15.2 Q3.9 12.5 1.2 12.2 Q3.9 11.9 4.2 9.2 Z"/></svg>
+      <svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><path d="M60.75 3.43 L60.66 7.89 L61.97 13.64 L62.97 16.27 L64.09 21.23 L65.35 22.91 L68.67 27.45 L71.95 31.34 L73.28 32.88 L75.95 35.19 L79.87 37.04 L83.72 36.33 L87.84 39.13 L93.15 41.11 L95.89 41.29 L90.49 41.36 L87.63 41.94 L81.91 43.94 L80.33 45.55 L77.3 48.37 L73.63 49.49 L69.49 51.51 L68.42 54.98 L66.1 57.56 L64.4 60.93 L63.95 65.79 L61.84 68.16 L61.45 73.34 L59.95 77.65 L60.49 73.39 L58.62 68.95 L57.89 63.08 L55 60.89 L54.85 57.15 L51.68 54.23 L48.93 52.12 L46.59 49.23 L44.19 46.28 L40.78 45.6 L37.27 44.93 L32.07 42.5 L27.16 42.46 L24.37 41.16 L29.99 41.86 L33.32 39.5 L37.73 39.52 L40.59 36.34 L43.75 36.12 L46.33 32.76 L47.83 30.5 L51.69 27.15 L54.9 22.79 L56.07 20.6 L56.73 18.74 L57.74 13.9 L57.84 8.61 L60.67 5.03" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="3"/><path d="M58.91 3.32 L59.65 9.84 L61.79 14.12 L63.65 18.46 L63.9 20.75 L65.13 24.69 L68.61 27.59 L71.72 29.44 L74.13 32.07 L78.26 33.57 L79.68 36.59 L83.37 38.16 L87.03 39.62 L90.01 40.07 L96.38 40.78 L91.49 41.36 L88 42.04 L82.23 42.94 L79.33 45.91 L77.6 48.55 L73.36 48.78 L70.39 51.13 L67.88 54.01 L66.09 56.76 L63.75 60.9 L62.89 64.19 L62.24 68.87 L62.18 71.95 L59.76 76.7 L58.18 73.57 L57.72 67.91 L56.57 66.23 L55.33 60.93 L52.47 58 L52.05 53.87 L50.7 51.31 L45.92 48.71 L43.25 48.01 L40.66 45.46 L36.66 45.27 L32.85 43.12 L29.57 42.15 L23.68 41.1 L29.9 40.25 L32.26 38.93 L36.6 37.01 L40.32 37.08 L42.23 35.65 L46.71 32.38 L48.14 31.46 L51.94 27.41 L54.93 24.05 L56.03 21.1 L56.47 18.35 L58.22 13.9 L58.26 10.23 L59.93 5.25" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.25"/><path d="M25.03 59.9 L25.24 60.93 L24.54 62.92 L24.8 65.64 L26.34 67.51 L26.63 69.18 L27.96 70.58 L28.84 71.45 L30.89 73.14 L33.02 72.79 L34.25 74.54 L36.73 76.34 L37.87 76.41 L39.63 75.57 L41.75 77.08 L39.94 77.48 L37.78 77.39 L36.73 78.99 L34.02 79.53 L33.37 81.33 L31.22 81.52 L28.36 82.32 L28.23 83.38 L27.39 85.53 L26.53 87.15 L24.9 88.93 L24.83 90.35 L23.43 92.5 L24.23 94.83 L23.34 93.03 L23.21 90.34 L21.49 88.53 L21.36 86.75 L19.89 84.94 L19.69 84.02 L18.3 83.02 L17.2 81.66 L16.73 80.55 L14.37 79.48 L12.93 79.15 L10.28 78.25 L7.64 77.09 L5.88 76.79 L8.8 77.3 L10.24 76.24 L11.96 75.28 L13.65 74.57 L15.52 74.44 L17.45 73.22 L18.55 70.53 L20.07 69.95 L20.8 68.57 L21.9 67.12 L22.77 64.5 L23.52 63.17 L23.21 61.68 L23.61 58.79" fill="none" opacity="0.92" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.76"/><path d="M24.86 58.49 L25.24 60.87 L24.87 62.87 L24.63 64.37 L26.15 67.26 L26.12 68.11 L28.33 70.5 L29.14 71.01 L30.54 72.4 L31.17 73.44 L34.34 74.59 L34.72 74.64 L37.38 76.34 L39.91 75.84 L42.03 76.66 L38.75 76.4 L37.2 77.73 L36.53 77.52 L34.03 78.89 L33 79.42 L30.36 81.51 L29.15 82.06 L28.54 84.09 L27.91 84.91 L26.38 87.18 L24.77 88.19 L25.25 90.79 L25.22 93.31 L23.91 95.16 L23.45 92.38 L22.95 91.03 L22.68 87.74 L21.43 86.87 L21.27 85.81 L19.74 83.98 L17.86 83.12 L17.17 80.72 L16.35 79.36 L14.11 79.57 L12.32 78.37 L10.33 78.28 L7.93 76.55 L5.93 76.7 L7.07 76.8 L9.93 76.32 L11.27 75.83 L14.02 74.95 L15.61 73.6 L17.27 73.01 L19.52 70.45 L19.5 70.47 L20.66 68.44 L21.83 67.04 L22.62 66.03 L22.83 63.67 L23.73 60.4 L24.36 59.44" fill="none" opacity="0.5" stroke="var(--ps-pen, #2B5B8A)" stroke-linecap="round" stroke-width="2.07"/></svg>
       <h2 id="chat-title">Ask pensketch</h2>
       <button class="chat-close" type="button" aria-label="Close">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4 L12 12 M12 4 L4 12" stroke-linecap="round"/></svg>
