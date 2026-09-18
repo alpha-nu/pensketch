@@ -1157,59 +1157,6 @@ chat.addEventListener('click', (event) => {
   });
 })();
 </script>
-<script>
-// A taller composer: four lines rather than one.
-//
-// This one is not a token. The textarea sits inside a nested
-// \`<steward-input>\` element with a shadow root of its own, so no override
-// names it and no CSS on this page reaches it. A stylesheet handed to that
-// root does reach it, which is the same door the widget's own palette goes
-// through.
-//
-// Adopted rather than appended as a \`<style>\`, which was the first attempt
-// and did nothing: the widget's own rule for the textarea is itself in an
-// adopted sheet, and adopted sheets are ordered after a shadow tree's own,
-// so theirs won the tie. Adopting after theirs wins it back without an
-// \`!important\` anywhere.
-//
-// It is also the one piece of this integration reaching past the supported
-// surface, and worth knowing as such: \`textarea\` is about the most stable
-// selector there is, but the bundle is served from a CDN and can change
-// without this repository hearing about it. The failure is quiet by
-// construction - a rule that matches nothing does nothing, and the composer
-// keeps the widget's own 40px floor.
-//
-// The numbers: it measured 44px of visible height, so four of it is 176.
-// The ceiling goes to 320 because the widget's own 120px maximum would
-// otherwise sit below the new floor, and a floor above a ceiling is a box
-// that cannot grow at all.
-(async () => {
-  await customElements.whenDefined('steward-chat');
-  const widget = document.querySelector('steward-chat');
-  const dialog = document.querySelector('.chat-scrim');
-  const styled = new WeakSet();
-
-  const styleComposer = async () => {
-    await widget.updateComplete;
-    const input = widget.shadowRoot?.querySelector('steward-input');
-    await input?.updateComplete;
-    const root = input?.shadowRoot;
-    if (!root || styled.has(root)) return;
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync('textarea { min-height: 176px; max-height: 320px; }');
-    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
-    styled.add(root);
-  };
-
-  // Re-applied on every open: the panel only exists while the widget is
-  // open, so closing it takes the nested input away and the next open
-  // builds a new one.
-  new MutationObserver(() => dialog.open && styleComposer()).observe(dialog, {
-    attributeFilter: ['open'],
-  });
-  if (dialog.open) styleComposer();
-})();
-</script>
 </body>
 </html>
 `;
