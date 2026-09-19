@@ -394,15 +394,33 @@ code .comment { color: var(--ps-muted); }
   margin: 0;
   padding: 0;
   border: 0;
-  background: radial-gradient(40rem 38rem at 50% 50%,
-    var(--scrim) 0%,
-    var(--scrim) 48%,
-    color-mix(in srgb, var(--scrim) 40%, transparent) 72%,
-    transparent 100%);
+  background: none;
   opacity: 0;
   transition: opacity 0.2s ease, display 0.2s allow-discrete, overlay 0.2s allow-discrete;
+  /* Declared here rather than on the panel because two things need the
+     same rectangle: the panel, and the shade cast around it. */
+  --panel-w: min(680px, calc(100vw - 44px));
+  --panel-h: min(680px, calc(100svh - 96px));
 }
 .chat-scrim::backdrop { background: none; }
+/* The shade, and it is the panel's own shape rather than a circle. A
+   radial gradient is an ellipse by definition, so a round halo around a
+   square box was the only thing it could have drawn; what makes this
+   rectangular is that it *is* a rectangle, blurred. The box runs 40px
+   past the panel on every side so that full strength reaches the edge
+   rather than the falloff starting under it, and the blur then carries it
+   out another 100px or so before it is gone. */
+.chat-scrim::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--panel-w) + 80px);
+  height: calc(var(--panel-h) + 80px);
+  transform: translate(-50%, -50%);
+  background: var(--scrim);
+  filter: blur(56px);
+}
 /* `display` belongs to the open rule and to no other: a dialog is
    display:none until it opens, and a bare `display: flex` on the element
    overrides that and leaves the panel sitting on the page from load. */
@@ -424,8 +442,13 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
 .chat-panel {
   display: flex;
   flex-direction: column;
-  width: min(680px, calc(100vw - 44px));
-  height: min(680px, calc(100svh - 96px));
+  /* Positioned so it paints over the shade: an absolutely positioned
+     ::before outranks a static sibling in paint order whatever the source
+     order says, and the panel would have come up underneath its own
+     shadow. */
+  position: relative;
+  width: var(--panel-w);
+  height: var(--panel-h);
   border: 1px solid var(--rule);
   border-radius: 2px;
   background: var(--paper);
@@ -445,7 +468,7 @@ steward-chat { display: block; width: 100%; height: 100%; }
 /* On a phone the panel is the screen, less a margin wide enough to show
    that something is behind it. */
 @media (max-width: 720px) {
-  .chat-panel { width: calc(100vw - 20px); height: calc(100svh - 40px); }
+  .chat-scrim { --panel-w: calc(100vw - 20px); --panel-h: calc(100svh - 40px); }
 }
 
 @starting-style {
@@ -895,6 +918,7 @@ chat.addEventListener('click', (event) => {
     const ink = tok('--ps-ink');
     const muted = tok('--ps-muted');
     const signature = tok('--ps-pen');
+    const surface = tok('--paper');
     const wash = tok('--ps-wash');
 
     widget.overrides = {
@@ -902,7 +926,7 @@ chat.addEventListener('click', (event) => {
       // alpha with the two blurs is the widget's glass: at 1 and 0px the
       // panel is paper rather than frosted glass over the deck behind it,
       // which is a look this page does not have anywhere else.
-      bg: tok('--paper'),
+      bg: surface,
       'bg-secondary': wash,
       'panel-bg-alpha': '1',
       'panel-blur': '0px',
@@ -924,8 +948,16 @@ chat.addEventListener('click', (event) => {
       // on the rail do.
       signature,
       'signature-hover': signature,
-      'on-signature': tok('--paper'),
-      'user-bg': signature,
+      'on-signature': surface,
+      // The reader's own message, as a tint rather than a fill. It was the
+      // signature at full strength, which put ink on a saturated blue at
+      // roughly 2:1 and was the one illegible thing in the panel. No token
+      // fixes that from the text side: the widget declares
+      // `--steward-user-text` and never reads it, so the bubble's colour is
+      // just `--steward-text` and the background is the only lever. At 14%
+      // the ink reads at about 11:1, and the page gains no filled surface
+      // it does not have anywhere else.
+      'user-bg': `color-mix(in srgb, ${signature} 14%, ${surface})`,
       'assistant-bg': wash,
       'halo-rgb': hexTriplet(signature),
       'focus-rgb': hexTriplet(signature),
