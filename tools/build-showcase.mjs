@@ -1114,15 +1114,28 @@ chat.addEventListener('click', (event) => {
       // figure at full strength under running text.
       bg: surface,
       'bg-secondary': wash,
-      'panel-bg-alpha': '0.72',
-      'panel-blur': '20px',
-      'bubble-bg-alpha': '0.88',
-      'bubble-blur': '8px',
-      'chip-bg-alpha': '0.8',
+      // Swept rather than guessed, twice over, because the first two
+      // settings could not be seen at all. Cream at seven-tenths over cream
+      // is still cream: on a light page the alpha is not what shows the
+      // deck through, the blur is what hides it. Measured across a 664x238
+      // band of the panel with a figure behind it, the backdrop's luminance
+      // spread went 0.15 at a 24px blur, 0.25 at 16, and 0.44 at 10, with
+      // the alpha moving it by a third of that.
+      //
+      // So: a small blur, and the alpha set for legibility instead. 10px
+      // keeps the ink above 7:1 against the worst pixel in that band in
+      // light and about 6 in dark - dark being the harder case, because
+      // there the strokes behind are lighter than the pane and punch up
+      // through it rather than down.
+      'panel-bg-alpha': '0.35',
+      'panel-blur': '10px',
+      'bubble-bg-alpha': '0.62',
+      'bubble-blur': '10px',
+      'chip-bg-alpha': '0.55',
       'chip-blur': '10px',
-      // The lit edge along the top of a pane. Low: at the vendor's default
-      // it is a white line on cream.
-      'glass-edge-light': '0.35',
+      // The lit edge along the top of a pane, and the one part of the
+      // material that reads even where there is nothing behind it.
+      'glass-edge-light': '0.5',
       // Still no drop shadow. The panel's separation is the scrim's job,
       // and the scrim is a shape this page asked for rather than depth
       // borrowed from a material.
