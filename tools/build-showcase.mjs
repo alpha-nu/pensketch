@@ -1100,6 +1100,54 @@ chat.addEventListener('click', (event) => {
     const signature = tok('--ps-pen');
     const surface = tok('--paper');
     const wash = tok('--ps-wash');
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // Glass is the one part of this map that cannot be one setting read
+    // twice, because the two themes make it out of opposite materials.
+    //
+    // In light the pane is the page's own cream and the blur is what does
+    // the work: it smears the dark strokes behind into the cream and the
+    // pane reads as frosted. In dark that mechanism is gone. The pane
+    // colour and the deck are both \${surface}, so a pane tinted with it
+    // over a deck painted with it is the deck, at any alpha - which is
+    // what shipped, and what a pane with no visible edge looks like. The
+    // widget's own stylesheet says so in a comment on its launcher: real
+    // frosted glass scatters light, so dark glass should lighten what is
+    // behind it rather than darken it.
+    //
+    // So the dark pane is the ground lifted a fifth of the way to the ink,
+    // and the alpha and blur go up with it because the lift, not the blur,
+    // is now what makes the pane visible. Measured over the message band
+    // with a figure behind it: the pane sits at 3.5x the luminance of the
+    // page ground where it shipped at 1.5x, and the ink holds 6.37:1
+    // against the brightest pixel coming through where it held 5.80. The
+    // deck pays a little for both - the band's spread falls from 0.025 to
+    // 0.022 - because deck-through and legibility pull against each other
+    // in dark in a way they do not in light: there the strokes behind are
+    // brighter than the pane and punch up through it rather than down.
+    // Alpha 0.65 buys 6.98:1 and was the first pick, but the figure behind
+    // stops being readable and starts being a suggestion.
+    //
+    // The lift is not only for the glass: the widget's
+    // \`prefers-reduced-transparency\` rule repaints the panel opaque in
+    // \`bg\`, which in dark used to be the page colour exactly, leaving a
+    // panel with nothing but a border. Lifted, that fallback is a surface.
+    const glass = dark
+      ? {
+          bg: \`color-mix(in srgb, \${ink} 20%, \${surface})\`,
+          'panel-bg-alpha': '0.55',
+          'panel-blur': '14px',
+          // White at half strength over a dark chip is the brightest thing
+          // in the panel. The widget's own dark default is 0.12 for the
+          // same reason.
+          'glass-edge-light': '0.18',
+        }
+      : {
+          bg: surface,
+          'panel-bg-alpha': '0.35',
+          'panel-blur': '10px',
+          'glass-edge-light': '0.5',
+        };
 
     widget.overrides = {
       // Surfaces, and the glass. Each surface colour is mixed from \`bg\` by
@@ -1112,7 +1160,11 @@ chat.addEventListener('click', (event) => {
       // frame. The scrim stays behind the panel rather than only around it,
       // so what comes through the glass is a dimmed deck rather than a
       // figure at full strength under running text.
-      bg: surface,
+      //
+      // The pane itself, its alpha, its blur and its lit edge all come from
+      // \`glass\` above, because all four are the theme's rather than the
+      // map's.
+      ...glass,
       'bg-secondary': wash,
       // Swept rather than guessed, twice over, because the first two
       // settings could not be seen at all. Cream at seven-tenths over cream
@@ -1120,22 +1172,13 @@ chat.addEventListener('click', (event) => {
       // deck through, the blur is what hides it. Measured across a 664x238
       // band of the panel with a figure behind it, the backdrop's luminance
       // spread went 0.15 at a 24px blur, 0.25 at 16, and 0.44 at 10, with
-      // the alpha moving it by a third of that.
-      //
-      // So: a small blur, and the alpha set for legibility instead. 10px
-      // keeps the ink above 7:1 against the worst pixel in that band in
-      // light and about 6 in dark - dark being the harder case, because
-      // there the strokes behind are lighter than the pane and punch up
-      // through it rather than down.
-      'panel-bg-alpha': '0.35',
-      'panel-blur': '10px',
+      // the alpha moving it by a third of that. So: a small blur, and the
+      // alpha set for legibility instead, which holds the ink above 7:1
+      // against the worst pixel in that band.
       'bubble-bg-alpha': '0.62',
       'bubble-blur': '10px',
       'chip-bg-alpha': '0.55',
       'chip-blur': '10px',
-      // The lit edge along the top of a pane, and the one part of the
-      // material that reads even where there is nothing behind it.
-      'glass-edge-light': '0.5',
       // Still no drop shadow. The panel's separation is the scrim's job,
       // and the scrim is a shape this page asked for rather than depth
       // borrowed from a material.
@@ -1159,9 +1202,18 @@ chat.addEventListener('click', (event) => {
       // fixes that from the text side: the widget declares
       // \`--steward-user-text\` and never reads it, so the bubble's colour is
       // just \`--steward-text\` and the background is the only lever. At 14%
-      // the ink reads at about 11:1, and the page gains no filled surface
-      // it does not have anywhere else.
-      'user-bg': \`color-mix(in srgb, \${signature} 14%, \${surface})\`,
+      // the page gains no filled surface it does not have anywhere else.
+      //
+      // Tinted from the pane rather than from the page, so that the bubble
+      // stays a shade of the surface it is sitting on. In dark those two
+      // parted company when the pane lifted, and mixing from the page would
+      // have made the reader's own message the one dark hole in a lit panel.
+      // It costs the dark theme most of its headroom: composited over the
+      // pane the ink reads 11.5:1 in light and 6.79 in dark, against 10.37
+      // before the lift. Everything in the dark panel now lands in the same
+      // band - pane 6.37, user bubble 6.79, assistant 6.92 - which is the
+      // lit pane's price and is paid once rather than by one element.
+      'user-bg': \`color-mix(in srgb, \${signature} 14%, \${glass.bg})\`,
       'assistant-bg': wash,
       'halo-rgb': hexTriplet(signature),
       'focus-rgb': hexTriplet(signature),
