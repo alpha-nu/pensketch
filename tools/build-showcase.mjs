@@ -1270,6 +1270,18 @@ chat.addEventListener('click', (event) => {
       'border-radius-sm': '2px',
       'header-btn-radius': '2px',
       'header-group-radius': '2px',
+      // The composer at rest, against the widget's 40px. Asked for as a
+      // multiple, and a multiple is the wrong unit above 120px: that is
+      // where the textarea's own \`max-height\` stops it growing, and a
+      // \`min-height\` larger than a \`max-height\` wins outright, so 4x
+      // would have frozen the box and made it scroll from the first line
+      // over. At 90px it is a composer that opens two lines and a quarter
+      // deep and still grows the last line and a half before it scrolls.
+      //
+      // The earlier attempt at this adopted a stylesheet into the nested
+      // input's shadow root, which the owner reverted and was right to:
+      // the supported lever was a token on the host the whole time.
+      'input-height': '90px',
       'font-family': 'Charter, "Iowan Old Style", Georgia, serif',
       'font-size': '16px',
       'line-height': '1.6',
