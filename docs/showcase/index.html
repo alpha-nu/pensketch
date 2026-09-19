@@ -403,24 +403,6 @@ code .comment { color: var(--ps-muted); }
   --panel-h: min(680px, calc(100svh - 96px));
 }
 .chat-scrim::backdrop { background: none; }
-/* The shade, and it is the panel's own shape rather than a circle. A
-   radial gradient is an ellipse by definition, so a round halo around a
-   square box was the only thing it could have drawn; what makes this
-   rectangular is that it *is* a rectangle, blurred. The box runs 40px
-   past the panel on every side so that full strength reaches the edge
-   rather than the falloff starting under it, and the blur then carries it
-   out another 100px or so before it is gone. */
-.chat-scrim::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: calc(var(--panel-w) + 80px);
-  height: calc(var(--panel-h) + 80px);
-  transform: translate(-50%, -50%);
-  background: var(--scrim);
-  filter: blur(56px);
-}
 /* `display` belongs to the open rule and to no other: a dialog is
    display:none until it opens, and a bare `display: flex` on the element
    overrides that and leaves the panel sitting on the page from load. */
@@ -451,7 +433,24 @@ html:has(.chat-scrim[open]) { overflow: hidden; }
   height: var(--panel-h);
   border: 1px solid var(--rule);
   border-radius: 2px;
-  background: var(--paper);
+  /* A frame, not a surface. The embed paints the surface, and since it
+     paints it as glass, anything opaque here would be the thing its
+     backdrop blur found - the deck would never show through and the glass
+     would come out as a flat tint. */
+  background: none;
+  /* The shade, in the panel's own shape because it is cast by the panel.
+     Two earlier attempts and what each got wrong: a radial gradient is an
+     ellipse by definition, so it could only ever draw a circle around a
+     square box; a blurred rectangle behind the panel had the right shape
+     but sat *under* the glass, and a flat scrim is all the backdrop blur
+     then had to work with, which is a grey card rather than a pane.
+
+     An outer box-shadow is the one that is clipped to outside the border
+     box, so it is a halo and nothing more: the deck itself is what shows
+     through the glass. No drop shadow lives anywhere else on this page;
+     this is the scrim the panel was always meant to have, drawn by the
+     thing that casts it. */
+  box-shadow: 0 0 112px 40px var(--scrim);
   color: var(--ps-ink);
   font: 400 16px/1.6 var(--serif);
   overflow: hidden;
@@ -922,20 +921,31 @@ chat.addEventListener('click', (event) => {
     const wash = tok('--ps-wash');
 
     widget.overrides = {
-      // Surfaces. The panel colour is mixed from `bg` by an alpha, and the
-      // alpha with the two blurs is the widget's glass: at 1 and 0px the
-      // panel is paper rather than frosted glass over the deck behind it,
-      // which is a look this page does not have anywhere else.
+      // Surfaces, and the glass. Each surface colour is mixed from `bg` by
+      // its own alpha and sat behind its own backdrop blur, so the pair is
+      // what decides whether a surface is paper or glass.
+      //
+      // The panel is the one that has to be let through for any of it to
+      // show: the deck behind it is what the blur has to work on, which is
+      // why the container around it stops painting paper and becomes a
+      // frame. The scrim stays behind the panel rather than only around it,
+      // so what comes through the glass is a dimmed deck rather than a
+      // figure at full strength under running text.
       bg: surface,
       'bg-secondary': wash,
-      'panel-bg-alpha': '1',
-      'panel-blur': '0px',
-      'chip-bg-alpha': '1',
-      'chip-blur': '0px',
-      'bubble-bg-alpha': '1',
-      // No shadows, and no inset white edge faking a lit one.
+      'panel-bg-alpha': '0.72',
+      'panel-blur': '20px',
+      'bubble-bg-alpha': '0.88',
+      'bubble-blur': '8px',
+      'chip-bg-alpha': '0.8',
+      'chip-blur': '10px',
+      // The lit edge along the top of a pane. Low: at the vendor's default
+      // it is a white line on cream.
+      'glass-edge-light': '0.35',
+      // Still no drop shadow. The panel's separation is the scrim's job,
+      // and the scrim is a shape this page asked for rather than depth
+      // borrowed from a material.
       'panel-shadow': 'none',
-      'glass-edge-light': '0',
       'shadow-rgb': hexTriplet(ink),
       // Text.
       text: ink,
