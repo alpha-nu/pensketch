@@ -86,6 +86,13 @@ jobs:
       # tripwire for someone building it locally with STEWARD_PK set and
       # committing the result: the placeholder would already be filled and
       # this step would refuse.
+      #
+      # And it requires the key to be a publishable one. The assistant
+      # issues two kinds against the same account - `stw_pk_` for a browser
+      # and `stw_sk_` for an admin caller - and the variable is one paste
+      # away from holding the wrong one. Nothing downstream would complain:
+      # a secret key works, so the failure would be a working chat widget
+      # serving an admin credential from a public page.
       - name: Bake the publishable key
         env:
           STEWARD_PK: ${{ vars.STEWARD_PK }}
@@ -101,6 +108,10 @@ jobs:
           }
           case "$STEWARD_PK" in *[!A-Za-z0-9_.-]*)
             echo "::error::STEWARD_PK holds characters that cannot be embedded in an inline script"
+            exit 1
+          esac
+          case "$STEWARD_PK" in stw_pk_*) ;; *)
+            echo "::error::STEWARD_PK is not a publishable stw_pk_ key, and this page is public"
             exit 1
           esac
           sed -i "s|window.STEWARD_PK = \"\"|window.STEWARD_PK = \"$STEWARD_PK\"|" "$page"

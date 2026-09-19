@@ -917,6 +917,7 @@ chat.addEventListener('click', (event) => {
     const ink = tok('--ps-ink');
     const muted = tok('--ps-muted');
     const signature = tok('--ps-pen');
+    const alert = tok('--ps-accent');
     const surface = tok('--paper');
     const wash = tok('--ps-wash');
     const dark = matchMedia('(prefers-color-scheme: dark)').matches;
@@ -968,6 +969,18 @@ chat.addEventListener('click', (event) => {
           'glass-edge-light': '0.5',
         };
 
+    // A lit pane costs every coloured text on it about a third of its
+    // contrast, and the two that are not ink had none to spare: the pen
+    // fell to 4.22:1 and the rust to 3.49, both under AA, on a page where
+    // they clear it easily against the deck. So in dark the link is lifted
+    // toward the ink until it clears - 70% of the pen reads 5.09 - and the
+    // error bubble goes the other way, mixed from the page rather than from
+    // the pane, which is the one surface in the panel that should be darker
+    // than the glass it sits on and buys the rust 4.85 at full strength.
+    const link = dark
+      ? `color-mix(in srgb, ${signature} 70%, ${ink})`
+      : signature;
+
     widget.overrides = {
       // Surfaces, and the glass. Each surface colour is mixed from `bg` by
       // its own alpha and sat behind its own backdrop blur, so the pair is
@@ -1003,11 +1016,39 @@ chat.addEventListener('click', (event) => {
       // borrowed from a material.
       'panel-shadow': 'none',
       'shadow-rgb': hexTriplet(ink),
-      // Text.
+      // Text, all of it the page's ink rather than the widget's near-black.
+      //
+      // The two bubble colours below are a correction. The audit that built
+      // this map read them as inert, and the reason it was wrong is worth
+      // keeping: `<steward-message>` and `<steward-thinking>` are
+      // registered and not instantiated until a conversation exists, so
+      // their stylesheets sit in no shadow root there is anything to dump.
+      // Walking the live tree finds about thirty live names; constructing
+      // every registered element first finds fifty-four. Everything in this
+      // paragraph and the three below was in the missing half, which is to
+      // say the panel has been rendering the vendor's colours in the places
+      // only a reader with a conversation open would ever have seen.
       text: ink,
+      'user-text': ink,
+      'assistant-text': ink,
       primary: ink,
       'text-secondary': muted,
       'header-text': muted,
+      // Links inside an answer, which were the widget's teal. `primary` does
+      // not cover this: the widget reads a link as
+      // `var(--accent, var(--primary))` and its own palette always sets the
+      // accent, so the fallback never arrives.
+      accent: link,
+      // Code, as the page sets it: no fill, the mono face, the ink. The
+      // widget's dark default is a near-black teal chip.
+      'code-bg': 'transparent',
+      'code-text': ink,
+      'font-mono': tok('--mono'),
+      // The rust, which this page spends on figure numbers and on the one
+      // arrow that says "only from a tag". An error bubble is the one thing
+      // in the panel it also belongs on.
+      'error-text': alert,
+      'error-bg': `color-mix(in srgb, ${alert} 10%, ${surface})`,
       border: tok('--rule'),
       // The pen, on everything the widget treats as its own colour. The
       // hover holds the same hue rather than lightening it, as the marks
@@ -1017,11 +1058,12 @@ chat.addEventListener('click', (event) => {
       'on-signature': surface,
       // The reader's own message, as a tint rather than a fill. It was the
       // signature at full strength, which put ink on a saturated blue at
-      // roughly 2:1 and was the one illegible thing in the panel. No token
-      // fixes that from the text side: the widget declares
-      // `--steward-user-text` and never reads it, so the bubble's colour is
-      // just `--steward-text` and the background is the only lever. At 14%
-      // the page gains no filled surface it does not have anywhere else.
+      // roughly 2:1 and was the one illegible thing in the panel. The fill
+      // came down rather than the text going pale, which the owner settled
+      // on seeing it: at 14% the page gains no filled surface it does not
+      // have anywhere else. `user-text` would now take a pale ink instead -
+      // it is live, and this map was wrong to call it inert - but that is
+      // the filled bubble again, and it is not what was chosen.
       //
       // Tinted from the pane rather than from the page, so that the bubble
       // stays a shade of the surface it is sitting on. In dark those two
